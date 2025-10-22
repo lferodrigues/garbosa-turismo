@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Excursão - Parque Aldeia das Águas | 25/01/2026</title>
+  <style>
+    :root{
+      --accent:#0ea5a4;
+      --accent-dark:#087b78;
+      --bg:#f6fbff;
+      --card:#ffffff;
+      --muted:#6b7280;
+      --shadow: 0 8px 24px rgba(15,23,42,0.08);
+      --radius:14px;
+      --maxw:980px;
+      font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    }
+
+    body{
+      margin:0;
+      background:linear-gradient(180deg, #eef9fb 0%, #f9ffff 100%);
+      color:#0f172a;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+      padding:32px 16px;
+      display:flex;
+      justify-content:center;
+    }
+
+    .wrap{
+      width:100%;
+      max-width:var(--maxw);
+      background:var(--card);
+      border-radius:18px;
+      box-shadow:var(--shadow);
+      overflow:hidden;
+    }
+
+    header.hero{
+      display:grid;
+      grid-template-columns: 1fr 320px;
+      gap:18px;
+      padding:22px;
+      align-items:center;
+      background:linear-gradient(90deg, rgba(14,165,164,0.06), rgba(14,165,164,0.02));
+    }
+
+    .left h1{
+      margin:0 0 8px 0;
+      font-size:22px;
+      line-height:1.05;
+      letter-spacing:-0.3px;
+    }
+
+    .left p.lead{
+      margin:0 0 14px 0;
+      color:var(--muted);
+      font-size:15px;
+    }
+
+    .badges{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+    }
+    .badge{
+      display:inline-flex;
+      gap:8px;
+      align-items:center;
+      background:#fff;
+      border:1px solid rgba(14,165,164,0.12);
+      padding:8px 10px;
+      border-radius:999px;
+      font-weight:600;
+      color:var(--accent-dark);
+      font-size:13px;
+      box-shadow: 0 6px 14px rgba(14,165,164,0.03);
+    }
+
+    .cta{
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      align-items:stretch;
+    }
+
+    .price-card{
+      background:linear-gradient(180deg,#ffffff,#f7fffe);
+      border-radius:12px;
+      padding:12px;
+      text-align:center;
+      border:1px solid rgba(7, 116, 114, 0.06);
+    }
+
+    .price-card small{color:var(--muted);display:block}
+    .price-card .main{font-weight:800;color:var(--accent-dark);font-size:18px}
+
+    .whatsapp-btn{
+      display:inline-flex;
+      gap:8px;
+      align-items:center;
+      justify-content:center;
+      text-decoration:none;
+      background:linear-gradient(180deg,var(--accent),var(--accent-dark));
+      color:white;
+      padding:10px 14px;
+      border-radius:10px;
+      font-weight:700;
+      box-shadow:0 8px 20px rgba(14,165,164,0.18);
+    }
+
+    main.content{
+      padding:20px;
+      display:grid;
+      grid-template-columns: 1fr 320px;
+      gap:20px;
+      align-items:start;
+    }
+
+    .card{
+      background:var(--card);
+      border-radius:12px;
+      padding:16px;
+      box-shadow:0 6px 18px rgba(15,23,42,0.03);
+      border:1px solid rgba(15,23,42,0.03);
+    }
+
+    .info-list{display:grid;gap:10px}
+    .info-row{display:flex;gap:12px;align-items:center}
+    .info-row strong{min-width:110px;color:#0f172a}
+    .info-row span{color:var(--muted)}
+
+    .prices .price-item{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px dashed rgba(15,23,42,0.04)}
+    .prices .price-item:last-child{border-bottom:none}
+    .prices .label{color:var(--muted)}
+    .prices .value{font-weight:700;color:#0b5b58}
+
+    /* gallery */
+    .gallery{
+      display:grid;
+      grid-template-columns:repeat(3,1fr);
+      gap:8px;
+      margin-top:12px;
+    }
+    .gallery img{
+      width:100%;
+      height:120px;
+      object-fit:cover;
+      border-radius:10px;
+      display:block;
+      cursor:pointer;
+      transition:transform .18s ease, box-shadow .18s ease;
+    }
+    .gallery img:hover{transform:scale(1.03);box-shadow:0 12px 26px rgba(2,6,23,0.12)}
+
+    /* modal viewer */
+    .lightbox{
+      position:fixed;
+      inset:0;
+      display:none;
+      align-items:center;
+      justify-content:center;
+      background:rgba(3,7,18,0.6);
+      z-index:1200;
+      padding:20px;
+    }
+    .lightbox.open{display:flex}
+    .lightbox img{max-width:95%;max-height:90%;border-radius:12px;box-shadow:0 30px 80px rgba(2,6,23,0.5)}
+
+    footer.call{
+      padding:18px;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:12px;
+      border-top:1px solid rgba(2,6,23,0.04);
+      background:linear-gradient(90deg, rgba(14,165,164,0.02), rgba(14,165,164,0.01));
+    }
+    footer.call p{margin:0;color:var(--muted)}
+
+    @media (max-width:920px){
+      header.hero, main.content{grid-template-columns:1fr}
+      header.hero{padding:14px}
+      .gallery{grid-template-columns:repeat(2,1fr)}
+      .left h1{font-size:20px}
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap" role="main">
+    <header class="hero">
+      <div class="left">
+        <h1>EXCURSÃO PARA O PARQUE ALDEIA DAS ÁGUAS – 25/01/2026 🌴</h1>
+        <p class="lead">Prepare-se para um dia <strong>INCRÍVEL</strong> no maior parque aquático da região — com o <strong>MAIOR TOBOÁGUA DO PLANETA</strong>! Adrenalina, diversão e momentos inesquecíveis esperam por você.</p>
+        <div class="badges">
+          <div class="badge">🚌 Saída: São João Nepomuceno — 04:00</div>
+          <div class="badge">🏖️ Retorno: 17:00 (direto do parque)</div>
+          <div class="badge">🎫 Incluso: ônibus semi-leito + ingresso</div>
+        </div>
+      </div>
+
+      <div class="cta">
+        <div class="price-card">
+          <small>Promoções por pessoa (parcelado em 3x)</small>
+          <div style="height:8px;"></div>
+          <div class="main">3x de R$77,00 (Adulto / +7 anos)</div>
+          <div style="height:10px"></div>
+          <div style="font-size:13px;color:var(--muted)">Pagamento fácil via PIX parcelado</div>
+        </div>
+
+        <a class="whatsapp-btn" id="whatsappBtn" href="https://chat.whatsapp.com/JHIp7z9tROF1BUqvoufQY3" target="_blank" rel="noopener noreferrer">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style="transform:translateY(1px)" xmlns="http://www.w3.org/2000/svg">
+            <path d="M20.5 3.5L3.5 20.5" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M17.472 14.382a5.99 5.99 0 0 1-3.28 1.79l-.38.08-.41.01-2.31.01c-2.1 0-3.78-1.66-3.9-3.75L6 12.6c-.04-.52.06-1.05.29-1.5.4-.83 1.27-1.57 2.07-2.02.84-.46 1.9-.63 2.82-.44l.29.07c.56.13 1.12.34 1.62.62.61.36 1.17.79 1.67 1.29.26.27.44.6.53.96.11.41.06.85-.11 1.24-.18.42-.49.77-.88 1.01z" stroke="white" stroke-width="0" fill="white"/>
+          </svg>
+          ENTRAR NO GRUPO (WHATSAPP)
+        </a>
+      </div>
+    </header>
+
+    <main class="content">
+      <section>
+        <div class="card">
+          <h3>O que está incluso</h3>
+          <div class="info-list" style="margin-top:10px">
+            <div class="info-row"><strong>Ônibus</strong><span>Ônibus semi-leito super confortável</span></div>
+            <div class="info-row"><strong>Ingresso</strong><span>Entrada ao parque inclusa</span></div>
+            <div class="info-row"><strong>Horários</strong><span>Saída 04:00 — Retorno 17:00</span></div>
+          </div>
+
+          <hr style="margin:14px 0;border-color:rgba(15,23,42,0.04)">
+
+          <h4>Valores promocionais</h4>
+          <div class="prices" style="margin-top:8px">
+            <div class="price-item"><div class="label">Criança até 5 anos (colo)</div><div class="value">3x de R$15,00</div></div>
+            <div class="price-item"><div class="label">Criança 6 anos</div><div class="value">3x de R$60,00</div></div>
+            <div class="price-item"><div class="label">Criança a partir de 7 anos / Adulto</div><div class="value">3x de R$77,00</div></div>
+          </div>
+
+          <p style="margin-top:12px;color:var(--muted)"><strong>🚨 VAGAS LIMITADAS!</strong> Garanta agora seu lugar nesse dia de pura diversão.</p>
+        </div>
+
+        <div class="card" style="margin-top:14px">
+          <h3>Galeria do parque</h3>
+          <p style="margin:6px 0 10px;color:var(--muted)">Clique em qualquer imagem para ampliar. As imagens oficiais podem ser baixadas nas páginas do parque (links abaixo).</p>
+
+          <!-- Gallery: substitua os src/data-src pelos links diretos das imagens que quiser usar -->
+          <div class="gallery" aria-hidden="false">
+            <!-- Exemplos: substitua 'placeholder-1.jpg' pela URL direta de uma imagem do site oficial. -->
+            <img data-src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEh_aD_zyVQElAw5F_QzAUVUqyxNeJGhuqf50E_VHmAssSHEtA3IhyubryyNGFgVuiHp64K_tCYN5jsUzTacu12lnwu24yx2UuzUIZJJYo2B0gXru4xQjTnELhkwlK2L4SNN93p3hQ4fszoo/s1600/P1010050.JPG" src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEh_aD_zyVQElAw5F_QzAUVUqyxNeJGhuqf50E_VHmAssSHEtA3IhyubryyNGFgVuiHp64K_tCYN5jsUzTacu12lnwu24yx2UuzUIZJJYo2B0gXru4xQjTnELhkwlK2L4SNN93p3hQ4fszoo/s1600/P1010050.JPG" alt="Aldeia das Águas - 1" />
+            <img data-src="https://www.aldeiadasaguasresort.com.br/wp-content/uploads/2019/06/Aldeia-Rampa-Yupie-01.jpg" src="https://www.aldeiadasaguasresort.com.br/wp-content/uploads/2019/06/Aldeia-Rampa-Yupie-01.jpg" alt="Aldeia das Águas - 2" />
+            <img data-src="https://www.aldeiadasaguasresort.com.br/wp-content/uploads/2019/05/Kilimanjaro-6-scaled.jpg" src="https://www.aldeiadasaguasresort.com.br/wp-content/uploads/2019/05/Kilimanjaro-6-scaled.jpg" alt="Kilimanjaro - maior toboágua" />
+            <img data-src="https://www.aldeiadasaguasresort.com.br/wp-content/uploads/2019/05/atracoes-Piscina-deOnda.jpg" src="https://www.aldeiadasaguasresort.com.br/wp-content/uploads/2019/05/atracoes-Piscina-deOnda.jpg" alt="Piscina de ondas" />
+            <img data-src="https://www.aldeiadasaguasresort.com.br/wp-content/uploads/2023/08/rio-corrente-2-1024x768.jpeg" src="https://www.aldeiadasaguasresort.com.br/wp-content/uploads/2023/08/rio-corrente-2-1024x768.jpeg" alt="Rio Corrente" />
+            <img data-src="https://www.aldeiadasaguasresort.com.br/wp-content/uploads/2019/05/piratinhaas-2-1024x768.jpeg" src="https://www.aldeiadasaguasresort.com.br/wp-content/uploads/2019/05/piratinhaas-2-1024x768.jpeg" alt="Área infantil" />
+          </div>
+
+          <p style="margin-top:10px;font-size:13px;color:var(--muted)">
+            Onde encontrei imagens e informações oficiais (use para baixar fotos de alta resolução):
+            <ul style="margin:6px 0 0 18px;padding:0;color:var(--muted)">
+              <li><a href="https://www.aldeiadasaguasresort.com.br/" target="_blank" rel="noopener noreferrer">Site oficial — Aldeia das Águas</a>. (página do parque e atrações).</li>
+              <li><a href="https://www.aldeiadasaguasresort.com.br/atracoes/" target="_blank" rel="noopener noreferrer">Atrações — Aldeia das Águas</a> (mapa e fotos).</li>
+              <li><a href="https://www.tripadvisor.com/Attraction_Review-g1754455-d7181966-Reviews-Aldeia_Das_Aguas_Water_Park-Barra_do_Pirai_State_of_Rio_de_Janeiro.html" target="_blank" rel="noopener noreferrer">Tripadvisor — galeria e avaliações</a></li>
+            </ul>
+          </p>
+        </div>
+      </section>
+
+      <aside>
+        <div class="card">
+          <h4>Resumo Rápido</h4>
+          <div style="margin-top:8px">
+            <div class="info-row"><strong>Data</strong><span>25/01/2026</span></div>
+            <div class="info-row"><strong>Saída</strong><span>São João Nepomuceno — 04:00</span></div>
+            <div class="info-row"><strong>Retorno</strong><span>17:00 (direto do parque)</span></div>
+            <div class="info-row"><strong>Incluso</strong><span>Ônibus semi-leito + ingresso</span></div>
+          </div>
+
+          <hr style="margin:12px 0;border-color:rgba(15,23,42,0.04)">
+
+          <h5>Como reservar</h5>
+          <p style="color:var(--muted);font-size:14px;margin:8px 0">Clique em "ENTRAR NO GRUPO (WHATSAPP)" para combinar pagamento, vagas e confirmar presença.</p>
+
+        </div>
+
+        <div class="card" style="margin-top:12px">
+          <h4>Dica</h4>
+          <p style="color:var(--muted);font-size:14px">Leve protetor solar, troca extra, e dinheiro pra lanches. O parque possui diversos pontos de alimentação.</p>
+        </div>
+      </aside>
+    </main>
+
+    <footer class="call">
+      <p>Precisa de ajuda com reservas? Entre no grupo do WhatsApp e fale conosco.</p>
+      <a class="whatsapp-btn" href="https://chat.whatsapp.com/JHIp7z9tROF1BUqvoufQY3" target="_blank" rel="noopener noreferrer">Entrar no grupo</a>
+    </footer>
+  </div>
+
+  <!-- Lightbox -->
+  <div class="lightbox" id="lightbox" aria-hidden="true">
+    <img id="lightboxImg" src="" alt="Ampliada" />
+  </div>
+
+  <script>
+    // gallery click -> lightbox
+    (function(){
+      const gallery = document.querySelectorAll('.gallery img');
+      const lightbox = document.getElementById('lightbox');
+      const lightboxImg = document.getElementById('lightboxImg');
+
+      gallery.forEach(img=>{
+        img.addEventListener('click', ()=>{
+          // use data-src if provided (for high-res), fallback to src
+          const hi = img.dataset.src || img.src;
+          lightboxImg.src = hi;
+          lightbox.classList.add('open');
+          lightbox.setAttribute('aria-hidden','false');
+        });
+      });
+
+      lightbox.addEventListener('click', (e)=>{
+        if(e.target === lightbox || e.target === lightboxImg){
+          lightbox.classList.remove('open');
+          lightbox.setAttribute('aria-hidden','true');
+          lightboxImg.src = '';
+        }
+      });
+
+      // keyboard ESC to close
+      document.addEventListener('keydown', (ev)=>{
+        if(ev.key === 'Escape'){
+          lightbox.classList.remove('open');
+          lightbox.setAttribute('aria-hidden','true');
+          lightboxImg.src = '';
+        }
+      });
+
+      // lazy-load images (basic)
+      document.addEventListener('DOMContentLoaded',()=>{
+        const imgs = document.querySelectorAll('.gallery img');
+        imgs.forEach(i=>{
+          if(i.dataset.src && i.dataset.src !== i.src){
+            // preload hi-res lazily
+            const img = new Image();
+            img.src = i.dataset.src;
+            img.onload = ()=>{ i.src = i.dataset.src; };
+          }
+        });
+      });
+    })();
+  </script>
+</body>
+</html>
