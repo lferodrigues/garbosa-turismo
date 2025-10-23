@@ -1,0 +1,323 @@
+ :root{
+      --accent:#0ea5a4;
+      --accent-dark:#087b78;
+      --bg:#f6fbff;
+      --card:#ffffff;
+      --muted:#6b7280;
+      --shadow: 0 8px 24px rgba(15,23,42,0.08);
+      --radius:14px;
+      --maxw:980px;
+      font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    }
+
+  body {
+  margin: 0;
+  background: linear-gradient(180deg, #eef9fb 0%, #f9ffff 100%);
+  color: #0f172a;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.wrap {
+  flex: 1;
+  width: 100%;
+  max-width: var(--maxw);
+  background: var(--card);
+  border-radius: 18px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  margin: 16px auto;
+}
+
+    header.hero{
+      display:grid;
+      grid-template-columns: 1fr 320px;
+      gap:18px;
+      padding:22px;
+      align-items:center;
+      background:linear-gradient(90deg, rgba(14,165,164,0.06), rgba(14,165,164,0.02));
+    }
+
+    .left h1{
+      margin:0 0 8px 0;
+      font-size:22px;
+      line-height:1.05;
+      letter-spacing:-0.3px;
+    }
+
+    .left p.lead{
+      margin:0 0 14px 0;
+      color:var(--muted);
+      font-size:15px;
+    }
+
+    .badges{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+    }
+    .badge{
+      display:inline-flex;
+      gap:8px;
+      align-items:center;
+      background:#fff;
+      border:1px solid rgba(14,165,164,0.12);
+      padding:8px 10px;
+      border-radius:999px;
+      font-weight:600;
+      color:var(--accent-dark);
+      font-size:13px;
+      box-shadow: 0 6px 14px rgba(14,165,164,0.03);
+    }
+
+    .cta{
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      align-items:stretch;
+    }
+
+    .price-card{
+      background:linear-gradient(180deg,#ffffff,#f7fffe);
+      border-radius:12px;
+      padding:12px;
+      text-align:center;
+      border:1px solid rgba(7, 116, 114, 0.06);
+    }
+
+    .price-card small{color:var(--muted);display:block}
+    .price-card .main{font-weight:800;color:var(--accent-dark);font-size:18px}
+
+    .whatsapp-btn{
+      display:inline-flex;
+      gap:8px;
+      align-items:center;
+      justify-content:center;
+      text-decoration:none;
+      background:linear-gradient(180deg,var(--accent),var(--accent-dark));
+      color:white;
+      padding:10px 14px;
+      border-radius:10px;
+      font-weight:700;
+      box-shadow:0 8px 20px rgba(14,165,164,0.18);
+    }
+
+    main.content{
+      padding:20px;
+      display:grid;
+      grid-template-columns: 1fr 320px;
+      gap:20px;
+      align-items:start;
+    }
+
+    .card{
+      background:var(--card);
+      border-radius:12px;
+      padding:16px;
+      box-shadow:0 6px 18px rgba(15,23,42,0.03);
+      border:1px solid rgba(15,23,42,0.03);
+    }
+
+    .info-list{display:grid;gap:10px}
+    .info-row{display:flex;gap:12px;align-items:center}
+    .info-row strong{min-width:110px;color:#0f172a}
+    .info-row span{color:var(--muted)}
+
+    .prices .price-item{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px dashed rgba(15,23,42,0.04)}
+    .prices .price-item:last-child{border-bottom:none}
+    .prices .label{color:var(--muted)}
+    .prices .value{font-weight:700;color:#0b5b58}
+
+    /* gallery */
+    .gallery{
+      display:grid;
+      grid-template-columns:repeat(3,1fr);
+      gap:8px;
+      margin-top:12px;
+    }
+    .gallery img{
+      width:100%;
+      height:120px;
+      object-fit:cover;
+      border-radius:10px;
+      display:block;
+      cursor:pointer;
+      transition:transform .18s ease, box-shadow .18s ease;
+    }
+    .gallery img:hover{transform:scale(1.03);box-shadow:0 12px 26px rgba(2,6,23,0.12)}
+
+    /* modal viewer */
+    .lightbox{
+      position:fixed;
+      inset:0;
+      display:none;
+      align-items:center;
+      justify-content:center;
+      background:rgba(3,7,18,0.6);
+      z-index:1200;
+      padding:20px;
+    }
+    .lightbox.open{display:flex}
+    .lightbox img{max-width:95%;max-height:90%;border-radius:12px;box-shadow:0 30px 80px rgba(2,6,23,0.5)}
+
+    /* === seção substituta do footer === */
+    .call-section{
+      padding:18px;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:12px;
+      border-top:1px solid rgba(2,6,23,0.04);
+      background:linear-gradient(90deg, rgba(14,165,164,0.02), rgba(14,165,164,0.01));
+    }
+    .call-section p{
+      margin:0;
+      color:var(--muted);
+    }
+/* 🔹 Botões de links — versão compacta real e em linha */
+.link-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 12px;
+}
+
+.link-buttons .btn-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  text-decoration: none;
+  background: linear-gradient(90deg, var(--accent), var(--accent-dark));
+  color: white;
+  padding: 6px 10px; /* 🔸 menor altura e largura */
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 12px; /* 🔸 fonte reduzida */
+  box-shadow: 0 3px 8px rgba(14,165,164,0.15);
+  transition: all 0.18s ease-in-out;
+  white-space: nowrap;
+  line-height: 1.1;
+}
+
+.link-buttons .btn-link:hover {
+  transform: translateY(-1px) scale(1.02);
+  box-shadow: 0 5px 12px rgba(14,165,164,0.25);
+  filter: brightness(1.08);
+}
+footer {
+  background-color: #333;
+  color: #fff;
+  text-align: center;
+  padding: 6px 0; /* 🔹 menor altura */
+  flex-shrink: 0;
+  margin-top: auto; /* mantém fixo ao final */
+  font-size: 14px;
+}
+
+.footer-content {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: #fff;
+  gap: 6px;
+}
+
+.footer-content img {
+  width: 80px;
+  margin-right: 8px;
+  transition: transform 0.2s ease-in-out;
+}
+
+.footer-content img:hover {
+  transform: scale(1.05);
+}
+
+ 
+
+/* Se preferir footer menor em mobile, ajude com responsividade */
+/* ====== RESPONSIVIDADE ====== */
+
+/* 🔸 Tablets e telas médias */
+@media (max-width: 920px) {
+  header.hero {
+    grid-template-columns: 1fr;
+    text-align: center;
+  }
+
+  .cta {
+    align-items: center;
+  }
+
+  main.content {
+    grid-template-columns: 1fr;
+  }
+
+  .gallery {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .footer-content {
+    flex-direction: column;
+    gap: 8px;
+  }
+}
+
+/* 🔸 Smartphones */
+@media (max-width: 640px) {
+  body {
+    padding: 0;
+  }
+
+  header.hero {
+    padding: 16px;
+  }
+
+  .left h1 {
+    font-size: 18px;
+    line-height: 1.2;
+  }
+
+  .left p.lead {
+    font-size: 14px;
+  }
+
+  .badge {
+    font-size: 12px;
+    padding: 6px 8px;
+  }
+
+  .price-card .main {
+    font-size: 16px;
+  }
+
+  main.content {
+    padding: 14px;
+  }
+
+  .gallery {
+    grid-template-columns: 1fr;
+  }
+
+  .call-section {
+    flex-direction: column;
+    text-align: center;
+  }
+ footer {
+    padding: 4px 0;
+    font-size: 12px;
+  }
+
+  .footer-content {
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .footer-content img {
+    width: 60px;
+    margin: 0;
+  }
+}
