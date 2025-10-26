@@ -1,0 +1,104 @@
+body {
+  background: linear-gradient(135deg, #2f1b68, #4b2a94);
+  color: #fff;
+  font-family: "Poppins", sans-serif;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  margin: 0;
+  text-align: center;
+}
+
+h1 {
+  font-size: 1.6rem;
+  margin-bottom: 10px;
+}
+
+p {
+  font-size: 1rem;
+  opacity: 0.9;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Barra de progresso */
+.progress-container {
+  margin-top: 25px;
+  width: 80%;
+  max-width: 300px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 30px;
+  overflow: hidden;
+  height: 12px;
+}
+
+.progress-bar {
+  height: 100%;
+  width: 0%;
+  background-color: #fff;
+  border-radius: 30px;
+  transition: width 0.2s ease;
+}
+
+.percent {
+  margin-top: 10px;
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+footer {
+  background-color: #000;
+  text-align: center;
+  position: fixed;
+  bottom: 0;
+  width: 100%;
+}
+
+.footer-content {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.footer-content img {
+  width: 90px;
+  margin-right: 10px;
+}
+
+/* Logo (foto principal) menor e centralizada */
+.logo {
+  display: block;
+  margin: 0 auto 20px auto; /* centraliza e dá espaço abaixo */
+  width: 180px; /* diminui o tamanho da imagem */
+  max-width: 80%; /* mantém responsividade */
+  height: auto; /* preserva proporção */
+  border-radius: 10px; /* opcional, dá um leve arredondamento */
+}
+
+
+.progress {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 24px;
+}
+
+.content {
+  text-align: center;
+  margin-top: 50px;
+}
+
+.construction {
+  position: relative;
+}
+
+.construction img {
+  width: 10px;
+}
