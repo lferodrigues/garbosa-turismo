@@ -1,0 +1,348 @@
+/* RESET */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+.banner .w3-display-bottomleft a {
+    color: #ffffff !important;
+    font-size: 30px;     /* tamanho reduzido dos ícones */
+    margin-right: 6px;   /* menor espaçamento entre eles */
+    text-decoration: none;
+}
+
+.banner .w3-display-bottomleft a:hover {
+    opacity: 0.7;
+}
+.banner {
+    position: relative;
+}
+
+.banner .w3-display-bottomleft {
+    position: absolute !important;
+    bottom: 15px;
+    left: 15px;
+    z-index: 10 !important;   /* garante que fica por cima */
+}
+
+
+/* CORES DA MARCA */
+:root {
+    --roxo-garbosa: #2A1F88;
+    --branco: #ffffff;
+}
+/* Container da imagem do SOBRE */
+.sobre-img {
+    position: relative;
+    width: 100%;
+    height: 350px;
+}
+
+.sobre-img .slide {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 10px;
+
+    opacity: 0;
+    transition: opacity 1.5s ease-in-out;
+}
+
+/* Imagem visível */
+.sobre-img .active {
+    opacity: 1;
+}
+
+/* NAVBAR (BRANCO) */
+.navbar {
+    background: var(--branco);
+    padding: 14px 0;
+    position: fixed;
+    width: 100%;
+    top: 0;
+    z-index: 1000;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+}
+
+.nav-container {
+    width: 90%;
+    margin: auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.logo-img {
+    height: 45px;
+}
+
+/* MENU */
+.nav-links {
+    display: flex;
+    list-style: none;
+    gap: 22px;
+}
+
+.nav-links a {
+    color: var(--roxo-garbosa);
+    text-decoration: none;
+    font-weight: 600;
+    transition: 0.3s;
+}
+
+.nav-links a:hover {
+    opacity: 0.7;
+}
+
+/* HAMBURGUER */
+.hamburger {
+    width: 30px;
+    height: 22px;
+    display: none;
+    flex-direction: column;
+    justify-content: space-between;
+    cursor: pointer;
+}
+
+.hamburger span {
+    height: 4px;
+    border-radius: 4px;
+    background: var(--roxo-garbosa);
+    transition: 0.3s;
+}
+
+/* BANNER COM A IMAGEM INTEIRA */
+.banner {
+    width: 100%;
+    margin-top: 10px; /* distância do topo */
+    display: flex;
+    justify-content: center;
+}
+
+.banner img {
+    width: 100%;
+    height: auto;
+    max-width: 1800px;     /* evita esticar a mais que o tamanho real */
+    object-fit: contain;
+    display: block;
+}
+
+
+/* SOBRE (BRANCO) */
+.sobre {
+    background: var(--branco);
+    padding: 70px 10%;
+    display: flex;
+    align-items: center;
+    gap: 35px;
+}
+
+.sobre-texto {
+    width: 50%;
+    color: var(--roxo-garbosa);
+}
+
+.sobre-texto h2 {
+    font-size: 34px;
+    margin-bottom: 18px;
+}
+
+.sobre-texto p {
+    font-size: 17px;
+    line-height: 1.6;
+}
+
+.btn-excursoes {
+    display: inline-block;
+    margin-top: 16px;
+    padding: 12px 20px;
+    background: var(--roxo-garbosa);
+    color: var(--branco);
+    border-radius: 6px;
+    text-decoration: none;
+    font-weight: bold;
+    transition: 0.3s;
+}
+
+.btn-excursoes:hover {
+    background: #1b1160;
+}
+
+/* IMAGEM SOBRE */
+.sobre-img img {
+    width: 100%;
+    border-radius: 10px;
+}
+.sobre-slideshow {
+    position: relative;
+    width: 100%;
+    max-width: 450px;
+    height: 300px;
+    overflow: hidden;
+    border-radius: 12px;
+    margin: 0 auto; /* centraliza */
+}
+
+.sobre-slideshow img {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+
+    opacity: 0;
+    transition: opacity 1.2s ease-in-out;
+}
+
+.sobre-slideshow img.active {
+    opacity: 1;
+}
+
+
+/* PARCEIROS (ROXO OFICIAL) */
+/* PARCEIROS */
+.parceiros {
+    background: var(--roxo-garbosa);
+    color: var(--branco);
+    text-align: center;
+    padding: 60px 20px;
+}
+
+/* Container do slider */
+.slider-container {
+    width: 100%;
+    overflow: hidden;
+    position: relative;
+}
+
+/* Área animada */
+.slider {
+    display: flex;
+    align-items: center;
+    gap: 60px;
+    animation: slideAnimation 35s linear infinite; /* MAIS LENTO */
+    white-space: nowrap;
+}
+
+/* Caixinha de cada parceiro */
+.partner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+/* Imagens arredondadas */
+.partner img {
+    width: 140px;
+    height: 140px;
+    object-fit: cover;
+    border-radius: 50%; /* ARREDONDAMENTO */
+    border: 4px solid rgba(255, 255, 255, 0.4);
+    transition: transform 0.3s ease;
+}
+
+.partner img:hover {
+    transform: scale(1.07);
+}
+
+/* Legenda abaixo */
+.partner p {
+    margin-top: 10px;
+    font-size: 15px;
+    color: var(--branco);
+}
+
+/* ANIMAÇÃO: começa fora da direita e termina fora da esquerda */
+@keyframes slideAnimation {
+    0% {
+        transform: translateX(100%);
+    }
+    100% {
+        transform: translateX(-100%);
+    }
+}
+
+
+/* FOOTER (BRANCO) */
+footer {
+    background: var(--branco);
+    color: var(--roxo-garbosa);
+    text-align: center;
+    padding: 4px 0;      /* ALTURA MUITO PEQUENA */
+    font-size: 14px;
+    font-weight: 500;
+    box-shadow: 0 -1px 6px rgba(0,0,0,0.05);
+}
+
+.footer-content {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.footer-content img {
+  width: 90px;
+  margin-right: 10px;
+}
+
+/* Logo (foto principal) menor e centralizada */
+.logo {
+  display: block;
+  margin: 0 auto 20px auto; /* centraliza e dá espaço abaixo */
+  width: 180px; /* diminui o tamanho da imagem */
+  max-width: 80%; /* mantém responsividade */
+  height: auto; /* preserva proporção */
+  border-radius: 10px; /* opcional, dá um leve arredondamento */
+}
+
+
+/* RESPONSIVO */
+@media (max-width: 768px) {
+
+    .hamburger {
+        display: flex;
+    }
+
+    .nav-links {
+        display: none;
+        flex-direction: column;
+        background: var(--branco);
+        position: absolute;
+        top: 70px;
+        right: 0;
+        width: 200px;
+        padding: 15px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+
+    .nav-links.open {
+        display: flex;
+    }
+
+    .sobre {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .sobre-texto, .sobre-img {
+        width: 100%;
+    }
+
+    .banner img {
+        max-width: 100%;  /* ajusta ao tamanho da tela */
+        height: auto;
+    }
+    .banner .w3-display-bottomleft {
+        bottom: 8px;    /* aproxima do rodapé */
+        left: 8px;      /* aproxima da borda esquerda */
+        font-size: 14px !important;
+    }
+
+    .banner .w3-display-bottomleft a {
+        font-size: 14px !important;
+        margin-right: 4px !important;
+    }
+
+}

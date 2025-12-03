@@ -1,0 +1,274 @@
+/* NAVBAR */
+/* NAVBAR BRANCA */
+.navbar {
+    width: 100%;
+    background: #ffffff;      /* Branco */
+    padding: 15px 0;
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 9999;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.15);
+}
+
+.nav-container {
+    width: 90%;
+    max-width: 1200px;
+    margin: auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+/* LOGO */
+.logo-img {
+    height: 48px;
+}
+
+/* LINKS ROXOS */
+.nav-links {
+    display: flex;
+    list-style: none;
+    gap: 30px;
+}
+
+.nav-links a {
+    text-decoration: none;
+    color: #2b2678;          /* Roxo */
+    font-size: 18px;
+    font-weight: 600;
+    transition: 0.3s;
+}
+
+.nav-links a:hover {
+    color: #645dff;          /* Roxo mais claro */
+}
+
+/* HAMBURGUER ROXO */
+.hamburger {
+    display: none;
+    flex-direction: column;
+    gap: 5px;
+    cursor: pointer;
+}
+
+.hamburger span {
+    width: 28px;
+    height: 3px;
+    background: #2b2678;     /* Roxo */
+    border-radius: 5px;
+}
+.excursao-container {
+    padding-top: 120px; /* evita que o h1 fique atrás do menu */
+}
+
+/* SEÇÃO DE EXCURSÕES */
+
+
+.excursoes-section, .excursao-section {
+    background: #2b2678; /* Roxo institucional */
+    padding: 60px 20px;
+    text-align: center;
+    color: white; /* deixa todos textos da seção brancos */
+}
+body {
+    background: #2b2678 !important; /* Roxo institucional */
+    margin: 0;
+    padding: 0;
+    color: white; /* Mantém textos brancos no fundo roxo */
+}
+
+/*********  FUNDO DA PÁGINA  *********/
+body {
+    background: #2b2678 !important;
+    margin: 0;
+    padding: 0;
+    color: white;
+}
+
+/*********  CENTRALIZAÇÃO GERAL  *********/
+.excursoes-section, .excursao-section {
+    padding: 60px 20px;
+    text-align: center;
+    color: white;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/*********  TÍTULO CENTRALIZADO  *********/
+.titulo-excursoes {
+    font-size: 36px;
+    margin-bottom: 40px;
+    color: #ffffff;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-align: center;
+}
+
+/*********  GRID CENTRALIZADO  *********/
+.cards-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 25px;
+    width: 100%;
+    max-width: 1300px;
+    justify-items: center;    /* CENTRALIZA CARDS */
+}
+
+/*********  CARD  *********/
+.card {
+    background: white;
+    border-radius: 14px;
+    overflow: hidden;
+    width: 100%;
+    max-width: 290px;          /* Cards centralizados e proporcionais */
+    box-shadow: 0 6px 16px rgba(0,0,0,0.15);
+    transition: transform .3s, box-shadow .3s;
+}
+
+.card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.25);
+}
+
+.card img {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+}
+
+.card-content {
+    padding: 18px;
+    text-align: center;
+    color: #222;
+}
+
+/*********  BOTÃO "SAIBA MAIS"  *********/
+.btn-saiba {
+    background: #ffffff;
+    color: #2b2678;
+    border: 2px solid #2b2678;
+    padding: 10px 20px;
+    border-radius: 50px;
+    font-size: 15px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: 0.3s;
+}
+
+.btn-saiba:hover {
+    background: #2b2678;
+    color: white;
+}
+
+/********* BOTÕES PRÓXIMO E ANTERIOR — ESTILO PREMIUM *********/
+.pagination {
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+    margin-top: 45px;
+}
+.btn-paginacao i {
+    font-size: 18px;
+}
+
+/* Espaço entre ícone e texto */
+#prevBtn i {
+    margin-right: 10px;
+}
+
+#nextBtn i {
+    margin-left: 10px;
+}
+
+.btn-paginacao {
+    background: #ffffff;
+    color: #2b2678;
+    border: none;
+    padding: 14px 45px;
+    border-radius: 50px;
+    font-size: 18px;
+    font-weight: 700;
+    cursor: pointer;
+    letter-spacing: 1px;
+
+    box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+    transition: 0.3s ease-in-out;
+}
+
+.btn-paginacao:hover:not(:disabled) {
+    background: #dcd9ff;
+    color: #1c1666;
+    transform: translateY(-4px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.35);
+}
+
+.btn-paginacao:active:not(:disabled) {
+    transform: scale(0.97);
+}
+
+.btn-paginacao:disabled {
+    background: rgba(255,255,255,0.35);
+    color: rgba(255,255,255,0.7);
+    cursor: not-allowed;
+    box-shadow: none;
+    transform: none;
+}
+/*********  RESPONSIVIDADE  *********/
+@media (max-width: 992px) {
+    .cards-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 600px) {
+    .cards-grid {
+        grid-template-columns: 1fr;
+    }
+    .titulo-excursoes {
+        font-size: 28px;
+    }
+    .btn-paginacao {
+        width: 70%;
+        padding: 14px;
+        font-size: 16px;
+    }
+@media (max-width: 850px) {
+
+    .hamburger {
+        display: flex;
+    }
+
+    .nav-links {
+        position: absolute;
+        top: 75px;
+        right: 0;
+        width: 220px;
+        background: #ffffff;          /* Menu mobile branco */
+        flex-direction: column;
+        padding: 25px;
+        gap: 20px;
+        display: none;
+        border-radius: 0 0 0 18px;
+        box-shadow: -4px 8px 20px rgba(0,0,0,0.2);
+        animation: fadeIn 0.3s ease-out;
+    }
+
+    .nav-links.open {
+        display: flex;
+    }
+
+    .nav-links a {
+        color: #2b2678;
+    }
+}
+
+/* ANIMAÇÃO */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+
+}

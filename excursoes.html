@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <link rel="icon" href="Assets/img/logo.ico" type="image/x-icon" />
+    <link rel="shortcut icon" href="Assets/img/logo.ico" type="image/x-icon" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+ 
+    <link rel="stylesheet" href="./Assets/css/excursao/estilo.css">
+    <script>
+// BLOQUEAR BOTÃO DIREITO
+document.addEventListener('contextmenu', event => event.preventDefault());
+
+// BLOQUEAR TECLAS DE ATAJO
+document.addEventListener('keydown', (e) => {
+
+    // F12
+    if (e.key === "F12") {
+        e.preventDefault();
+    }
+
+    // CTRL + SHIFT + I / J / C
+    if (e.ctrlKey && e.shiftKey && (
+        e.key === "I" || e.key === "i" ||
+        e.key === "J" || e.key === "j" ||
+        e.key === "C" || e.key === "c"
+    )) {
+        e.preventDefault();
+    }
+
+    // CTRL + U (código-fonte)
+    if (e.ctrlKey && (e.key === "U" || e.key === "u")) {
+        e.preventDefault();
+    }
+
+    // CTRL + S (salvar página)
+    if (e.ctrlKey && (e.key === "S" || e.key === "s")) {
+        e.preventDefault();
+    }
+
+    // CTRL + C / X (copiar e recortar)
+    if (e.ctrlKey && (e.key === "C" || e.key === "c" || e.key === "X" || e.key === "x")) {
+        e.preventDefault();
+    }
+});
+
+// BLOQUEAR SELEÇÃO DE TEXTO
+document.addEventListener('selectstart', (e) => e.preventDefault());
+
+// BLOQUEAR ARRASTAR IMAGENS
+document.addEventListener('dragstart', (e) => e.preventDefault());
+
+// DESCARACTERIZAR TENTATIVA DE DEVTOOLS
+(function() {
+    let aberto = false;
+    const elemento = new Image();
+    Object.defineProperty(elemento, 'id', {
+        get: function () {
+            aberto = true;
+            throw new Error("DevTools detectado");
+        }
+    });
+
+    setInterval(function() {
+        aberto = false;
+        console.log(elemento);
+        if (aberto) {
+            document.body.innerHTML = "<h1 style='color:white; text-align:center; margin-top:30vh;'>Acesso negado</h1>";
+        }
+    }, 500);
+})();
+</script>
+
+
+    <title>Excursões – Garbosa Turismo</title>
+ 
+    
+<body>
+   <nav class="navbar">
+        <div class="nav-container">
+
+            <img src="./Assets/img/logo.ico" class="logo-img" alt="Garbosa Turismo">
+
+            <!-- HAMBURGUER -->
+            <div class="hamburger" id="hamburger">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+
+            <ul class="nav-links" id="nav-links">
+                <li><a href="https://garbosaturismo.com.br">Início</a></li>
+                
+            </ul>
+
+        </div>
+    </nav> 
+    <div></div>
+
+    <div class="excursao-container">
+        
+        <h1>Nossas Excursões:</h1>
+
+        <div id="cards" class="cards-grid"></div>
+
+        <div class="pagination">
+            <button id="prevBtn" class="btn-paginacao">
+    <i class="fa fa-arrow-left"></i> Anterior
+</button>
+
+<button id="nextBtn" class="btn-paginacao">
+    Próxima <i class="fa fa-arrow-right"></i>
+</button>
+        </div>
+    </div>
+
+    
+
+</body>
+<script src="./Assets/js/scripts.js"></script>
+<script src="./Assets/js/exrcursao/script.js"></script>
+</html>
