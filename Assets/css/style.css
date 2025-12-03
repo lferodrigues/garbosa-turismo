@@ -321,15 +321,48 @@ footer {
         display: flex;
     }
 
-    .sobre {
-        flex-direction: column;
+      .sobre {
+        flex-direction: column;       /* empilha tudo */
         text-align: center;
-    }
-
-    .sobre-texto, .sobre-img {
         width: 100%;
     }
 
+    .sobre-texto {
+        order: 1;
+        width: 100%;
+    }
+
+    .btn-excursoes {
+        order: 2;
+        margin-top: 15px;
+    }
+
+    .sobre-slideshow {
+        order: 3;
+        width: 100%;
+        max-width: 350px;
+        margin: 20px auto 0 auto;
+
+        border-radius: 12px;   /* ARREDONDA */
+        overflow: hidden;      /* A IMAGEM RESPEITA O ARREDONDAMENTO */
+
+        aspect-ratio: 3 / 4;   /* impede saltos */
+        position: relative;
+    }
+
+    .sobre-slideshow img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;   /* imagem inteira */
+        position: absolute;
+        top: 0;
+        left: 0;
+        background-color: #fff;  /* evita fundo preto */
+    }
+
+    .sobre-slideshow img.active {
+        opacity: 1;
+    }
     .banner img {
         max-width: 100%;  /* ajusta ao tamanho da tela */
         height: auto;
@@ -344,5 +377,4 @@ footer {
         font-size: 14px !important;
         margin-right: 4px !important;
     }
-
 }
