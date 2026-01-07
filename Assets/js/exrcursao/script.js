@@ -7,6 +7,13 @@ document.addEventListener("DOMContentLoaded", function () {
             descricao: "Prepare-se para um dia incrivel no maior parque aquático da região — com o MAIOR TOBOÁGUA DO PLANETA!",
              link: "aldeia-das-aguas.html"
         },
+           {
+            titulo: "PHN Canção Nova 2026",
+            imagem: "Assets/img/excursoes/phn.webp",
+            descricao: "Prepare-se para o maior acampamento católico da america latina, um evento recheado de fé,amor e religiosidade.",
+             link: "phn.html"
+        },
+        
         
     ];
 
