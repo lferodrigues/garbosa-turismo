@@ -15,7 +15,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // troca a cada 8 segundos
-    setInterval(trocarSlide, 1200);
+    setInterval(trocarSlide, 10000);
 });
  // Atualiza o ano no rodapé
  document.getElementById('currentYear').textContent = new Date().getFullYear();
