@@ -13,6 +13,12 @@ document.addEventListener("DOMContentLoaded", function () {
             descricao: "Prepare-se para o maior acampamento católico da america latina, um evento recheado de fé,amor e religiosidade.",
              link: "phn.html"
         },
+        {
+            titulo: "Excursao Hopi Hari ",
+            imagem: "Assets/img/excursoes/hopi.jpeg",
+            descricao: "Prepare-se para viver dias INESQUECÍVEIS de diversão, adrenalina e emoção em uma das maiores experiências de entretenimento do Brasil.",
+             link: "hopihari.html"
+        },
         
         
     ];
