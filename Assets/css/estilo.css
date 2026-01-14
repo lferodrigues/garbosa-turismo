@@ -59,6 +59,19 @@
       gap:8px;
       flex-wrap:wrap;
     }
+	/* Roteiro da viagem */
+.roteiro {
+  margin-top: 6px;
+  padding-left: 18px;
+}
+
+.roteiro li {
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.6;
+  margin-bottom: 6px;
+}
+
     .badge{
       display:inline-flex;
       gap:8px;
