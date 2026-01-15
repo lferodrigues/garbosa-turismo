@@ -31,6 +31,43 @@
   overflow: hidden;
   margin: 16px auto;
 }
+/* Valores dos pacotes */
+.packages {
+  margin-top: 12px;
+  margin-bottom: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px dashed rgba(15,23,42,0.08);
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.package-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+}
+
+.package-item:not(:last-child) {
+  border-bottom: 1px solid rgba(15,23,42,0.05);
+}
+
+.package-item span {
+  font-weight: 500;
+}
+
+.package-item strong {
+  color: var(--accent-dark);
+  font-weight: 700;
+}
+
+.package-sub {
+  font-size: 12px;
+  color: var(--muted);
+  margin: 2px 0 8px 0;
+}
+
 
     header.hero{
       display:grid;
