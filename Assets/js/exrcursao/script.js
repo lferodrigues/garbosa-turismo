@@ -14,10 +14,10 @@ document.addEventListener("DOMContentLoaded", function () {
              link: "phn.html"
         },
         {
-            titulo: "Excursao Hopi Hari ",
-            imagem: "Assets/img/excursoes/hopi.jpeg",
-            descricao: "Prepare-se para viver dias INESQUECÍVEIS de diversão, adrenalina e emoção em uma das maiores experiências de entretenimento do Brasil.",
-             link: "hopihari.html"
+            titulo: "Excursao Praia de Ipanema ",
+            imagem: "Assets/img/excursoes/ipanema.png",
+            descricao: "Prepare-se para viver dias INESQUECÍVEIS de diversão, em uma das praias mais famosas do Brasil.",
+             link: "ipanema.html"
         },
         
         
