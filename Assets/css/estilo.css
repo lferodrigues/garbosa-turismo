@@ -361,5 +361,12 @@ footer {
   .footer-content img {
     width: 55px;
   }
+  /* 🔹 Botão WhatsApp versão menor (mesmo estilo visual) */
+.whatsapp-btn.small {
+  padding: 6px 10px;
+  font-size: 12px;
+  border-radius: 8px;
+  box-shadow: 0 4px 10px rgba(14,165,164,0.15);
+}
   
 }
