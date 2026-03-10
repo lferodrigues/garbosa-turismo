@@ -60,7 +60,7 @@ document.addEventListener('keydown', function(event) {
     setTimeout(() => {
       const mensagem = encodeURIComponent("Olá Igor, gostaria de saber mais sobre a excursão para o parque aquático Aldeia das Águas.");
       const numero = "5532999635299";
-      const url = `https://wa.me/${numero}?text=${mensagem}`;
+      const url = 'https://chat.whatsapp.com/HdDKuMsv5rB9G0kC90nidg?mode=gi_t' ;
       window.location.href = url;
     }, totalTime);
     
