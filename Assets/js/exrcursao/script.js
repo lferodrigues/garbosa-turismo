@@ -1,11 +1,11 @@
 document.addEventListener("DOMContentLoaded", function () {
 
     const excursoes = [
-        {
-            titulo: "Parque aquatico Aldeia das Aguas",
-            imagem: "Assets/img/excursoes/aldeia.webp",
-            descricao: "Prepare-se para um dia incrivel no maior parque aquático da região — com o MAIOR TOBOÁGUA DO PLANETA!",
-             link: "aldeia-das-aguas.html"
+         {
+            titulo: "Excursao Praia de Ipanema ",
+            imagem: "Assets/img/excursoes/ipanema.png",
+            descricao: "Prepare-se para viver dias INESQUECÍVEIS de diversão, em uma das praias mais famosas do Brasil.",
+             link: "ipanema.html"
         },
            {
             titulo: "PHN Canção Nova 2026",
@@ -13,11 +13,12 @@ document.addEventListener("DOMContentLoaded", function () {
             descricao: "Prepare-se para o maior acampamento católico da america latina, um evento recheado de fé,amor e religiosidade.",
              link: "phn.html"
         },
-        {
-            titulo: "Excursao Praia de Ipanema ",
-            imagem: "Assets/img/excursoes/ipanema.png",
-            descricao: "Prepare-se para viver dias INESQUECÍVEIS de diversão, em uma das praias mais famosas do Brasil.",
-             link: "ipanema.html"
+       
+         {
+            titulo: "Excursão para o show do Frei Gilson em JF",
+            imagem: "Assets/img/excursoes/frei.png",
+            descricao: "Prepare-se para uma noite repleta do Espirito Santo",
+             link: "freigilson.html"
         },
         
         
