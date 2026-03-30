@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Excursão Frei Gilson em Juiz de Fora | Garanta sua vaga</title>
+  <meta
+    name="description"
+    content="Excursão para o show do Frei Gilson em Juiz de Fora com saída de São João Nepomuceno. Reserve seu lugar no ônibus e compre seu ingresso online."
+  />
+
+  <style>
+    :root{
+      --accent:#0ea5a4;
+      --accent-dark:#087b78;
+      --bg:#f6fbff;
+      --card:#ffffff;
+      --muted:#6b7280;
+      --text:#0f172a;
+      --danger:#b91c1c;
+      --warning:#b45309;
+      --shadow: 0 8px 24px rgba(15,23,42,0.08);
+      --radius:14px;
+      --maxw:1100px;
+      font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    }
+
+    *{
+      box-sizing:border-box;
+    }
+
+    body{
+      margin:0;
+      background: linear-gradient(180deg, #eef9fb 0%, #f9ffff 100%);
+      color:var(--text);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    .wrap{
+      width:100%;
+      max-width:var(--maxw);
+      margin:18px auto;
+      background:var(--card);
+      border-radius:18px;
+      box-shadow:var(--shadow);
+      overflow:hidden;
+    }
+
+    .hero{
+      display:grid;
+      grid-template-columns: 1.2fr 360px;
+      gap:20px;
+      padding:24px;
+      align-items:center;
+      background:
+        linear-gradient(rgba(8,123,120,0.60), rgba(8,123,120,0.72)),
+        url('https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1400&q=80') center/cover no-repeat;
+      color:#fff;
+    }
+
+    .hero h1{
+      margin:0 0 10px 0;
+      font-size:34px;
+      line-height:1.05;
+      letter-spacing:-0.5px;
+    }
+
+    .hero .lead{
+      margin:0 0 16px 0;
+      font-size:16px;
+      line-height:1.6;
+      color:rgba(255,255,255,0.94);
+      max-width:700px;
+    }
+
+    .badges{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+    }
+
+    .badge{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      background:rgba(255,255,255,0.15);
+      border:1px solid rgba(255,255,255,0.18);
+      padding:8px 12px;
+      border-radius:999px;
+      font-size:13px;
+      font-weight:700;
+      backdrop-filter: blur(5px);
+    }
+
+    .cta{
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
+
+    .price-card{
+      background:rgba(255,255,255,0.96);
+      color:var(--text);
+      border-radius:16px;
+      padding:18px;
+      box-shadow:0 10px 24px rgba(0,0,0,0.12);
+    }
+
+    .price-card small{
+      display:block;
+      color:var(--muted);
+      margin-bottom:8px;
+      font-size:13px;
+    }
+
+    .price-main{
+      font-size:30px;
+      font-weight:900;
+      color:var(--accent-dark);
+      margin-bottom:8px;
+    }
+
+    .price-sub{
+      font-size:14px;
+      color:var(--muted);
+      line-height:1.5;
+    }
+
+    .btn{
+      display:inline-flex;
+      justify-content:center;
+      align-items:center;
+      gap:8px;
+      text-decoration:none;
+      border:none;
+      padding:13px 16px;
+      border-radius:10px;
+      font-weight:800;
+      font-size:15px;
+      cursor:pointer;
+      transition:0.2s ease;
+      text-align:center;
+    }
+
+    .btn:hover{
+      transform:translateY(-2px);
+    }
+
+    .btn-primary{
+      background:linear-gradient(180deg,var(--accent),var(--accent-dark));
+      color:#fff;
+      box-shadow:0 8px 20px rgba(14,165,164,0.22);
+    }
+
+    .btn-secondary{
+      background:#fff;
+      color:var(--accent-dark);
+      border:1px solid rgba(14,165,164,0.18);
+      box-shadow:0 8px 20px rgba(15,23,42,0.06);
+    }
+
+    .content{
+      display:grid;
+      grid-template-columns: 1fr 320px;
+      gap:20px;
+      padding:22px;
+      align-items:start;
+    }
+
+    .card{
+      background:var(--card);
+      border-radius:14px;
+      padding:18px;
+      box-shadow:0 6px 18px rgba(15,23,42,0.03);
+      border:1px solid rgba(15,23,42,0.05);
+    }
+
+    .card h2,
+    .card h3,
+    .card h4{
+      margin-top:0;
+      margin-bottom:12px;
+    }
+
+    .card p{
+      line-height:1.65;
+      color:#334155;
+    }
+
+    .info-list{
+      display:grid;
+      gap:12px;
+    }
+
+    .info-row{
+      display:flex;
+      gap:12px;
+      align-items:flex-start;
+      justify-content:space-between;
+      border-bottom:1px dashed rgba(15,23,42,0.06);
+      padding-bottom:10px;
+    }
+
+    .info-row:last-child{
+      border-bottom:none;
+      padding-bottom:0;
+    }
+
+    .info-row strong{
+      min-width:145px;
+      color:var(--text);
+    }
+
+    .info-row span{
+      color:var(--muted);
+      text-align:right;
+    }
+
+    .route-list{
+      margin:0;
+      padding-left:18px;
+    }
+
+    .route-list li{
+      margin-bottom:10px;
+      line-height:1.6;
+      color:#334155;
+    }
+
+    .highlight{
+      background:linear-gradient(90deg, rgba(251,191,36,0.16), rgba(251,191,36,0.06));
+      border:1px solid rgba(180,83,9,0.18);
+      border-radius:12px;
+      padding:14px;
+      color:#78350f;
+      font-weight:700;
+      line-height:1.6;
+    }
+
+    .warning-box{
+      background:linear-gradient(90deg, rgba(239,68,68,0.10), rgba(239,68,68,0.04));
+      border:1px solid rgba(185,28,28,0.18);
+      border-radius:12px;
+      padding:14px;
+      color:#7f1d1d;
+      line-height:1.6;
+      font-weight:700;
+    }
+
+    .ticket-grid{
+      display:grid;
+      gap:10px;
+      margin-top:12px;
+    }
+
+    .ticket-item{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      padding:12px 14px;
+      border-radius:12px;
+      background:#f8fbfc;
+      border:1px solid rgba(15,23,42,0.06);
+    }
+
+    .ticket-item .label{
+      font-weight:700;
+      color:#0f172a;
+    }
+
+    .ticket-item .value{
+      font-weight:900;
+      color:var(--accent-dark);
+      white-space:nowrap;
+    }
+
+    .actions{
+      display:flex;
+      flex-wrap:wrap;
+      gap:12px;
+      margin-top:16px;
+    }
+
+    .side-sticky{
+      position:sticky;
+      top:16px;
+    }
+
+    .mini-note{
+      font-size:13px;
+      color:var(--muted);
+      line-height:1.6;
+      margin-top:12px;
+    }
+
+    .summary-list{
+      display:grid;
+      gap:10px;
+      margin-top:8px;
+    }
+
+    .summary-item{
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      border-bottom:1px dashed rgba(15,23,42,0.06);
+      padding-bottom:10px;
+    }
+
+    .summary-item:last-child{
+      border-bottom:none;
+      padding-bottom:0;
+    }
+
+    .summary-item strong{
+      color:#0f172a;
+    }
+
+    .summary-item span{
+      color:var(--muted);
+      text-align:right;
+    }
+
+    .section-space{
+      margin-top:16px;
+    }
+
+    footer{
+      background:#0f172a;
+      color:#fff;
+      text-align:center;
+      padding:14px 16px;
+      font-size:13px;
+    }
+
+    footer p{
+      margin:0;
+      opacity:0.9;
+    }
+
+    @media (max-width: 980px){
+      .hero{
+        grid-template-columns:1fr;
+      }
+
+      .content{
+        grid-template-columns:1fr;
+      }
+
+      .side-sticky{
+        position:static;
+      }
+    }
+
+    @media (max-width: 640px){
+      .wrap{
+        margin:0;
+        border-radius:0;
+      }
+
+      .hero{
+        padding:18px;
+      }
+
+      .hero h1{
+        font-size:26px;
+      }
+
+      .hero .lead{
+        font-size:15px;
+      }
+
+      .content{
+        padding:16px;
+      }
+
+      .info-row,
+      .summary-item,
+      .ticket-item{
+        flex-direction:column;
+        align-items:flex-start;
+      }
+
+      .info-row span,
+      .summary-item span{
+        text-align:left;
+      }
+
+      .actions{
+        flex-direction:column;
+      }
+
+      .btn{
+        width:100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="hero">
+      <div>
+        <h1>Excursão Frei Gilson em Juiz de Fora</h1>
+
+        <p class="lead">
+          Garanta agora sua vaga no ônibus e compre seu ingresso do
+          <strong>1º lote</strong> antes da virada. Uma oportunidade para viver
+          esse momento especial com mais conforto, organização e tranquilidade.
+        </p>
+
+        <div class="badges">
+          <div class="badge">🚌 Saída de São João Nepomuceno</div>
+          <div class="badge">📍 Destino: Juiz de Fora</div>
+          <div class="badge">🎟️ 1º lote disponível</div>
+          <div class="badge">⚠️ Vagas limitadas</div>
+        </div>
+      </div>
+
+      <div class="cta">
+        <div class="price-card">
+          <small>Valor do transporte por pessoa</small>
+          <div class="price-main">R$ 75,00</div>
+          <div class="price-sub">
+            Crianças de 0 a 5 anos (colo) <strong>não pagam</strong>.<br>
+            Pagamento até <strong>20/10</strong>.
+          </div>
+        </div>
+
+        <a
+          class="btn btn-primary"
+          href="https://forms.gle/RD6SDbm1g1cnuBFs7"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Reservar lugar no ônibus
+        </a>
+
+        <a
+          class="btn btn-secondary"
+          href="https://evento.agendacatolica.com/frei-gilson-comunidade-resgate?utm_source=ig&utm_medium=social&utm_content=link_in_bio&fbclid=PAb21jcAQ3Jh9leHRuA2FlbQIxMQBzcnRjBmFwcF9pZA81NjcwNjczNDMzNTI0MjcAAafsevEHnbV_8qIo3sBVHQQt2wZYXXIfDic-70_C2om868xPHzXZjLtq-XF_Cg_aem_ouasBaJhJz51Vs5OMNsXGQ"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Comprar ingresso do show
+        </a>
+      </div>
+    </header>
+
+    <main class="content">
+      <section>
+        <div class="card">
+          <h2>Informações da viagem</h2>
+
+          <div class="info-list">
+            <div class="info-row">
+              <strong>Saída</strong>
+              <span>17h da rodoviária de São João Nepomuceno</span>
+            </div>
+
+            <div class="info-row">
+              <strong>Chegada prevista</strong>
+              <span>18h45</span>
+            </div>
+
+            <div class="info-row">
+              <strong>Retorno</strong>
+              <span>Logo após o encerramento do show</span>
+            </div>
+
+            <div class="info-row">
+              <strong>Empresa</strong>
+              <span>Dois Irmãos Fretamento</span>
+            </div>
+
+            <div class="info-row">
+              <strong>Estrutura</strong>
+              <span>Ônibus semi leito, ar-condicionado e carregador</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card section-space">
+          <h3>Conforto e segurança</h3>
+          <p>
+            Para oferecer uma viagem mais tranquila, o transporte será realizado
+            em ônibus <strong>semi leito</strong>, com
+            <strong>ar-condicionado</strong> e <strong>carregador</strong>.
+            Em caso de alta demanda, poderemos abrir um novo ônibus com o mesmo
+            padrão de qualidade, pela empresa <strong>Rio Novo Turismo</strong>.
+          </p>
+
+          <div class="highlight">
+            ⚠️ Devido à alta procura, a disponibilidade de lugares pode se
+            esgotar rapidamente. Quem reservar antes sai na frente.
+          </div>
+        </div>
+
+        <div class="card section-space">
+          <h3>Pagamento do transporte</h3>
+
+          <div class="info-list">
+            <div class="info-row">
+              <strong>Valor</strong>
+              <span>R$ 75,00</span>
+            </div>
+
+            <div class="info-row">
+              <strong>Crianças</strong>
+              <span>0 a 5 anos (colo): não pagam</span>
+            </div>
+
+            <div class="info-row">
+              <strong>Pix ou dinheiro</strong>
+              <span>Até 2x</span>
+            </div>
+
+            <div class="info-row">
+              <strong>Cartão</strong>
+              <span>Até 8x com acréscimo de 8%</span>
+            </div>
+
+            <div class="info-row">
+              <strong>Prazo</strong>
+              <span>Pagamento até 20/10</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card section-space">
+          <h3>Ingressos do show – 1º lote</h3>
+
+          <div class="ticket-grid">
+            <div class="ticket-item">
+              <div class="label">Arquibancada inteira</div>
+              <div class="value">R$ 55,00</div>
+            </div>
+
+            <div class="ticket-item">
+              <div class="label">Arquibancada meia</div>
+              <div class="value">R$ 27,50</div>
+            </div>
+
+            <div class="ticket-item">
+              <div class="label">Pista inteira</div>
+              <div class="value">R$ 65,00</div>
+            </div>
+
+            <div class="ticket-item">
+              <div class="label">Pista meia</div>
+              <div class="value">R$ 32,50</div>
+            </div>
+
+            <div class="ticket-item">
+              <div class="label">Pista Premium inteira</div>
+              <div class="value">R$ 70,00</div>
+            </div>
+
+            <div class="ticket-item">
+              <div class="label">Pista Premium meia</div>
+              <div class="value">R$ 35,00</div>
+            </div>
+          </div>
+
+          <div class="warning-box section-space">
+            IMPORTANTE: os ingressos estão no <strong>1º lote</strong> e podem
+            virar a qualquer momento. Quem deixar para depois corre o risco de
+            pagar mais caro e ainda ficar sem lugar no ônibus.
+          </div>
+
+          <div class="actions">
+            <a
+              class="btn btn-primary"
+              href="https://forms.gle/RD6SDbm1g1cnuBFs7"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Garantir vaga no ônibus
+            </a>
+
+            <a
+              class="btn btn-secondary"
+              href="https://evento.agendacatolica.com/frei-gilson-comunidade-resgate?utm_source=ig&utm_medium=social&utm_content=link_in_bio&fbclid=PAb21jcAQ3Jh9leHRuA2FlbQIxMQBzcnRjBmFwcF9pZA81NjcwNjczNDMzNTI0MjcAAafsevEHnbV_8qIo3sBVHQQt2wZYXXIfDic-70_C2om868xPHzXZjLtq-XF_Cg_aem_ouasBaJhJz51Vs5OMNsXGQ"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Comprar ingresso agora
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <aside class="side-sticky">
+        <div class="card">
+          <h4>Resumo rápido</h4>
+
+          <div class="summary-list">
+            <div class="summary-item">
+              <strong>Saída</strong>
+              <span>17h</span>
+            </div>
+
+            <div class="summary-item">
+              <strong>Local</strong>
+              <span>Rodoviária de São João Nepomuceno</span>
+            </div>
+
+            <div class="summary-item">
+              <strong>Chegada prevista</strong>
+              <span>18h45</span>
+            </div>
+
+            <div class="summary-item">
+              <strong>Transporte</strong>
+              <span>R$ 75,00</span>
+            </div>
+
+            <div class="summary-item">
+              <strong>Criança de colo</strong>
+              <span>0 a 5 anos não paga</span>
+            </div>
+
+            <div class="summary-item">
+              <strong>Prazo</strong>
+              <span>Até 20/10</span>
+            </div>
+          </div>
+
+          <div class="actions" style="margin-top:18px;">
+            <a
+              class="btn btn-primary"
+              href="https://forms.gle/RD6SDbm1g1cnuBFs7"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Lugar no ônibus
+            </a>
+
+            <a
+              class="btn btn-secondary"
+              href="https://evento.agendacatolica.com/frei-gilson-comunidade-resgate?utm_source=ig&utm_medium=social&utm_content=link_in_bio&fbclid=PAb21jcAQ3Jh9leHRuA2FlbQIxMQBzcnRjBmFwcF9pZA81NjcwNjczNDMzNTI0MjcAAafsevEHnbV_8qIo3sBVHQQt2wZYXXIfDic-70_C2om868xPHzXZjLtq-XF_Cg_aem_ouasBaJhJz51Vs5OMNsXGQ"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Comprar ingressos
+            </a>
+          </div>
+
+          <p class="mini-note">
+            Quanto antes você preencher o formulário e comprar seu ingresso,
+            maior a chance de garantir sua participação com melhor valor.
+          </p>
+        </div>
+      </aside>
+    </main>
+
+    <footer>
+      <p>© 2026 Excursão Frei Gilson | Página de divulgação</p>
+    </footer>
+  </div>
+</body>
+</html>
