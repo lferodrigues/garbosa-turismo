@@ -58,7 +58,7 @@ document.addEventListener('keydown', function(event) {
 
     // Redireciona após 3 segundos
     setTimeout(() => {
-      const mensagem = encodeURIComponent("Olá Igor, gostaria de saber mais sobre a excursão para o parque aquático Aldeia das Águas.");
+      const mensagem = encodeURIComponent("Olá Igor, gostaria de saber reservar meu lugar  na excursão para o parque aquático Aldeia das Águas em novembro.");
       const numero = "5532999635299";
       const url = `https://wa.me/${numero}?text=${mensagem}`;
       window.location.href = url;
