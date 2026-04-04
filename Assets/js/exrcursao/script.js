@@ -24,7 +24,7 @@ document.addEventListener("DOMContentLoaded", function () {
             titulo: "Excursão para o parque aquatico Aldeia das águas",
             imagem: "Assets/img/excursoes/aldeia-das-aguas.jpg",
             descricao: "Prepare-se para uma aventura incrivel no maior parque aquatico do estado do Rio de Janeiro, com o maior toboagua do mundo",
-             link: "aldeia-das-guas.html"
+             link: "aldeia-das-aguas.html"
         }
         
         
