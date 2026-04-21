@@ -1,18 +1,26 @@
 document.addEventListener("DOMContentLoaded", function () {
 
     const excursoes = [
-         {
-            titulo: "Excursao Praia de Ipanema ",
-            imagem: "Assets/img/excursoes/ipanema.png",
-            descricao: "Prepare-se para viver dias INESQUECÍVEIS de diversão, em uma das praias mais famosas do Brasil.",
-             link: "ipanema.html"
-        },
            {
             titulo: "PHN Canção Nova 2026",
             imagem: "Assets/img/excursoes/phn.webp",
             descricao: "Prepare-se para o maior acampamento católico da america latina, um evento recheado de fé,amor e religiosidade.",
              link: "phn.html"
         },
+        {
+            titulo: "Excursão para o Zoológico + Parque de diversões Guanabara em BH ",
+            imagem: "Assets/img/excursoes/bh.png",
+            descricao: "Prepare-se para um dia incrível de diversão em Belo Horizonte, curtindo as atrações do Parque Guanabara e a natureza do Zoológico de BH em uma aventura para toda a família",
+             link: "bh.html"
+        },
+        
+        {
+            titulo: "Excursão para o parque aquatico Aldeia das águas",
+            imagem: "Assets/img/excursoes/aldeia-das-aguas.jpg",
+            descricao: "Prepare-se para uma aventura incrivel no maior parque aquatico do estado do Rio de Janeiro, com o maior toboagua do mundo",
+             link: "aldeia-das-aguas.html"
+        },
+        
        
          {
             titulo: "Excursão para o show do Frei Gilson em JF",
@@ -20,13 +28,7 @@ document.addEventListener("DOMContentLoaded", function () {
             descricao: "Prepare-se para uma noite repleta do Espirito Santo",
              link: "freigilson.html"
         },
-            {
-            titulo: "Excursão para o parque aquatico Aldeia das águas",
-            imagem: "Assets/img/excursoes/aldeia-das-aguas.jpg",
-            descricao: "Prepare-se para uma aventura incrivel no maior parque aquatico do estado do Rio de Janeiro, com o maior toboagua do mundo",
-             link: "aldeia-das-aguas.html"
-        }
-        
+            
         
     ];
 
