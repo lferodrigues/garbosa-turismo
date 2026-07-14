@@ -10,7 +10,7 @@ document.addEventListener("DOMContentLoaded", function () {
         },
            {
             titulo: "Excursão para a praia da Barra da Tijuca no Rio de Janeiro",
-            imagem: "Assets/img/excursoes/barra.jpg",
+            imagem: "Assets/img/excursoes/barra.jpeg",
             descricao: "Prepare a mala e venha viver momentos inesquecíveis na Praia da Barra da Tijuca! Um dia de sol, mar e muita diversão esperando por você",
              link: "barra.html"
         },
