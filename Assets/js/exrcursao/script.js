@@ -27,7 +27,7 @@ document.addEventListener("DOMContentLoaded", function () {
             titulo: "Excursão para o show do Frei Gilson em JF",
             imagem: "Assets/img/excursoes/frei.png",
             descricao: "Prepare-se para uma noite repleta do Espirito Santo",
-             link: "freigilson.html"
+             link: "evento-frei-gilson.html"
         },
             
         
