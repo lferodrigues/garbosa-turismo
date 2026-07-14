@@ -391,3 +391,63 @@ transform:translateY(-5px);
     color:#FFD54A;
     transform:translateY(-5px) scale(1.2);
 }
+/*==========================
+MENU MOBILE
+==========================*/
+
+.menu-toggle{
+    display:none;
+    background:none;
+    border:none;
+    font-size:28px;
+    color:#2A1F88;
+    cursor:pointer;
+}
+
+@media(max-width:900px){
+
+    .menu-toggle{
+        display:block;
+    }
+
+    .navbar .container{
+        position:relative;
+    }
+
+    .navbar ul{
+        position:absolute;
+        top:80px;
+        left:0;
+        width:100%;
+        background:#fff;
+        flex-direction:column;
+        display:none;
+        gap:0;
+        box-shadow:0 15px 35px rgba(0,0,0,.12);
+        border-radius:0 0 20px 20px;
+        overflow:hidden;
+    }
+
+    .navbar ul.active{
+        display:flex;
+    }
+
+    .navbar ul li{
+        width:100%;
+    }
+
+    .navbar ul li a{
+        display:block;
+        padding:18px 25px;
+        border-bottom:1px solid #eee;
+    }
+
+    .navbar ul li:last-child a{
+        border-bottom:none;
+    }
+
+    .btn-primary{
+        display:none;
+    }
+
+}
