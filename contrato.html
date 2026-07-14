@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Contrato | Garbosa Turismo</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="Assets/css/novosite/style.css">
+
+<style>
+
+body{
+    background:#f6f7fb;
+    font-family:'Poppins',sans-serif;
+}
+
+.page{
+    padding-top:120px;
+    padding-bottom:60px;
+}
+
+.contract-box{
+
+    background:#fff;
+
+    border-radius:20px;
+
+    box-shadow:0 20px 50px rgba(0,0,0,.12);
+
+    overflow:hidden;
+
+}
+
+.contract-header{
+
+    background:linear-gradient(135deg,#2A1F88,#5946da);
+
+    color:white;
+
+    padding:35px;
+
+}
+
+.contract-header h1{
+
+    margin-bottom:10px;
+
+}
+
+.contract-header p{
+
+    opacity:.9;
+
+}
+
+.contract-actions{
+
+    display:flex;
+
+    gap:15px;
+
+    padding:25px;
+
+    flex-wrap:wrap;
+
+    border-bottom:1px solid #eee;
+
+}
+
+.contract-view{
+
+    height:900px;
+
+}
+
+.contract-view iframe{
+
+    width:100%;
+
+    height:100%;
+
+    border:none;
+
+}
+
+@media(max-width:768px){
+
+.contract-view{
+
+height:75vh;
+
+}
+
+}
+
+</style>
+
+</head>
+
+<body>
+
+<header class="navbar">
+
+<div class="container">
+
+<img src="Assets/img/logo.ico" class="logo">
+
+<ul>
+
+<li><a href="index.html">Início</a></li>
+
+<li><a href="excursoes.html">Excursões</a></li>
+
+<li><a href="contrato.html">Contrato</a></li>
+
+
+</ul>
+
+<a class="btn-primary" href="https://wa.me/5532999874657">
+WhatsApp
+</a>
+
+</div>
+
+</header>
+
+<section class="page">
+
+<div class="container">
+
+<div class="contract-box">
+
+<div class="contract-header">
+
+<h1>Contrato de Prestação de Serviços</h1>
+
+<p>
+Leia atentamente todas as cláusulas antes de concluir sua contratação.
+</p>
+
+</div>
+
+<div class="contract-actions">
+
+<a href="Assets/documentos/contrato.pdf"
+target="_blank"
+class="btn-primary">
+Abrir em nova guia
+</a>
+
+<a href="Assets/documentos/contrato.pdf"
+download
+class="btn-secondary">
+Baixar PDF
+</a>
+
+</div>
+
+<div class="contract-view">
+
+<iframe
+src="Assets/documentos/contrato.pdf">
+</iframe>
+
+</div>
+
+</div>
+
+</div>
+
+</section>
+
+<footer id="contato">
+
+<div class="container">
+
+<h2>Garbosa Turismo</h2>
+
+<p>
+© <span id="currentYear"></span> Todos os direitos reservados.
+</p>
+
+</div>
+
+</footer>
+
+<script>
+document.getElementById('currentYear').textContent =
+new Date().getFullYear();
+</script>
+
+</body>
+</html>
