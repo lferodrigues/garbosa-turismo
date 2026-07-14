@@ -1,17 +1,18 @@
 document.addEventListener("DOMContentLoaded", function () {
 
     const excursoes = [
-           {
-            titulo: "PHN Canção Nova 2026",
-            imagem: "Assets/img/excursoes/phn.webp",
-            descricao: "Prepare-se para o maior acampamento católico da america latina, um evento recheado de fé,amor e religiosidade.",
-             link: "phn.html"
-        },
+          
         {
             titulo: "Excursão para o Zoológico + Parque de diversões Guanabara em BH ",
             imagem: "Assets/img/excursoes/bh.png",
             descricao: "Prepare-se para um dia incrível de diversão em Belo Horizonte, curtindo as atrações do Parque Guanabara e a natureza do Zoológico de BH em uma aventura para toda a família",
              link: "bh.html"
+        },
+           {
+            titulo: "Excursão para a praia da Barra da Tijuca no Rio de Janeiro",
+            imagem: "Assets/img/excursoes/barra.png",
+            descricao: "Prepare a mala e venha viver momentos inesquecíveis na Praia da Barra da Tijuca! Um dia de sol, mar e muita diversão esperando por você",
+             link: "barra.html"
         },
         
         {
