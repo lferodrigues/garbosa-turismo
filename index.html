@@ -1,208 +1,161 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta name="description" content="A Garbosa Turismo é a primeira agência 100% digital de São João Nepomuceno. Oferecemos excursões, viagens, parques, adrenalina, cultura e muito mais. Viaje com praticidade, segurança e inovação.">
-<meta name="keywords" content="garbosa turismo, viagens, excursões, turismo, sao joao nepomuceno, parque, adrenalina, cidades históricas, viagens em grupo">
-<meta property="og:title" content="Garbosa Turismo | A primeira agência 100% digital de SJN">
-<meta property="og:description" content="Excursões e viagens para parques, adrenalina, cidades históricas e muito mais. Uma nova forma de viajar.">
-<meta name="author" content="Garbosa Turismo">
-<meta name="robots" content="index, follow">
-  <link rel="icon" href="Assets/img/logo.ico" type="image/x-icon" />
-  <link rel="shortcut icon" href="Assets/img/logo.ico" type="image/x-icon" />
-  <meta property="og:image" content="https://garbosaturismo.com.br/Assets/img/banner.png">
-  <meta property="og:url" content="https://garbosaturismo.com.br">
-  <meta property="og:type" content="website">
-  
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Garbosa Turismo</title>
-    
-    <script>
-        document.addEventListener("DOMContentLoaded", function () {
-    const hamburger = document.getElementById("hamburger");
-    const navLinks = document.getElementById("navLinks");
-
-    hamburger.addEventListener("click", () => {
-        navLinks.classList.toggle("active");
-    });
-});
-
-// BLOQUEAR BOTÃO DIREITO
-document.addEventListener('contextmenu', event => event.preventDefault());
-
-// BLOQUEAR TECLAS DE ATAJO
-document.addEventListener('keydown', (e) => {
-
-    // F12
-    if (e.key === "F12") {
-        e.preventDefault();
-    }
-
-    // CTRL + SHIFT + I / J / C
-    if (e.ctrlKey && e.shiftKey && (
-        e.key === "I" || e.key === "i" ||
-        e.key === "J" || e.key === "j" ||
-        e.key === "C" || e.key === "c"
-    )) {
-        e.preventDefault();
-    }
-
-    // CTRL + U (código-fonte)
-    if (e.ctrlKey && (e.key === "U" || e.key === "u")) {
-        e.preventDefault();
-    }
-
-    // CTRL + S (salvar página)
-    if (e.ctrlKey && (e.key === "S" || e.key === "s")) {
-        e.preventDefault();
-    }
-
-    // CTRL + C / X (copiar e recortar)
-    if (e.ctrlKey && (e.key === "C" || e.key === "c" || e.key === "X" || e.key === "x")) {
-        e.preventDefault();
-    }
-});
-
-// BLOQUEAR SELEÇÃO DE TEXTO
-document.addEventListener('selectstart', (e) => e.preventDefault());
-
-// BLOQUEAR ARRASTAR IMAGENS
-document.addEventListener('dragstart', (e) => e.preventDefault());
-
-// DESCARACTERIZAR TENTATIVA DE DEVTOOLS
-(function() {
-    let aberto = false;
-    const elemento = new Image();
-    Object.defineProperty(elemento, 'id', {
-        get: function () {
-            aberto = true;
-            throw new Error("DevTools detectado");
-        }
-    });
-
-    setInterval(function() {
-        aberto = false;
-        console.log(elemento);
-        if (aberto) {
-            document.body.innerHTML = "<h1 style='color:white; text-align:center; margin-top:30vh;'>Acesso negado</h1>";
-        }
-    }, 500);
-})();
-</script>
-
-  <script src="./Assets/js/pagina_inicial/script.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
-    <link rel="stylesheet" href="./Assets/css/Templates.css">
-    <link rel="stylesheet" href="./Assets/css/style.css">
-     
-    
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Garbosa Turismo </title>
+<script src="./Assets/js/novosite/script.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./Assets/css/novosite/style.css">
+<link rel="stylesheet"
+href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
 </head>
-
 <body>
 
-    <!-- NAVBAR -->
-    <nav class="navbar">
-        <div class="nav-container">
-
-            <img src="./Assets/img/logo.ico" class="logo-img" alt="Garbosa Turismo">
-
-            <!-- HAMBURGUER -->
-            <div class="hamburger" id="hamburger">
-                <span></span>
-                <span></span>
-                <span></span>
-            </div>
-
-            <ul class="nav-links" id="nav-links">
-                <li><a href="#banner">Início</a></li>
-                <li><a href="#sobre">Sobre</a></li>
-                <li><a href="https://garbosaturismo.com.br/excursoes">Excursões</a></li>
-                <li><a href="#parceiros">Parceiros</a></li>
-            </ul>
-
-        </div>
-    </nav>
-
-    <!-- BANNER COMPLETO -->
-    <section id="banner" class="banner">
-        <img src="./Assets/img/banner.png" alt="Banner Garbosa Turismo">
-
-        <div class="w3-display-bottomleft w3-text-grey w3-large" style="padding:24px 48px">
-  <a class="fa fa-instagram w3-hover-opacity" href="https://www.instagram.com/garbosaturismo/"></a>
-  <a class="fa fa-whatsapp w3-hover-opacity" href="https://chat.whatsapp.com/IJYsLw9xYjPHXmcFjO7emy?mode=gi_t"></a>
-  
+<header class="hero">
+<nav class="navbar">
+<div class="container">
+<img src="Assets/img/logo.ico" class="logo">
+<ul>
+<li><a href="#sobre">Sobre</a></li>
+<li><a href="./excursoes.html">Excursões</a></li>
+<li><a href="./contrato.html">Contrato</a></li>
+<li><a href="#contato">Contato</a></li>
+</ul>
+<a class="btn-primary" href="./excursoes.html">Reservar</a>
 </div>
-    </section>
+</nav>
 
-    <!-- SOBRE (BRANCO) -->
-    <section id="sobre" class="sobre">
-        <div class="sobre-texto">
-            <h2>Sobre Nós</h2>
-           <p style="text-align: justify;">
-            Somos uma empresa 100% de São João Nepomuceno, fundada por dois jovens apaixonados por viagens e pelo desejo de transformar a forma como nossa cidade vive o turismo.
-            <br> Viajar é explorar novos cenários, sentir diferentes emoções e descobrir tudo o que o mundo oferece.
-           <br>Por isso, ampliamos nossas rotas para incluir parques, experiências de adrenalina, cidades históricas, destinos culturais e muito mais. 
-           
-            <br>Assim nasceu a Garbosa Turismo: a primeira agência totalmente digital de São João Nepomuceno, criada para levar você a novas experiências com praticidade, modernidade e o cuidado de quem é da nossa terra.
-          </p>
+<div class="hero-content container">
+<div>
+<span class="tag">A primeira agência 100% digital de São João Nepomuceno</span>
+<h1>Viaje para destinos incríveis com conforto e segurança.</h1>
+<p>Parques, praias, cidades históricas e excursões organizadas para você aproveitar sem preocupações.</p>
 
-            <a href="https://garbosaturismo.com.br/excursoes" class="btn-excursoes">Ver Excursões</a>
-        </div>
-
-       <div class="sobre-slideshow">
-    <img src="./Assets/img/sobre/img-1.png" class="slide active">
-    <img src="./Assets/img/sobre/img-2.png" class="slide">
-    <img src="./Assets/img/sobre/img-3.png" class="slide">
+<div class="buttons">
+<a class="btn-primary" href="./excursoes.html">Ver Excursões</a>
+<a class="btn-secondary" href="https://wa.me/+5532999874657">WhatsApp</a>
 </div>
-    </section>
 
-    <!-- PARCEIROS (ROXO OFICIAL) -->
-    <section id="parceiros" class="parceiros">
-        <h2>Nossos Parceiros</h2>
+<div class="stats">
+<div><h2>500+</h2><p>Clientes</p></div>
+<div><h2>35+</h2><p>Viagens</p></div>
+<div><h2>100%</h2><p>Digital</p></div>
+</div>
 
-        <div class="slider-container">
-    <div class="slider" id="slider">
+</div>
 
-        <div class="partner">
-           <a href="https://www.instagram.com/rolecomigor/"> <img src="./Assets/img/parceiros/role_com_o_igor.jpg" alt="Parceiro 1"></a>
-            <p>Role com o Igor</p>
-        </div>
+<div class="hero-image">
+<img src="Assets/img/banner.png">
+</div>
 
-        <div class="partner">
-          <a href="https://www.instagram.com/2irmaos_turismo_e_fretamentos/"><img src="./Assets/img/parceiros/2_irmaos.jpg" alt="Parceiro 2"></a>  
-            <p>2 Irmãos Turismo</p>
-        </div>
-        <div class="partner">
-          <a href="https://www.instagram.com/mund.ialturismo/"> <img src="./Assets/img/parceiros/mundial.jpg" alt="Parceiro 3"></a> 
-            <p>Mundial Turismo</p>
-        </div>
-       <div class="partner">
-          <a href="https://www.instagram.com/flmr_transporte_e_turismo"> <img src="./Assets/img/parceiros/flmr.jpeg" alt="Parceiro 3"></a> 
-            <p>FLMR Transporte & Turismo</p>
-        </div>
-       <div class="partner">
-          <a href="https://www.instagram.com/rio_novo_turismo"> <img src="./Assets/img/parceiros/rio_novo.jpg" alt="Parceiro 3"></a> 
-            <p>Rio novo Turismo</p>
-        </div>
+</div>
+</header>
 
+<section id="sobre" class="container section">
+<h2>Sobre a Garbosa Turismo</h2>
+<p>Somos uma agência criada para oferecer experiências inesquecíveis com organização, segurança e atendimento personalizado.</p>
 
+<div class="cards">
+
+<div class="card">
+<h3>🚌 Transporte Seguro</h3>
+<p>Ônibus confortáveis e parceiros confiáveis.</p>
+</div>
+
+<div class="card">
+<h3>🌎 Destinos Exclusivos</h3>
+<p>Parques, praias e cidades históricas.</p>
+</div>
+
+<div class="card">
+<h3>⭐ Atendimento</h3>
+<p>Suporte antes, durante e depois da viagem.</p>
+</div>
+
+</div>
+</section>
+
+<section id="parceiros" class="parceiros">
+
+    <div class="container">
+    
+    <h2>Nossos Parceiros</h2>
+    
+    <div class="slider-container">
+    
+    <div class="slider">
+    
+    <div class="partner">
+    <a href="https://www.instagram.com/rolecomigor/" target="_blank">
+    <img src="Assets/img/parceiros/role_com_o_igor.jpg">
+    </a>
+    <p>Rolê com o Igor</p>
     </div>
-</div>
-
-      
-        </div>
+    
+    <div class="partner">
+    <a href="https://www.instagram.com/2irmaos_turismo_e_fretamentos/" target="_blank">
+    <img src="Assets/img/parceiros/2_irmaos.jpg">
+    </a>
+    <p>2 Irmãos Turismo</p>
+    </div>
+    
+    <div class="partner">
+    <a href="https://www.instagram.com/mund.ialturismo/" target="_blank">
+    <img src="Assets/img/parceiros/mundial.jpg">
+    </a>
+    <p>Mundial Turismo</p>
+    </div>
+    
+    <div class="partner">
+    <a href="https://www.instagram.com/flmr_transporte_e_turismo/" target="_blank">
+    <img src="Assets/img/parceiros/flmr.jpeg">
+    </a>
+    <p>FLMR Transporte</p>
+    </div>
+    
+    <div class="partner">
+    <a href="https://www.instagram.com/rio_novo_turismo" target="_blank">
+    <img src="Assets/img/parceiros/rio_novo.jpg">
+    </a>
+    <p>Rio Novo Turismo</p>
+    </div>
+    
+    </div>
+    
+    </div>
+    
+    </div>
+    
     </section>
 
-    <!-- FOOTER (BRANCO) -->
-    <footer>
-    <div class="footer-content">
-      <a href="https://feliperodrigues.net">
-        <img src="./Assets/img/logo-felipe.png" alt="Logo da Zapher Security">
-      </a>
-      <p>© <span id="currentYear"></span>&nbsp;&nbsp;<span class="social-text">Todos os direitos reservados</span></p>
+<footer id="contato">
+<div class="container">
+<h2>Pronto para viajar?</h2>
+<p>Entre em contato e reserve sua próxima experiência.</p>
+<div class="social-icons">
+
+    <a href="https://wa.me/+5532999874657" target="_blank" aria-label="WhatsApp">
+        <i class="fab fa-whatsapp"></i>
+    </a>
+    <a href="https://www.instagram.com/garbosaturismo/" target="_blank" aria-label="Instagram">
+        <i class="fab fa-instagram"></i>
+    </a>
+
+    <a href="https://www.tiktok.com/@garbosaturismo" target="_blank" aria-label="TikTok">
+        <i class="fab fa-tiktok"></i>
+    </a>
+
+    <a href="https://www.facebook.com/profile.php?id=100093055390780" target="_blank" aria-label="Facebook">
+        <i class="fab fa-facebook-f"></i>
+    </a>
     </div>
-  </footer>
-  <script src="./Assets/js/pagina_inicial/slides.js"></script>
-<script src="./Assets/js/pagina_inicial/script.js"></script>
+    <p>© Garbosa Turismo<span id="currentYear"></span>&nbsp;<span class="social-text">Todos os direitos reservados</span></p>
+</div>
+</footer>
+
+
 </body>
 </html>
