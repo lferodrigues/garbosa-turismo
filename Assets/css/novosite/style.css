@@ -451,3 +451,44 @@ MENU MOBILE
     }
 
 }
+/* ==========================
+   CADASTUR FOOTER
+========================== */
+
+.cadastur-footer{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    margin:25px 0;
+}
+
+.cadastur-footer span{
+    color:#fff;
+    font-size:15px;
+    font-weight:600;
+    margin-bottom:10px;
+}
+
+.cadastur-footer a{
+    display:inline-block;
+    transition:.3s;
+}
+
+.cadastur-footer a:hover{
+    transform:scale(1.08);
+}
+
+.cadastur-footer img{
+    width:170px;
+    max-width:90%;
+    height:auto;
+    border-radius:16px;
+    box-shadow:0 8px 20px rgba(0,0,0,.2);
+    transition:.3s;
+}
+
+.cadastur-footer a:hover img{
+    transform:scale(1.05);
+    box-shadow:0 12px 28px rgba(0,0,0,.3);
+}
