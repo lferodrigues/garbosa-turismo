@@ -34,6 +34,7 @@ const instaValido = (h) => /^[a-z0-9._]{1,30}$/.test(h);
 
 /* Rotas da SPA e quem pode acessar cada uma */
 const ROTAS = {
+  inicio:     { nome: "Início",               icone: "fa-house",         cor: "c1", tipos: ["agencia", "transportadora", "admin"] },
   calendario: { nome: "Calendário",           icone: "fa-calendar-days", cor: "c1", tipos: ["agencia", "transportadora", "admin"] },
   excursoes:  { nome: "Excursões",            icone: "fa-route",         cor: "c2", tipos: ["agencia", "admin"], compart: true },
   viajantes:  { nome: "Viajantes",            icone: "fa-users",         cor: "c3", tipos: ["agencia", "admin"], compart: true },
@@ -206,10 +207,9 @@ function rotear() {
     return;
   }
   const rota = ROTAS[view];
-  if (view === "inicio") { S.view = "inicio"; S.param = null; }
-  else if (!rota || !pode(view)) {
+  if (!rota || !pode(view)) {
     const ult = abaAtivaSalva();
-    const alvo = ult ? ult.view : "calendario";
+    const alvo = ult ? ult.view : "inicio";
     history.replaceState(null, "", `#/${alvo}${ult?.param ? "/" + encodeURIComponent(ult.param) : ""}`);
     S.view = alvo; S.param = ult?.param || null;
     abrirAba(S.view, S.param);
@@ -432,7 +432,12 @@ async function iniciarSessao(user) {
   }
   registrarLog(eventoAuth || "sessao");
   eventoAuth = null;
-  $("#userNome").textContent = P.nome;
+  $("#userNome").textContent = P.nome.split(" ").slice(0, 2).join(" ");
+  const partes = P.nome.trim().split(/\s+/);
+  const ini = ((partes[0] || "")[0] || "") + (partes.length > 1 ? partes[partes.length - 1][0] : "");
+  $("#avatarIni").textContent = ini.toUpperCase();
+  $("#avatarIni2").textContent = ini.toUpperCase();
+  $("#avNome").textContent = P.nome;
   $("#userEmpresa").textContent = P.empresa;
   $("#userTipo").textContent = TIPO_CURTO[P.tipo];
   montarAbas();
@@ -442,7 +447,7 @@ async function iniciarSessao(user) {
   $("#app").classList.remove("hidden");
   const { view } = lerHash();
   carregarAbas();
-  if (!ROTAS[view] && view !== "inicio") { const a = abaAtivaSalva(); history.replaceState(null, "", a ? `#/${a.view}${a.param ? "/" + encodeURIComponent(a.param) : ""}` : "#/calendario"); }
+  if (!ROTAS[view]) { const a = abaAtivaSalva(); history.replaceState(null, "", a ? `#/${a.view}${a.param ? "/" + encodeURIComponent(a.param) : ""}` : "#/inicio"); }
   rotear();
 }
 
@@ -540,27 +545,64 @@ function assinar() {
 /* =========================================================
    ABAS / RENDER
 ========================================================= */
-/* ---------- menu lateral ---------- */
+/* ---------- menu lateral (estilo painel de controle) ---------- */
 const GRUPOS_MENU = [
-  ["Operacional", ["calendario", "excursoes", "viajantes", "poltronas", "financeiro"]],
-  ["Transporte", ["viagens"]],
-  ["Administração", ["usuarios", "logs"]]
+  { id: "operacional", nome: "Operacional", icone: "fa-briefcase", itens: ["calendario", "excursoes", "viajantes", "poltronas", "financeiro"] },
+  { id: "transporte", nome: "Transporte", icone: "fa-bus", itens: ["viagens"] },
+  { id: "admin", nome: "Administração", icone: "fa-shield-halved", itens: ["usuarios", "logs"] }
 ];
+let gruposAbertos = {};
+try { gruposAbertos = JSON.parse(localStorage.getItem("garbosa.gruposMenu") || "{}") || {}; } catch { gruposAbertos = {}; }
+const salvarGrupos = () => { try { localStorage.setItem("garbosa.gruposMenu", JSON.stringify(gruposAbertos)); } catch { /* ignora */ } };
+const itemMenu = (id) => { const r = ROTAS[id]; return `<a class="menu-item" href="#/${id}" data-view="${id}" data-busca="${esc(semAcento(r.nome))}"><i class="fa-solid ${r.icone}"></i><span>${r.nome}</span></a>`; };
+
 function montarAbas() {
-  $("#menuLateral").innerHTML = GRUPOS_MENU.map(([grupo, ids]) => {
-    const itens = ids.filter((id) => pode(id));
+  $("#menuLateral").innerHTML = itemMenu("inicio") + GRUPOS_MENU.map((g) => {
+    const itens = g.itens.filter((id) => pode(id));
     if (!itens.length) return "";
-    return `<div class="menu-grupo"><small>${grupo}</small>${itens.map((id) => { const r = ROTAS[id]; return `
-      <a class="menu-item" href="#/${id}" data-view="${id}" title="${r.nome}"><i class="fa-solid ${r.icone}"></i><span>${r.nome}</span></a>`; }).join("")}</div>`;
-  }).join("");
+    const aberto = gruposAbertos[g.id] !== false;
+    return `<div class="menu-grupo ${aberto ? "aberto" : ""}" data-grupo="${g.id}">
+      <button type="button" class="menu-grupo-btn" aria-expanded="${aberto}"><i class="fa-solid ${g.icone}"></i><span>${g.nome}</span><i class="fa-solid fa-chevron-down seta"></i></button>
+      <div class="menu-sub">${itens.map(itemMenu).join("")}</div>
+    </div>`;
+  }).join("") + `<p class="menu-nada hidden">Nenhuma opção encontrada.</p>`;
+  $$("#menuLateral .menu-grupo-btn").forEach((b) => b.addEventListener("click", () => {
+    const g = b.closest(".menu-grupo"), abrir = !g.classList.contains("aberto");
+    g.classList.toggle("aberto", abrir); b.setAttribute("aria-expanded", String(abrir));
+    gruposAbertos[g.dataset.grupo] = abrir; salvarGrupos();
+  }));
   $$("#menuLateral .menu-item").forEach((a) => a.addEventListener("click", (e) => {
     const aba = S.abas.find((x) => x.view === a.dataset.view);
     if (aba?.param) { e.preventDefault(); navegar(aba.view, aba.param); }
-    fecharMenuMobile();
+    if (mobile()) fecharMenuMobile();
   }));
   S.abas = S.abas.filter((a) => pode(a.view));
+  filtrarMenu($("#buscaMenu").value);
   renderAbas();
 }
+function todosGrupos(abrir) {
+  $$("#menuLateral .menu-grupo").forEach((g) => { g.classList.toggle("aberto", abrir); $(".menu-grupo-btn", g).setAttribute("aria-expanded", String(abrir)); gruposAbertos[g.dataset.grupo] = abrir; });
+  salvarGrupos();
+}
+function filtrarMenu(texto) {
+  const t = semAcento(texto || "");
+  let achou = 0;
+  $$("#menuLateral .menu-item").forEach((a) => { const ok = !t || a.dataset.busca.includes(t); a.classList.toggle("hidden", !ok); if (ok) achou++; });
+  $$("#menuLateral .menu-grupo").forEach((g) => {
+    const visiveis = $$(".menu-item:not(.hidden)", g).length;
+    g.classList.toggle("hidden", !!t && !visiveis);
+    if (t) g.classList.toggle("aberto", visiveis > 0);
+    else g.classList.toggle("aberto", gruposAbertos[g.dataset.grupo] !== false);
+  });
+  $("#menuLateral .menu-nada")?.classList.toggle("hidden", achou > 0);
+}
+$("#buscaMenu").addEventListener("input", (e) => filtrarMenu(e.target.value));
+$("#buscaMenu").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") { const a = $("#menuLateral .menu-item:not(.hidden)"); if (a) { a.click(); location.hash = a.getAttribute("href"); e.target.value = ""; filtrarMenu(""); } }
+  if (e.key === "Escape") { e.target.value = ""; filtrarMenu(""); }
+});
+$("#btnExpandir").addEventListener("click", () => todosGrupos(true));
+$("#btnRecolherGrupos").addEventListener("click", () => todosGrupos(false));
 
 /* ---------- abas de trabalho (cada tela aberta vira uma aba) ---------- */
 const chaveAbas = () => `garbosa.abas.${U?.uid || ""}`;
@@ -628,6 +670,10 @@ function renderAbas() {
   $("#btnFecharOutras").onclick = () => fecharVarias(S.view);
   $("#btnFecharTodas").onclick = () => fecharVarias(null);
   $$("#menuLateral .menu-item").forEach((m) => m.classList.toggle("ativo", m.dataset.view === S.view));
+  const ativo = $(`#menuLateral .menu-item[data-view="${S.view}"]`);
+  const grupo = ativo?.closest(".menu-grupo");
+  if (grupo && !grupo.classList.contains("aberto") && !$("#buscaMenu").value) { grupo.classList.add("aberto"); gruposAbertos[grupo.dataset.grupo] = true; salvarGrupos(); }
+  $("#topoTitulo").textContent = ROTAS[S.view]?.nome || "";
 }
 function fecharListaAbas() { $("#abasLista").classList.add("hidden"); $("#btnAbasMenu").setAttribute("aria-expanded", "false"); }
 $("#btnAbasMenu").addEventListener("click", (e) => {
@@ -639,31 +685,74 @@ $("#btnAbasMenu").addEventListener("click", (e) => {
 $("#abasLista").addEventListener("click", (e) => e.stopPropagation());
 document.addEventListener("click", fecharListaAbas);
 
-/* ---------- abrir / recolher o menu ---------- */
+/* ---------- mostrar / ocultar o menu ---------- */
 const mobile = () => window.matchMedia("(max-width: 900px)").matches;
 function fecharMenuMobile() { $("#app").classList.remove("menu-aberto"); $("#sideFundo").classList.add("hidden"); }
-function alternarRecolhido() {
-  const rec = !$("#app").classList.contains("menu-recolhido");
-  $("#app").classList.toggle("menu-recolhido", rec);
-  $("#btnRecolher").title = rec ? "Expandir menu" : "Recolher menu";
-  try { localStorage.setItem("garbosa.menuRecolhido", rec ? "1" : "0"); } catch { /* ignora */ }
+function alternarOculto(ocultar) {
+  $("#app").classList.toggle("menu-oculto", ocultar);
+  try { localStorage.setItem("garbosa.menuOculto", ocultar ? "1" : "0"); } catch { /* ignora */ }
 }
-try { if (localStorage.getItem("garbosa.menuRecolhido") === "1") $("#app").classList.add("menu-recolhido"); } catch { /* ignora */ }
+try { if (localStorage.getItem("garbosa.menuOculto") === "1") $("#app").classList.add("menu-oculto"); } catch { /* ignora */ }
 $("#btnMenu").addEventListener("click", () => {
   if (mobile()) { const abrir = !$("#app").classList.contains("menu-aberto"); $("#app").classList.toggle("menu-aberto", abrir); $("#sideFundo").classList.toggle("hidden", !abrir); }
-  else alternarRecolhido();
+  else alternarOculto(!$("#app").classList.contains("menu-oculto"));
 });
-$("#btnRecolher").addEventListener("click", alternarRecolhido);
+$("#btnFecharMenu").addEventListener("click", () => { if (mobile()) fecharMenuMobile(); else alternarOculto(true); });
 $("#sideFundo").addEventListener("click", fecharMenuMobile);
 
-/* ---------- tela sem abas ---------- */
+/* ---------- menu do avatar ---------- */
+function fecharAvatar() { $("#avatarMenu").classList.add("hidden"); $("#btnAvatar").setAttribute("aria-expanded", "false"); }
+$("#btnAvatar").addEventListener("click", (e) => {
+  e.stopPropagation();
+  const abrir = $("#avatarMenu").classList.contains("hidden");
+  $("#avatarMenu").classList.toggle("hidden", !abrir);
+  $("#btnAvatar").setAttribute("aria-expanded", String(abrir));
+});
+$("#avatarMenu").addEventListener("click", (e) => e.stopPropagation());
+document.addEventListener("click", fecharAvatar);
+
+/* ---------- preferências de privacidade ---------- */
+$("#btnPrivacidade").addEventListener("click", () => {
+  abrirModal("Preferências de privacidade", `
+    <p style="margin-bottom:10px">O Garbosa System guarda apenas o necessário para funcionar:</p>
+    <ul style="margin:0 0 12px 18px;line-height:1.7;color:#444">
+      <li><strong>No seu navegador:</strong> abas abertas, menu recolhido e grupos expandidos.</li>
+      <li><strong>No banco de dados:</strong> seu cadastro, excursões, viajantes, pagamentos e o registro de acessos (data, hora e navegador).</li>
+      <li>Dados de viajantes são usados só para organizar a viagem, conforme a LGPD.</li>
+    </ul>
+    <label class="check"><input type="checkbox" id="prefLimpar"> Limpar as preferências salvas neste navegador</label>`, [
+    { html: "Fechar", acao: fecharModal },
+    { html: `<i class="fa-solid fa-check"></i> Aplicar`, classe: "btn-primary", acao: () => {
+      if ($("#prefLimpar").checked) {
+        try { Object.keys(localStorage).filter((k) => k.startsWith("garbosa.")).forEach((k) => localStorage.removeItem(k)); } catch { /* ignora */ }
+        S.abas = []; gruposAbertos = {}; $("#app").classList.remove("menu-oculto");
+        montarAbas(); navegar("inicio");
+        toast("Preferências deste navegador apagadas");
+      }
+      fecharModal();
+    } }
+  ]);
+});
+
+/* ---------- tela inicial (marca no centro) ---------- */
 function viewInicio() {
-  const itens = Object.entries(ROTAS).filter(([id]) => pode(id));
   $("#workspace").innerHTML = `
-  <section class="panel">
-    <div class="panel-head"><h2><i class="fa-solid fa-house"></i> Bem-vindo, ${esc(P.nome.split(" ")[0])}</h2></div>
-    <div class="empty" style="padding:30px 20px 10px"><i class="fa-solid fa-table-cells-large"></i><p>Nenhuma aba aberta. Escolha o que deseja abrir:</p></div>
-    <div class="atalhos">${itens.map(([id, r]) => `<a class="atalho" href="#/${id}"><i class="fa-solid ${r.icone} ${r.cor}"></i><span>${r.nome}</span></a>`).join("")}</div>
+  <section class="home">
+    <div class="marca-home">
+      <svg class="marca-icone" viewBox="0 0 120 150" aria-hidden="true">
+        <circle cx="20" cy="20" r="18" fill="#FFD54A"/>
+        <rect x="44" y="2" width="34" height="34" rx="6" fill="#2A1F88"/><rect x="84" y="2" width="34" height="34" rx="6" fill="#2A1F88"/>
+        <rect x="2" y="42" width="34" height="34" rx="6" fill="#2A1F88"/><rect x="44" y="42" width="34" height="34" rx="6" fill="#5946da"/>
+        <rect x="2" y="82" width="34" height="34" rx="6" fill="#2A1F88"/><rect x="44" y="82" width="34" height="34" rx="6" fill="#2A1F88"/><rect x="84" y="82" width="34" height="34" rx="6" fill="#5946da"/>
+        <rect x="2" y="122" width="34" height="26" rx="6" fill="#2A1F88"/><rect x="44" y="122" width="34" height="26" rx="6" fill="#2A1F88"/>
+      </svg>
+      <div class="marca-texto">
+        <h1>GARBOSA TURISMO</h1>
+        <p>Sistema de gestão de excursões</p>
+        <p>São João Nepomuceno – MG</p>
+      </div>
+    </div>
+    <p class="home-dica">Use o <strong>Painel de Controle</strong> ao lado para abrir uma tela.</p>
   </section>`;
 }
 
@@ -674,6 +763,7 @@ function render() {
   renderAbas();
   document.title = `${ROTAS[S.view]?.nome || "Início"} | Garbosa System`;
   S.exportar = null;
+  $("#workspace").classList.toggle("em-inicio", S.view === "inicio");
   const views = { inicio: viewInicio, calendario: viewCalendario, excursoes: viewExcursoes, viajantes: viewViajantes, poltronas: viewPoltronas, financeiro: viewFinanceiro, viagens: viewViagens, usuarios: viewUsuarios, logs: viewLogs };
   (views[S.view] || viewCalendario)();
   const bx = $("#btnXlsx"), bp = $("#btnPdf");
@@ -1817,7 +1907,7 @@ function renderSino() {
   const naoLidas = lista.filter(([, n]) => !n.lida).length;
   const badge = $("#sinoBadge");
   badge.textContent = naoLidas > 9 ? "9+" : naoLidas;
-  badge.classList.toggle("hidden", !naoLidas);
+  badge.classList.toggle("zero", !naoLidas);
   $("#btnSino").title = naoLidas ? `${naoLidas} notificação(ões) nova(s)` : "Notificações";
   $("#sinoLista").innerHTML = lista.length ? lista.map(([id, n]) => `
     <button class="notif t-${esc(n.tipo)} ${n.lida ? "" : "nova"}" data-n="${id}">

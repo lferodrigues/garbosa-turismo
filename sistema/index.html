@@ -186,45 +186,64 @@
 
 <!-- ============ SISTEMA ============ -->
 <div id="app" class="app hidden">
-  <header class="topbar">
-    <div class="topbar-left">
-      <button id="btnMenu" class="btn-menu" title="Menu" aria-label="Abrir ou recolher o menu" aria-controls="sidebar"><i class="fa-solid fa-bars"></i></button>
-      <img src="../Assets/img/logo.ico" alt="Garbosa" class="topbar-logo">
-      <div>
-        <strong>Garbosa System</strong>
-        <small id="userEmpresa"></small>
-      </div>
+  <aside class="sidebar" id="sidebar" aria-label="Menu principal">
+    <div class="side-head">
+      <strong>Painel de Controle</strong>
+      <button id="btnFecharMenu" class="side-x" title="Fechar menu" aria-label="Fechar menu"><i class="fa-solid fa-xmark"></i></button>
     </div>
-    <div class="topbar-right">
-      <div class="sino-wrap">
-        <button id="btnSino" class="sino" title="Notificações" aria-label="Notificações" aria-expanded="false"><i class="fa-solid fa-bell"></i><span id="sinoBadge" class="sino-badge hidden">0</span></button>
-        <div id="sinoPainel" class="sino-painel hidden" role="dialog" aria-label="Notificações">
-          <div class="sino-head"><strong>Notificações</strong><button id="btnLerTodas" class="link-btn">Marcar todas como lidas</button></div>
-          <div id="sinoLista" class="sino-lista"></div>
-        </div>
-      </div>
-      <span class="user-chip"><i class="fa-solid fa-circle-user"></i> <span id="userNome"></span> <em id="userTipo"></em></span>
-      <button id="btnSair" class="btn btn-ghost-light" title="Sair"><i class="fa-solid fa-right-from-bracket"></i><span class="hide-sm"> Sair</span></button>
+    <div class="side-faixa"></div>
+    <label class="side-busca"><i class="fa-solid fa-magnifying-glass"></i><input id="buscaMenu" type="search" placeholder="Encontrar opção" aria-label="Encontrar opção no menu"></label>
+    <div class="side-botoes">
+      <button id="btnExpandir" type="button"><i class="fa-solid fa-plus"></i> Expandir</button>
+      <button id="btnRecolherGrupos" type="button"><i class="fa-solid fa-minus"></i> Recolher</button>
     </div>
-  </header>
+    <nav id="menuLateral" class="menu-lateral"></nav>
+    <a class="side-site" href="../index.html" target="_blank" rel="noopener"><i class="fa-solid fa-globe"></i> Visitar site</a>
+  </aside>
+  <div id="sideFundo" class="side-fundo hidden"></div>
 
-  <div class="shell">
-    <aside class="sidebar" id="sidebar" aria-label="Menu principal">
-      <nav id="menuLateral" class="menu-lateral"></nav>
-      <button id="btnRecolher" class="side-recolher" title="Recolher menu" aria-label="Recolher menu"><i class="fa-solid fa-angles-left"></i><span>Recolher menu</span></button>
-    </aside>
-    <div id="sideFundo" class="side-fundo hidden"></div>
-    <section class="area">
-      <div class="abas-bar" role="tablist" aria-label="Abas abertas">
-        <div class="abas-menu-wrap">
-          <button id="btnAbasMenu" class="abas-menu" title="Abas abertas" aria-label="Lista de abas abertas" aria-expanded="false"><i class="fa-solid fa-chevron-down"></i></button>
-          <div id="abasLista" class="abas-lista hidden"></div>
-        </div>
-        <div id="abasTrabalho" class="abas"></div>
+  <section class="area">
+    <header class="topo">
+      <div class="topo-esq">
+        <button id="btnMenu" class="topo-menu" title="Menu" aria-label="Mostrar ou ocultar o menu" aria-controls="sidebar"><i class="fa-solid fa-bars"></i></button>
+        <span id="topoTitulo" class="topo-titulo"></span>
       </div>
-      <main class="workspace" id="workspace"></main>
-    </section>
-  </div>
+      <div class="topo-dir">
+        <div class="sino-wrap">
+          <button id="btnSino" class="sino" title="Notificações" aria-label="Notificações" aria-expanded="false"><i class="fa-regular fa-bell"></i><span id="sinoBadge" class="sino-badge">0</span></button>
+          <div id="sinoPainel" class="sino-painel hidden" role="dialog" aria-label="Notificações">
+            <div class="sino-head"><strong>Notificações</strong><button id="btnLerTodas" class="link-btn">Marcar todas como lidas</button></div>
+            <div id="sinoLista" class="sino-lista"></div>
+          </div>
+        </div>
+        <span class="ola">Olá, <strong id="userNome"></strong></span>
+        <div class="avatar-wrap">
+          <button id="btnAvatar" class="avatar" aria-label="Minha conta" aria-expanded="false"><span id="avatarIni"></span></button>
+          <div id="avatarMenu" class="avatar-menu hidden">
+            <div class="av-topo"><span class="avatar grande" id="avatarIni2"></span><div><strong id="avNome"></strong><small id="userEmpresa"></small><em id="userTipo" class="pill"></em></div></div>
+            <a href="../index.html" target="_blank" rel="noopener"><i class="fa-solid fa-globe"></i> Visitar site</a>
+            <button id="btnSair" type="button"><i class="fa-solid fa-right-from-bracket"></i> Sair do sistema</button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <div class="abas-bar" role="tablist" aria-label="Abas abertas">
+      <div class="abas-menu-wrap">
+        <button id="btnAbasMenu" class="abas-menu" title="Abas abertas" aria-label="Lista de abas abertas" aria-expanded="false"><i class="fa-solid fa-chevron-down"></i></button>
+        <div id="abasLista" class="abas-lista hidden"></div>
+      </div>
+      <div id="abasTrabalho" class="abas"></div>
+    </div>
+
+    <main class="workspace" id="workspace"></main>
+
+    <footer class="rodape">
+      <span>Garbosa Turismo – São João Nepomuceno</span>
+      <button type="button" id="btnPrivacidade" class="rodape-link">Preferências de privacidade</button>
+      <a class="rodape-autor" href="https://feliperodrigues.net" target="_blank" rel="noopener">Produzido por: <img src="../Assets/img/banner04.png" alt=""> <strong>Felipe Rodrigues</strong></a>
+    </footer>
+  </section>
 </div>
 
 <div id="modalBackdrop" class="modal-backdrop hidden">
