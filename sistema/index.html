@@ -99,87 +99,88 @@
 </div>
 
 <!-- ============ TELA DE ACESSO (login / cadastro) ============ -->
-<div id="authScreen" class="login-body hidden">
-  <main class="login-wrap">
-    <section class="login-brand">
-      <img src="../Assets/img/logo.ico" alt="Garbosa Turismo" class="login-logo">
-      <span class="tag">Garbosa System</span>
-      <h1>Gestão de excursões, frota e poltronas em um só lugar.</h1>
-      <ul class="login-features">
-        <li><i class="fa-solid fa-calendar-days"></i> Calendário de viagens agendadas</li>
-        <li><i class="fa-solid fa-route"></i> Cadastro de excursões com preço por poltrona</li>
-        <li><i class="fa-solid fa-users"></i> Lista de viajantes</li>
-        <li><i class="fa-solid fa-couch"></i> Montagem do mapa de poltronas</li>
-        <li><i class="fa-solid fa-bus"></i> Orçamentos para transporte e fretamento</li>
-        <li><i class="fa-solid fa-file-export"></i> Relatórios em XLSX e PDF</li>
-      </ul>
-    </section>
+<div id="authScreen" class="auth hidden">
+  <aside class="auth-arte" aria-hidden="true">
+    <div class="auth-marca">
+      <img src="../Assets/img/logo.ico" alt="">
+      <div><strong>Garbosa</strong><small>S Y S T E M</small></div>
+    </div>
+    <h2 class="auth-slogan">ENTRE NA SUA<br><span>PRÓXIMA VIAGEM!</span></h2>
+  </aside>
 
-    <section class="login-card">
-      <div class="login-tabs">
-        <a class="login-tab" href="#/login" data-tab="login">Entrar</a>
-        <a class="login-tab" href="#/cadastro" data-tab="cadastro">Criar conta</a>
+  <main class="auth-painel">
+    <div class="auth-marca auth-marca-mobile">
+      <img src="../Assets/img/logo.ico" alt="">
+      <div><strong>Garbosa</strong><small>S Y S T E M</small></div>
+    </div>
+
+    <!-- ENTRAR -->
+    <form id="formEntrar" class="auth-form" autocomplete="on">
+      <h1>ENTRAR</h1>
+      <p class="auth-sub">Entre com seu e-mail e senha</p>
+      <label class="campo"><i class="fa-regular fa-envelope"></i>
+        <input type="email" id="loginEmail" required autocomplete="email" placeholder="seuemail@gmail.com" aria-label="E-mail"></label>
+      <label class="campo"><i class="fa-solid fa-lock"></i>
+        <input type="password" id="loginSenha" required autocomplete="current-password" minlength="6" placeholder="Senha" aria-label="Senha">
+        <button type="button" class="olho" data-olho="loginSenha" aria-label="Mostrar senha"><i class="fa-regular fa-eye"></i></button></label>
+      <button type="button" id="btnEsqueci" class="auth-link auth-esqueci">Esqueci minha senha</button>
+      <button type="submit" class="auth-btn">Entrar</button>
+      <div class="auth-sep"></div>
+      <p class="auth-mini">Ou continue com</p>
+      <button type="button" class="auth-google" data-google><svg viewBox="0 0 48 48" width="18" height="18" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg> Google</button>
+      <p class="auth-mini">Ainda não tem conta? <a class="auth-link" href="#/cadastro">Criar conta</a></p>
+      <p class="auth-termos">Ao entrar você concorda com nossos <a href="../contrato.html" target="_blank" rel="noopener">Termos e Condições</a></p>
+    </form>
+
+    <!-- CRIAR CONTA -->
+    <form id="formCadastrar" class="auth-form hidden" autocomplete="on" novalidate>
+      <h1>CRIAR CONTA</h1>
+      <p class="auth-sub">Preencha seus dados para acessar o sistema</p>
+      <button type="button" class="auth-google" data-google><svg viewBox="0 0 48 48" width="18" height="18" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg> Cadastrar com Google</button>
+      <p class="auth-mini auth-ou">ou preencha</p>
+      <label class="campo"><i class="fa-regular fa-user"></i><input type="text" id="cadNome" required autocomplete="name" placeholder="Nome completo" aria-label="Nome completo"></label>
+      <label class="campo"><i class="fa-solid fa-building"></i><input type="text" id="cadEmpresa" required autocomplete="organization" placeholder="Agência / empresa" aria-label="Agência ou empresa"></label>
+      <div class="campos2">
+        <label class="campo"><i class="fa-regular fa-id-card"></i><input type="text" id="cadDoc" data-mask="doc" required inputmode="numeric" placeholder="CPF ou CNPJ" aria-label="CPF ou CNPJ"></label>
+        <label class="campo"><i class="fa-brands fa-whatsapp"></i><input type="tel" id="cadWhats" data-mask="tel" required inputmode="tel" placeholder="WhatsApp" aria-label="WhatsApp"></label>
       </div>
+      <label class="campo"><i class="fa-brands fa-instagram"></i><span class="arroba">@</span><input type="text" id="cadInsta" required autocapitalize="none" autocomplete="off" placeholder="instagram" maxlength="31" aria-label="Instagram"></label>
+      <label class="campo"><i class="fa-regular fa-envelope"></i><input type="email" id="cadEmail" required autocomplete="email" placeholder="seuemail@gmail.com" aria-label="E-mail"></label>
+      <label class="campo"><i class="fa-solid fa-lock"></i><input type="password" id="cadSenha" required minlength="6" autocomplete="new-password" placeholder="Senha (mínimo 6 caracteres)" aria-label="Senha">
+        <button type="button" class="olho" data-olho="cadSenha" aria-label="Mostrar senha"><i class="fa-regular fa-eye"></i></button></label>
+      <fieldset class="tipo-conta">
+        <legend>Tipo de conta</legend>
+        <label class="tipo-op"><input type="radio" name="cadTipo" value="agencia" checked><span><i class="fa-solid fa-route"></i> Agência de turismo</span></label>
+        <label class="tipo-op"><input type="radio" name="cadTipo" value="transportadora"><span><i class="fa-solid fa-bus"></i> Transporte / Fretamento</span></label>
+      </fieldset>
+      <button type="submit" class="auth-btn">Criar conta</button>
+      <p class="auth-mini">Já tem conta? <a class="auth-link" href="#/login">Entrar</a></p>
+      <p class="auth-termos">Ao se cadastrar você concorda com nossos <a href="../contrato.html" target="_blank" rel="noopener">Termos e Condições</a></p>
+    </form>
 
-      <form id="formEntrar" class="login-form" autocomplete="on">
-        <h2>Bem-vindo de volta</h2>
-        <label>E-mail
-          <input type="email" id="loginEmail" required autocomplete="email">
-        </label>
-        <label>Senha
-          <input type="password" id="loginSenha" required autocomplete="current-password" minlength="6">
-        </label>
-        <button type="submit" class="btn btn-primary btn-block"><i class="fa-solid fa-right-to-bracket"></i> Entrar</button>
-        <button type="button" id="btnEsqueci" class="link-btn">Esqueci minha senha</button>
-      </form>
-
-      <form id="formCadastrar" class="login-form hidden" autocomplete="on" novalidate>
-        <h2>Criar conta</h2>
-        <label>Nome completo
-          <input type="text" id="cadNome" required autocomplete="name">
-        </label>
-        <label>Agência / empresa
-          <input type="text" id="cadEmpresa" required autocomplete="organization" placeholder="Nome da agência ou da empresa de transporte">
-        </label>
-        <div class="row2">
-          <label>CPF ou CNPJ
-            <input type="text" id="cadDoc" data-mask="doc" required inputmode="numeric" placeholder="000.000.000-00">
-          </label>
-          <label>WhatsApp
-            <input type="tel" id="cadWhats" data-mask="tel" required inputmode="tel" placeholder="(32) 99999-9999">
-          </label>
-        </div>
-        <label>Instagram
-          <span class="input-prefix"><b>@</b><input type="text" id="cadInsta" required autocapitalize="none" autocomplete="off" placeholder="suaagencia" maxlength="31"></span>
-        </label>
-        <label>E-mail
-          <input type="email" id="cadEmail" required autocomplete="email">
-        </label>
-        <label>Senha (mínimo 6 caracteres)
-          <input type="password" id="cadSenha" required minlength="6" autocomplete="new-password">
-        </label>
-        <fieldset class="tipo-conta">
-          <legend>Tipo de conta</legend>
-          <label class="tipo-op"><input type="radio" name="cadTipo" value="agencia" checked>
-            <span><i class="fa-solid fa-route"></i> Agência de turismo</span></label>
-          <label class="tipo-op"><input type="radio" name="cadTipo" value="transportadora">
-            <span><i class="fa-solid fa-bus"></i> Transporte / Fretamento</span></label>
-        </fieldset>
-        <button type="submit" class="btn btn-primary btn-block"><i class="fa-solid fa-user-plus"></i> Criar conta</button>
-      </form>
-
-      <div id="verifyBox" class="verify hidden">
-        <i class="fa-solid fa-envelope-circle-check"></i>
-        <h2>Confirme seu e-mail</h2>
-        <p>A conta de administrador só é liberada depois da confirmação do e-mail. Enviamos um link para <strong id="verifyEmail"></strong>.</p>
-        <button id="btnJaVerifiquei" class="btn btn-primary btn-block"><i class="fa-solid fa-rotate"></i> Já confirmei</button>
-        <button id="btnReenviar" class="link-btn">Reenviar e-mail</button>
-        <button id="btnSairVerify" class="link-btn">Sair</button>
+    <!-- COMPLETAR CADASTRO (entrada pelo Google) -->
+    <form id="formCompletar" class="auth-form hidden" novalidate>
+      <h1>QUASE LÁ!</h1>
+      <p class="auth-sub">Falta pouco: complete seu cadastro para acessar o sistema.</p>
+      <div class="conta-google"><img id="compFoto" src="../Assets/img/logo.ico" alt="" referrerpolicy="no-referrer"><div><strong id="compNomeG"></strong><small id="compEmail"></small></div></div>
+      <label class="campo"><i class="fa-regular fa-user"></i><input type="text" id="compNome" required placeholder="Nome completo" aria-label="Nome completo"></label>
+      <label class="campo"><i class="fa-solid fa-building"></i><input type="text" id="compEmpresa" required placeholder="Agência / empresa" aria-label="Agência ou empresa"></label>
+      <div class="campos2">
+        <label class="campo"><i class="fa-regular fa-id-card"></i><input type="text" id="compDoc" data-mask="doc" required inputmode="numeric" placeholder="CPF ou CNPJ" aria-label="CPF ou CNPJ"></label>
+        <label class="campo"><i class="fa-brands fa-whatsapp"></i><input type="tel" id="compWhats" data-mask="tel" required inputmode="tel" placeholder="WhatsApp" aria-label="WhatsApp"></label>
       </div>
+      <label class="campo"><i class="fa-brands fa-instagram"></i><span class="arroba">@</span><input type="text" id="compInsta" required autocapitalize="none" autocomplete="off" placeholder="instagram" maxlength="31" aria-label="Instagram"></label>
+      <fieldset class="tipo-conta">
+        <legend>Tipo de conta</legend>
+        <label class="tipo-op"><input type="radio" name="compTipo" value="agencia" checked><span><i class="fa-solid fa-route"></i> Agência de turismo</span></label>
+        <label class="tipo-op"><input type="radio" name="compTipo" value="transportadora"><span><i class="fa-solid fa-bus"></i> Transporte / Fretamento</span></label>
+      </fieldset>
+      <button type="submit" class="auth-btn">Concluir cadastro</button>
+      <button type="button" id="btnSairCompletar" class="auth-link" style="display:block;margin:14px auto 0">Usar outra conta</button>
+    </form>
 
-      <p id="loginMsg" class="login-msg" role="alert"></p>
-      <a href="../index.html" class="login-back"><i class="fa-solid fa-arrow-left"></i> Voltar ao site</a>
-    </section>
+    <p id="loginMsg" class="login-msg" role="alert"></p>
+    <a href="../index.html" class="auth-voltar"><i class="fa-solid fa-arrow-left"></i> Voltar ao site</a>
   </main>
 </div>
 

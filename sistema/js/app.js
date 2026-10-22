@@ -2,7 +2,8 @@ import { auth, db, ADMIN_EMAIL, authSecundario } from "./firebase.js";
 import { baixarXLSX, baixarPDF, baixarPDFPoltronas, carregarXLSX } from "./exportar.js";
 import {
   onAuthStateChanged, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword,
-  sendPasswordResetEmail, sendEmailVerification, updateProfile
+  sendPasswordResetEmail, updateProfile,
+  GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
   ref, get, set, push, update, remove, onValue, query, orderByChild, equalTo, limitToLast, serverTimestamp
@@ -200,6 +201,7 @@ function rotear() {
   const { view, param } = lerHash();
   if (!U || !P) {                       // fora da sessão
     if (U && !P) return;                // carregando perfil
+    if (pendente) return mostrarAuth("completar");
     mostrarAuth(view === "cadastro" ? "cadastro" : "login");
     return;
   }
@@ -226,7 +228,11 @@ const ERROS_AUTH = {
   "auth/weak-password": "A senha precisa ter pelo menos 6 caracteres.",
   "auth/too-many-requests": "Muitas tentativas. Aguarde alguns minutos.",
   "auth/operation-not-allowed": "Login por e-mail/senha não está ativado no Firebase.",
-  "auth/network-request-failed": "Sem conexão com a internet."
+  "auth/network-request-failed": "Sem conexão com a internet.",
+  "auth/unauthorized-domain": "Este domínio não está autorizado no Firebase (Authentication → Settings → Authorized domains).",
+  "auth/account-exists-with-different-credential": "Este e-mail já tem conta com outro método de login. Entre com e-mail e senha.",
+  "auth/popup-blocked": "O navegador bloqueou a janela do Google. Permita pop-ups e tente de novo.",
+  "auth/user-disabled": "Esta conta foi desativada."
 };
 const traduz = (e) => ERROS_AUTH[e.code] || ("Erro: " + (e.message || e));
 function msg(texto, tipo = "erro") { const m = $("#loginMsg"); m.textContent = texto; m.className = "login-msg " + tipo; }
@@ -235,16 +241,84 @@ function mostrarAuth(aba) {
   esconderLoading();
   $("#app").classList.add("hidden");
   $("#authScreen").classList.remove("hidden");
-  const verificando = aba === "verificar";
-  $("#verifyBox").classList.toggle("hidden", !verificando);
-  $(".login-tabs").classList.toggle("hidden", verificando);
-  $("#formEntrar").classList.toggle("hidden", aba !== "login");
-  $("#formCadastrar").classList.toggle("hidden", aba !== "cadastro");
-  $$(".login-tab").forEach((t) => t.classList.toggle("active", t.dataset.tab === aba));
-  document.title = (aba === "cadastro" ? "Criar conta" : aba === "verificar" ? "Confirmar e-mail" : "Entrar") + " | Garbosa System";
+  const telas = { login: "#formEntrar", cadastro: "#formCadastrar", completar: "#formCompletar" };
+  Object.entries(telas).forEach(([k, sel]) => $(sel).classList.toggle("hidden", k !== aba));
+  document.title = ({ cadastro: "Criar conta", completar: "Completar cadastro" }[aba] || "Entrar") + " | Garbosa System";
 }
 ligarMascaras($("#formCadastrar"));
-$$(".login-tab").forEach((t) => t.addEventListener("click", () => msg("", "")));
+ligarMascaras($("#formCompletar"));
+$$("[data-olho]").forEach((b) => b.addEventListener("click", () => {
+  const inp = $("#" + b.dataset.olho), mostrar = inp.type === "password";
+  inp.type = mostrar ? "text" : "password";
+  b.innerHTML = `<i class="fa-regular ${mostrar ? "fa-eye-slash" : "fa-eye"}"></i>`;
+  b.setAttribute("aria-label", mostrar ? "Ocultar senha" : "Mostrar senha");
+}));
+
+/* ---------- Login com Google ---------- */
+const provedorGoogle = new GoogleAuthProvider();
+provedorGoogle.setCustomParameters({ prompt: "select_account" });
+$$("[data-google]").forEach((bt) => bt.addEventListener("click", async () => {
+  msg("Abrindo o Google...", "info");
+  eventoAuth = "login";
+  try {
+    await signInWithPopup(auth, provedorGoogle);
+  } catch (err) {
+    if (["auth/popup-blocked", "auth/operation-not-supported-in-this-environment", "auth/cancelled-popup-request"].includes(err.code)) {
+      try { await signInWithRedirect(auth, provedorGoogle); } catch (e2) { eventoAuth = null; msg(traduz(e2)); }
+      return;
+    }
+    eventoAuth = null;
+    msg(err.code === "auth/popup-closed-by-user" ? "" : traduz(err), err.code === "auth/popup-closed-by-user" ? "" : "erro");
+  }
+}));
+getRedirectResult(auth).then((r) => { if (r) eventoAuth = "login"; }).catch((err) => msg(traduz(err)));
+
+/* ---------- Primeiro acesso: completar cadastro ---------- */
+let pendente = null;
+function mostrarCompletar(user) {
+  pendente = user;
+  U = null;
+  $("#compFoto").src = user.photoURL || "../Assets/img/logo.ico";
+  $("#compNomeG").textContent = user.displayName || "Sua conta";
+  $("#compEmail").textContent = user.email || "";
+  if (!$("#compNome").value) $("#compNome").value = user.displayName || "";
+  history.replaceState(null, "", "#/completar");
+  mostrarAuth("completar");
+  msg("", "");
+}
+$("#btnSairCompletar").addEventListener("click", () => { pendente = null; sair(); });
+$("#formCompletar").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const user = pendente || auth.currentUser;
+  if (!user) return mostrarAuth("login");
+  const nome = $("#compNome").value.trim(), empresa = $("#compEmpresa").value.trim();
+  const documento = mascaraDoc($("#compDoc").value), whatsapp = mascaraTel($("#compWhats").value);
+  const instagram = normInsta($("#compInsta").value);
+  const email = (user.email || "").toLowerCase();
+  let tipo = $("input[name=compTipo]:checked").value;
+  if (nome.split(/\s+/).length < 2) return msg("Informe o nome completo.");
+  if (!empresa) return msg("Informe o nome da agência / empresa.");
+  if (!docValido(documento)) return msg("CPF ou CNPJ inválido.");
+  if (soDig(whatsapp).length < 10) return msg("WhatsApp inválido.");
+  if (!instaValido(instagram)) return msg("Informe um @ do Instagram válido (letras, números, ponto e _).");
+  if (email === ADMIN_EMAIL) tipo = "admin";
+  const botao = $("#formCompletar .auth-btn");
+  botao.disabled = true;
+  msg("Salvando...", "info");
+  try {
+    const ig = await get(ref(db, `instagram/${instagram}`));
+    if (ig.exists() && ig.val().uid !== user.uid) { botao.disabled = false; return msg(`O @${instagram} já está cadastrado no sistema.`); }
+    await gravarPerfil(user.uid, { nome, empresa, documento, whatsapp, email: user.email, tipo, instagram });
+    if (!user.displayName) await updateProfile(user, { displayName: nome }).catch(() => {});
+    pendente = null;
+    eventoAuth = "cadastro";
+    $("#formCompletar").reset();
+    msg("", "");
+    await iniciarSessao(user);
+  } catch (err) { msg(traduz(err)); }
+  botao.disabled = false;
+});
+$$(".auth-link[href]").forEach((t) => t.addEventListener("click", () => msg("", "")));
 
 $("#formEntrar").addEventListener("submit", async (e) => {
   e.preventDefault();
@@ -281,7 +355,6 @@ $("#formCadastrar").addEventListener("submit", async (e) => {
     const cred = await createUserWithEmailAndPassword(auth, email, senha);
     await updateProfile(cred.user, { displayName: nome });
     await gravarPerfil(cred.user.uid, { nome, empresa, documento, whatsapp, email, tipo, instagram });
-    if (admin) await sendEmailVerification(cred.user).catch(() => {});
     cadastrando = false;
     eventoAuth = "cadastro";
     await iniciarSessao(cred.user);
@@ -305,17 +378,6 @@ $("#btnEsqueci").addEventListener("click", async () => {
   try { await sendPasswordResetEmail(auth, email); msg("Enviamos um link de redefinição para " + email, "ok"); }
   catch (err) { msg(traduz(err)); }
 });
-$("#btnReenviar").addEventListener("click", async () => {
-  try { await sendEmailVerification(auth.currentUser); msg("E-mail reenviado.", "ok"); } catch (err) { msg(traduz(err)); }
-});
-$("#btnJaVerifiquei").addEventListener("click", async () => {
-  await auth.currentUser.reload();
-  if (!auth.currentUser.emailVerified) return msg("O e-mail ainda não foi confirmado. Abra o link enviado para sua caixa de entrada.");
-  await auth.currentUser.getIdToken(true);
-  msg("", "");
-  iniciarSessao(auth.currentUser);
-});
-$("#btnSairVerify").addEventListener("click", () => sair());
 
 /* =========================================================
    SESSÃO
@@ -343,15 +405,14 @@ async function iniciarSessao(user) {
       await gravarPerfil(user.uid, { nome: user.displayName || "Administrador", empresa: "Garbosa Turismo", documento: "", whatsapp: "", email: ADMIN_EMAIL, tipo: "admin" });
       snap = await get(ref(db, `usuarios/${user.uid}`));
     }
-    if (!snap.exists()) { bloquear("Seu acesso foi removido ou o cadastro não foi concluído. Fale com o administrador."); return; }
-    const perfil = snap.val();
-    if (perfil.ativo === false) { bloquear("Seu usuário está desativado. Fale com o administrador."); return; }
-    if (perfil.tipo === "admin" && !user.emailVerified) {
-      U = null;
-      $("#verifyEmail").textContent = user.email;
-      mostrarAuth("verificar");
+    if (!snap.exists()) {
+      const bloq = await get(ref(db, `bloqueados/${user.uid}`)).catch(() => null);
+      if (bloq?.exists()) { bloquear("Seu acesso foi removido pelo administrador. Fale com a Garbosa Turismo."); return; }
+      mostrarCompletar(user);
       return;
     }
+    const perfil = snap.val();
+    if (perfil.ativo === false) { bloquear("Seu usuário está desativado. Fale com o administrador."); return; }
     P = perfil;
   } catch (e) {
     console.error(e);
@@ -1418,7 +1479,7 @@ function viewUsuarios() {
     if (b.dataset.a === "del") confirmar(`Remover o usuário <strong>${esc(u.nome)}</strong> (${esc(u.email)})? Ele perde o acesso ao sistema imediatamente.
       ${u.tipo === "agencia" ? `<label class="check" style="margin-top:12px"><input type="checkbox" name="apagarDados"> Apagar também as excursões, viajantes e poltronas desta agência</label>` : ""}
       ${u.tipo === "transportadora" ? `<label class="check" style="margin-top:12px"><input type="checkbox" name="apagarDados"> Apagar também as viagens desta transportadora</label>` : ""}`, async (extra) => {
-      const upd = { [`usuarios/${uid}`]: null, [`agencias/${uid}`]: null };
+      const upd = { [`usuarios/${uid}`]: null, [`agencias/${uid}`]: null, [`bloqueados/${uid}`]: { email: u.email || "", em: Date.now(), por: U.uid } };
       if (u.instagram) upd[`instagram/${u.instagram}`] = null;
       if (extra.apagarDados && u.tipo === "agencia") Object.assign(upd, { [`excursoes/${uid}`]: null, [`viajantes/${uid}`]: null, [`poltronas/${uid}`]: null });
       if (extra.apagarDados && u.tipo === "transportadora") Object.entries(S.viagens).forEach(([id, v]) => { if (v.transportadoraUid === uid) upd[`viagens/${id}`] = null; });

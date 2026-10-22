@@ -3,11 +3,11 @@
     ".read": false,
     ".write": false,
     "usuarios": {
-      ".read": "(auth != null && auth.token.email === 'contato@feliperodrigues.net' && auth.token.email_verified === true)",
+      ".read": "(auth != null && auth.token.email === 'contato@feliperodrigues.net')",
       "$uid": {
-        ".read": "auth != null && (auth.uid === $uid || (auth != null && auth.token.email === 'contato@feliperodrigues.net' && auth.token.email_verified === true))",
-        ".write": "(auth != null && auth.token.email === 'contato@feliperodrigues.net' && auth.token.email_verified === true) || (auth != null && auth.uid === $uid && !data.exists())",
-        ".validate": "newData.hasChildren(['nome', 'empresa', 'tipo', 'email', 'ativo']) && (newData.child('tipo').val() === 'agencia' || newData.child('tipo').val() === 'transportadora' || (newData.child('tipo').val() === 'admin' && newData.child('email').val() === 'contato@feliperodrigues.net' && auth.token.email === 'contato@feliperodrigues.net')) && ((auth != null && auth.token.email === 'contato@feliperodrigues.net' && auth.token.email_verified === true) || newData.child('ativo').val() === true)",
+        ".read": "auth != null && (auth.uid === $uid || (auth != null && auth.token.email === 'contato@feliperodrigues.net'))",
+        ".write": "(auth != null && auth.token.email === 'contato@feliperodrigues.net') || (auth != null && auth.uid === $uid && !data.exists() && !root.child('bloqueados').child(auth.uid).exists())",
+        ".validate": "newData.hasChildren(['nome', 'empresa', 'tipo', 'email', 'ativo']) && (newData.child('tipo').val() === 'agencia' || newData.child('tipo').val() === 'transportadora' || (newData.child('tipo').val() === 'admin' && newData.child('email').val() === 'contato@feliperodrigues.net' && auth.token.email === 'contato@feliperodrigues.net')) && ((auth != null && auth.token.email === 'contato@feliperodrigues.net') || newData.child('ativo').val() === true)",
         "nome": {
           ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 120"
         },
@@ -24,24 +24,31 @@
           ".validate": "newData.isString() && newData.val().matches(/^[a-z0-9._]{0,30}$/)"
         },
         "email": {
-          ".validate": "newData.isString() && ((auth != null && auth.token.email === 'contato@feliperodrigues.net' && auth.token.email_verified === true) || newData.val() === auth.token.email)"
+          ".validate": "newData.isString() && ((auth != null && auth.token.email === 'contato@feliperodrigues.net') || newData.val() === auth.token.email)"
         },
         "ativo": {
           ".validate": "newData.isBoolean()"
         }
       }
     },
+    "bloqueados": {
+      "$uid": {
+        ".read": "auth != null && (auth.uid === $uid || (auth != null && auth.token.email === 'contato@feliperodrigues.net'))",
+        ".write": "(auth != null && auth.token.email === 'contato@feliperodrigues.net')",
+        ".validate": "newData.hasChildren(['em'])"
+      }
+    },
     "instagram": {
       "$handle": {
         ".read": true,
-        ".write": "(auth != null && auth.token.email === 'contato@feliperodrigues.net' && auth.token.email_verified === true) || (auth != null && ((!data.exists() && newData.child('uid').val() === auth.uid) || (data.exists() && data.child('uid').val() === auth.uid)))",
+        ".write": "(auth != null && auth.token.email === 'contato@feliperodrigues.net') || (auth != null && ((!data.exists() && newData.child('uid').val() === auth.uid) || (data.exists() && data.child('uid').val() === auth.uid)))",
         ".validate": "$handle.matches(/^[a-z0-9._]{1,30}$/) && newData.hasChildren(['uid', 'nome'])"
       }
     },
     "agencias": {
       ".read": "auth != null",
       "$uid": {
-        ".write": "(auth != null && auth.token.email === 'contato@feliperodrigues.net' && auth.token.email_verified === true) || (auth != null && auth.uid === $uid && newData.parent().parent().child('usuarios').child(auth.uid).child('tipo').val() === 'agencia')",
+        ".write": "(auth != null && auth.token.email === 'contato@feliperodrigues.net') || (auth != null && auth.uid === $uid && newData.parent().parent().child('usuarios').child(auth.uid).child('tipo').val() === 'agencia')",
         ".validate": "newData.hasChildren(['nome']) && newData.child('nome').isString()"
       }
     },
@@ -50,10 +57,10 @@
         "agenciaUid",
         "transportadoraUid"
       ],
-      ".read": "(auth != null && auth.token.email === 'contato@feliperodrigues.net' && auth.token.email_verified === true) || (auth != null && (query.orderByChild === 'agenciaUid' || query.orderByChild === 'transportadoraUid') && query.equalTo === auth.uid)",
+      ".read": "(auth != null && auth.token.email === 'contato@feliperodrigues.net') || (auth != null && (query.orderByChild === 'agenciaUid' || query.orderByChild === 'transportadoraUid') && query.equalTo === auth.uid)",
       "$viagemId": {
-        ".read": "auth != null && (data.child('agenciaUid').val() === auth.uid || data.child('transportadoraUid').val() === auth.uid || (auth != null && auth.token.email === 'contato@feliperodrigues.net' && auth.token.email_verified === true))",
-        ".write": "(auth != null && auth.token.email === 'contato@feliperodrigues.net' && auth.token.email_verified === true) || (auth != null && root.child('usuarios').child(auth.uid).child('tipo').val() === 'transportadora' && root.child('usuarios').child(auth.uid).child('ativo').val() !== false && (!data.exists() || data.child('transportadoraUid').val() === auth.uid) && (!newData.exists() || newData.child('transportadoraUid').val() === auth.uid))",
+        ".read": "auth != null && (data.child('agenciaUid').val() === auth.uid || data.child('transportadoraUid').val() === auth.uid || (auth != null && auth.token.email === 'contato@feliperodrigues.net'))",
+        ".write": "(auth != null && auth.token.email === 'contato@feliperodrigues.net') || (auth != null && root.child('usuarios').child(auth.uid).child('tipo').val() === 'transportadora' && root.child('usuarios').child(auth.uid).child('ativo').val() !== false && (!data.exists() || data.child('transportadoraUid').val() === auth.uid) && (!newData.exists() || newData.child('transportadoraUid').val() === auth.uid))",
         ".validate": "newData.hasChildren(['transportadoraUid', 'tipoVeiculo', 'destino', 'motorista', 'dataSaida', 'dataRetorno', 'valorFinal'])",
         "tipoVeiculo": {
           ".validate": "newData.isString() && newData.val().matches(/^(van15|van20|micro32|micro36|onibus42|onibus46|onibus50|onibus64)$/)"
@@ -82,10 +89,10 @@
       }
     },
     "excursoes": {
-      ".read": "(auth != null && auth.token.email === 'contato@feliperodrigues.net' && auth.token.email_verified === true)",
+      ".read": "(auth != null && auth.token.email === 'contato@feliperodrigues.net')",
       "$uid": {
-        ".read": "auth != null && (auth.uid === $uid || (auth != null && auth.token.email === 'contato@feliperodrigues.net' && auth.token.email_verified === true))",
-        ".write": "(auth != null && auth.token.email === 'contato@feliperodrigues.net' && auth.token.email_verified === true) || (auth != null && auth.uid === $uid && root.child('usuarios').child(auth.uid).child('tipo').val() === 'agencia' && root.child('usuarios').child(auth.uid).child('ativo').val() !== false)",
+        ".read": "auth != null && (auth.uid === $uid || (auth != null && auth.token.email === 'contato@feliperodrigues.net'))",
+        ".write": "(auth != null && auth.token.email === 'contato@feliperodrigues.net') || (auth != null && auth.uid === $uid && root.child('usuarios').child(auth.uid).child('tipo').val() === 'agencia' && root.child('usuarios').child(auth.uid).child('ativo').val() !== false)",
         "$excursaoId": {
           ".read": "(auth != null && root.child('excursoes').child($uid).child($excursaoId).child('colaboradores').child(auth.uid).exists())",
           ".validate": "newData.hasChildren(['destino', 'dataSaida', 'veiculos'])",
@@ -107,10 +114,10 @@
       }
     },
     "viajantes": {
-      ".read": "(auth != null && auth.token.email === 'contato@feliperodrigues.net' && auth.token.email_verified === true)",
+      ".read": "(auth != null && auth.token.email === 'contato@feliperodrigues.net')",
       "$uid": {
-        ".read": "auth != null && (auth.uid === $uid || (auth != null && auth.token.email === 'contato@feliperodrigues.net' && auth.token.email_verified === true))",
-        ".write": "(auth != null && auth.token.email === 'contato@feliperodrigues.net' && auth.token.email_verified === true) || (auth != null && auth.uid === $uid && root.child('usuarios').child(auth.uid).child('tipo').val() === 'agencia' && root.child('usuarios').child(auth.uid).child('ativo').val() !== false)",
+        ".read": "auth != null && (auth.uid === $uid || (auth != null && auth.token.email === 'contato@feliperodrigues.net'))",
+        ".write": "(auth != null && auth.token.email === 'contato@feliperodrigues.net') || (auth != null && auth.uid === $uid && root.child('usuarios').child(auth.uid).child('tipo').val() === 'agencia' && root.child('usuarios').child(auth.uid).child('ativo').val() !== false)",
         "$excursaoId": {
           ".read": "(auth != null && root.child('excursoes').child($uid).child($excursaoId).child('colaboradores').child(auth.uid).exists())",
           ".write": "(auth != null && root.child('excursoes').child($uid).child($excursaoId).child('colaboradores').child(auth.uid).exists())",
@@ -166,10 +173,10 @@
       }
     },
     "poltronas": {
-      ".read": "(auth != null && auth.token.email === 'contato@feliperodrigues.net' && auth.token.email_verified === true)",
+      ".read": "(auth != null && auth.token.email === 'contato@feliperodrigues.net')",
       "$uid": {
-        ".read": "auth != null && (auth.uid === $uid || (auth != null && auth.token.email === 'contato@feliperodrigues.net' && auth.token.email_verified === true))",
-        ".write": "(auth != null && auth.token.email === 'contato@feliperodrigues.net' && auth.token.email_verified === true) || (auth != null && auth.uid === $uid && root.child('usuarios').child(auth.uid).child('tipo').val() === 'agencia' && root.child('usuarios').child(auth.uid).child('ativo').val() !== false)",
+        ".read": "auth != null && (auth.uid === $uid || (auth != null && auth.token.email === 'contato@feliperodrigues.net'))",
+        ".write": "(auth != null && auth.token.email === 'contato@feliperodrigues.net') || (auth != null && auth.uid === $uid && root.child('usuarios').child(auth.uid).child('tipo').val() === 'agencia' && root.child('usuarios').child(auth.uid).child('ativo').val() !== false)",
         "$excursaoId": {
           ".read": "(auth != null && root.child('excursoes').child($uid).child($excursaoId).child('colaboradores').child(auth.uid).exists())",
           ".write": "(auth != null && root.child('excursoes').child($uid).child($excursaoId).child('colaboradores').child(auth.uid).exists())",
@@ -184,15 +191,15 @@
     "inscricoes": {
       "$excursaoId": {
         ".read": true,
-        ".write": "(auth != null && auth.token.email === 'contato@feliperodrigues.net' && auth.token.email_verified === true) || (auth != null && ((newData.exists() && root.child('excursoes').child(newData.child('owner').val()).child($excursaoId).exists() && (newData.child('owner').val() === auth.uid || root.child('excursoes').child(newData.child('owner').val()).child($excursaoId).child('colaboradores').child(auth.uid).exists())) || (!newData.exists() && data.child('owner').val() === auth.uid)))",
+        ".write": "(auth != null && auth.token.email === 'contato@feliperodrigues.net') || (auth != null && ((newData.exists() && root.child('excursoes').child(newData.child('owner').val()).child($excursaoId).exists() && (newData.child('owner').val() === auth.uid || root.child('excursoes').child(newData.child('owner').val()).child($excursaoId).child('colaboradores').child(auth.uid).exists())) || (!newData.exists() && data.child('owner').val() === auth.uid)))",
         ".validate": "newData.hasChildren(['owner', 'destino', 'dataSaida', 'valor', 'valorColo', 'ativa']) && newData.child('valor').isNumber() && newData.child('valorColo').isNumber() && newData.child('ativa').isBoolean()"
       }
     },
     "compartilhadas": {
       "$colab": {
-        ".read": "auth != null && (auth.uid === $colab || (auth != null && auth.token.email === 'contato@feliperodrigues.net' && auth.token.email_verified === true))",
+        ".read": "auth != null && (auth.uid === $colab || (auth != null && auth.token.email === 'contato@feliperodrigues.net'))",
         "$exId": {
-          ".write": "(auth != null && auth.token.email === 'contato@feliperodrigues.net' && auth.token.email_verified === true) || (auth != null && ((newData.exists() && newData.val() === auth.uid && root.child('excursoes').child(auth.uid).child($exId).exists()) || (!newData.exists() && (data.val() === auth.uid || $colab === auth.uid))))",
+          ".write": "(auth != null && auth.token.email === 'contato@feliperodrigues.net') || (auth != null && ((newData.exists() && newData.val() === auth.uid && root.child('excursoes').child(auth.uid).child($exId).exists()) || (!newData.exists() && (data.val() === auth.uid || $colab === auth.uid))))",
           ".validate": "newData.isString()"
         }
       }
@@ -217,7 +224,7 @@
       }
     },
     "logs": {
-      ".read": "(auth != null && auth.token.email === 'contato@feliperodrigues.net' && auth.token.email_verified === true)",
+      ".read": "(auth != null && auth.token.email === 'contato@feliperodrigues.net')",
       ".indexOn": [
         "em",
         "uid"

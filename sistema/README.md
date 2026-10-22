@@ -9,7 +9,7 @@ SPA (página única) com rotas por hash: `#/login`, `#/cadastro`, `#/calendario`
 ## Perfis
 - **Agência de turismo**: calendário, excursões (valor por poltrona), viajantes, poltronas, inserir veículos.
 - **Transporte / Fretamento**: calendário e viagens com orçamento (chofer + diesel + gastos + margem).
-- **Administrador** (`contato@feliperodrigues.net`, e-mail confirmado): acesso a tudo + controle de usuários
+- **Administrador** (`contato@feliperodrigues.net`): acesso a tudo + controle de usuários
   (adicionar, editar, desativar, remover, redefinir senha) + relatório de logs de acesso.
   A senha do admin **não** fica no código: é definida ao criar a conta.
 
@@ -46,7 +46,9 @@ Todas as páginas exportam **XLSX** e **PDF** (o PDF de poltronas desenha o mapa
 1. **Authentication → Sign-in method** → ativar **E-mail/senha**.
 2. **Authentication → Settings → Authorized domains** → adicionar `garbosaturismo.com.br`.
 3. **Realtime Database → Regras** → colar o conteúdo de `database.rules.json` e publicar.
-4. Criar a conta do administrador em `#/cadastro` com `contato@feliperodrigues.net` e confirmar o e-mail.
+4. Criar a conta do administrador em `#/cadastro` com `contato@feliperodrigues.net`.
+5. **Authentication → Sign-in method → Google** ativado. No primeiro acesso pelo Google o sistema pede os dados
+   que faltam (agência, CPF/CNPJ, WhatsApp, @ e tipo). Usuários removidos pelo admin ficam em `bloqueados/` e não conseguem se recadastrar.
 
 ## Estrutura do banco
 ```
