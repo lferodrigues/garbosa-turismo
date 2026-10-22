@@ -15,6 +15,16 @@ SPA (página única) com rotas por hash: `#/login`, `#/cadastro`, `#/calendario`
 
 Todas as páginas exportam **XLSX** e **PDF** (o PDF de poltronas desenha o mapa do veículo).
 
+## Recursos da agência
+- **Link de inscrição automático** (`inscricao.html?e={id}`): gerado ao cadastrar a excursão, com valor final, data e local de saída.
+  Pode ser encerrado/reaberto. O valor gravado é validado pelas regras (o viajante não consegue alterar o preço).
+- **Financeiro**: valor previsto, recebido e a receber; registrar pagamentos parciais, quitar, histórico e cobrança pelo WhatsApp.
+- **Colaboradores por @ do Instagram**: compartilham a excursão (viajantes, poltronas e financeiro).
+- **Importar planilha** no formato do Google Forms: Numeração, Carimbo, Nome completo, RG, Whatsapp, Faixa etária
+  (o valor é lido do texto, ex.: "R$231,00"), Forma de pagamento, OBS ("Poltrona 5" posiciona) e Pagamento ("Pago integral" quita).
+  Colunas reconhecidas pelo nome; nomes repetidos são ignorados.
+- **Sino de notificações**: inscrição pelo link, veículo agendado, colaboração e pagamentos.
+
 ## Cálculo do valor por poltrona
 `(valor do transporte + ingressos) ÷ divisor`
 
@@ -47,4 +57,8 @@ excursoes/{uidAgencia}/{id}        excursões + veiculos/{vId}
 viajantes/{uidAgencia}/{exId}/{id} passageiros
 poltronas/{uidAgencia}/{exId}/{vId}/{numero} = idViajante
 logs/{id}                          login, logout, sessão, cadastro e ações do admin
+instagram/{handle}                 { uid, nome, empresa } — busca de colaboradores
+inscricoes/{exId}                  dados públicos do link de inscrição
+compartilhadas/{uid}/{exId}        = uid da agência dona (excursões compartilhadas comigo)
+notificacoes/{uid}/{id}            avisos do sino
 ```

@@ -20,6 +20,8 @@ function carregar(nome) {
   return carregados[nome];
 }
 
+export async function carregarXLSX() { await carregar("xlsx"); return window.XLSX; }
+
 const ROXO = [42, 31, 136];
 const AMARELO = [255, 213, 74];
 const carimbo = () => new Date().toLocaleString("pt-BR");

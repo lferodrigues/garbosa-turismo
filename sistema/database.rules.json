@@ -20,12 +20,22 @@
         "whatsapp": {
           ".validate": "newData.isString() && newData.val().length <= 20"
         },
+        "instagram": {
+          ".validate": "newData.isString() && newData.val().matches(/^[a-z0-9._]{0,30}$/)"
+        },
         "email": {
           ".validate": "newData.isString() && ((auth != null && auth.token.email === 'contato@feliperodrigues.net' && auth.token.email_verified === true) || newData.val() === auth.token.email)"
         },
         "ativo": {
           ".validate": "newData.isBoolean()"
         }
+      }
+    },
+    "instagram": {
+      "$handle": {
+        ".read": true,
+        ".write": "(auth != null && auth.token.email === 'contato@feliperodrigues.net' && auth.token.email_verified === true) || (auth != null && ((!data.exists() && newData.child('uid').val() === auth.uid) || (data.exists() && data.child('uid').val() === auth.uid)))",
+        ".validate": "$handle.matches(/^[a-z0-9._]{1,30}$/) && newData.hasChildren(['uid', 'nome'])"
       }
     },
     "agencias": {
@@ -77,11 +87,21 @@
         ".read": "auth != null && (auth.uid === $uid || (auth != null && auth.token.email === 'contato@feliperodrigues.net' && auth.token.email_verified === true))",
         ".write": "(auth != null && auth.token.email === 'contato@feliperodrigues.net' && auth.token.email_verified === true) || (auth != null && auth.uid === $uid && root.child('usuarios').child(auth.uid).child('tipo').val() === 'agencia' && root.child('usuarios').child(auth.uid).child('ativo').val() !== false)",
         "$excursaoId": {
+          ".read": "(auth != null && root.child('excursoes').child($uid).child($excursaoId).child('colaboradores').child(auth.uid).exists())",
           ".validate": "newData.hasChildren(['destino', 'dataSaida', 'veiculos'])",
+          "colaboradores": {
+            "$colab": {
+              ".validate": "newData.hasChildren(['nome', 'instagram'])"
+            }
+          },
           "veiculos": {
+            ".write": "(auth != null && root.child('excursoes').child($uid).child($excursaoId).child('colaboradores').child(auth.uid).exists())",
             "$veiculoId": {
               ".validate": "newData.hasChildren(['tipo', 'valorTransporte']) && newData.child('tipo').isString() && newData.child('tipo').val().matches(/^(van15|van20|micro32|micro36|onibus42|onibus46|onibus50|onibus64)$/) && newData.child('valorTransporte').isNumber()"
             }
+          },
+          "$campo": {
+            ".write": "(auth != null && root.child('excursoes').child($uid).child($excursaoId).child('colaboradores').child(auth.uid).exists())"
           }
         }
       }
@@ -92,8 +112,55 @@
         ".read": "auth != null && (auth.uid === $uid || (auth != null && auth.token.email === 'contato@feliperodrigues.net' && auth.token.email_verified === true))",
         ".write": "(auth != null && auth.token.email === 'contato@feliperodrigues.net' && auth.token.email_verified === true) || (auth != null && auth.uid === $uid && root.child('usuarios').child(auth.uid).child('tipo').val() === 'agencia' && root.child('usuarios').child(auth.uid).child('ativo').val() !== false)",
         "$excursaoId": {
+          ".read": "(auth != null && root.child('excursoes').child($uid).child($excursaoId).child('colaboradores').child(auth.uid).exists())",
+          ".write": "(auth != null && root.child('excursoes').child($uid).child($excursaoId).child('colaboradores').child(auth.uid).exists())",
           "$viajanteId": {
-            ".validate": "newData.hasChildren(['nome', 'docTipo', 'docNumero', 'telefone', 'idade']) && newData.child('docTipo').isString() && newData.child('docTipo').val().matches(/^(RG|CNH|CERTIDAO)$/) && newData.child('idade').isNumber()"
+            ".write": "!data.exists() && newData.child('origem').val() === 'link' && root.child('inscricoes').child($excursaoId).child('owner').val() === $uid && root.child('inscricoes').child($excursaoId).child('ativa').val() === true",
+            ".validate": "newData.hasChildren(['nome']) && (data.exists() || newData.child('origem').val() !== 'link' || (!newData.hasChild('pagamentos') && newData.hasChildren(['docTipo', 'docNumero', 'telefone', 'idade', 'valor']) && ((newData.child('colo').val() === true && newData.child('valor').val() === root.child('inscricoes').child($excursaoId).child('valorColo').val()) || (newData.child('colo').val() !== true && newData.child('valor').val() === root.child('inscricoes').child($excursaoId).child('valor').val()))))",
+            "nome": {
+              ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 120"
+            },
+            "docTipo": {
+              ".validate": "newData.isString() && newData.val().matches(/^(RG|CNH|CERTIDAO)$/)"
+            },
+            "docNumero": {
+              ".validate": "newData.isString() && newData.val().length <= 30"
+            },
+            "telefone": {
+              ".validate": "newData.isString() && newData.val().length <= 30"
+            },
+            "formaPagamento": {
+              ".validate": "newData.isString() && newData.val().length <= 40"
+            },
+            "obs": {
+              ".validate": "newData.isString() && newData.val().length <= 300"
+            },
+            "faixa": {
+              ".validate": "newData.isString() && newData.val().length <= 120"
+            },
+            "origem": {
+              ".validate": "newData.isString() && newData.val().length <= 20"
+            },
+            "idade": {
+              ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 120"
+            },
+            "valor": {
+              ".validate": "newData.isNumber() && newData.val() >= 0"
+            },
+            "colo": {
+              ".validate": "newData.isBoolean()"
+            },
+            "pagamentos": {
+              "$pagId": {
+                ".validate": "newData.hasChildren(['valor', 'data']) && newData.child('valor').isNumber() && newData.child('valor').val() > 0",
+                "obs": {
+                  ".validate": "newData.isString() && newData.val().length <= 200"
+                },
+                "forma": {
+                  ".validate": "newData.isString() && newData.val().length <= 40"
+                }
+              }
+            }
           }
         }
       }
@@ -104,10 +171,47 @@
         ".read": "auth != null && (auth.uid === $uid || (auth != null && auth.token.email === 'contato@feliperodrigues.net' && auth.token.email_verified === true))",
         ".write": "(auth != null && auth.token.email === 'contato@feliperodrigues.net' && auth.token.email_verified === true) || (auth != null && auth.uid === $uid && root.child('usuarios').child(auth.uid).child('tipo').val() === 'agencia' && root.child('usuarios').child(auth.uid).child('ativo').val() !== false)",
         "$excursaoId": {
+          ".read": "(auth != null && root.child('excursoes').child($uid).child($excursaoId).child('colaboradores').child(auth.uid).exists())",
+          ".write": "(auth != null && root.child('excursoes').child($uid).child($excursaoId).child('colaboradores').child(auth.uid).exists())",
           "$veiculoId": {
             "$poltrona": {
-              ".validate": "newData.isString() && root.child('viajantes').child($uid).child($excursaoId).child(newData.val()).exists()"
+              ".validate": "newData.isString() && newData.parent().parent().parent().parent().parent().child('viajantes').child($uid).child($excursaoId).child(newData.val()).exists()"
             }
+          }
+        }
+      }
+    },
+    "inscricoes": {
+      "$excursaoId": {
+        ".read": true,
+        ".write": "(auth != null && auth.token.email === 'contato@feliperodrigues.net' && auth.token.email_verified === true) || (auth != null && ((newData.exists() && root.child('excursoes').child(newData.child('owner').val()).child($excursaoId).exists() && (newData.child('owner').val() === auth.uid || root.child('excursoes').child(newData.child('owner').val()).child($excursaoId).child('colaboradores').child(auth.uid).exists())) || (!newData.exists() && data.child('owner').val() === auth.uid)))",
+        ".validate": "newData.hasChildren(['owner', 'destino', 'dataSaida', 'valor', 'valorColo', 'ativa']) && newData.child('valor').isNumber() && newData.child('valorColo').isNumber() && newData.child('ativa').isBoolean()"
+      }
+    },
+    "compartilhadas": {
+      "$colab": {
+        ".read": "auth != null && (auth.uid === $colab || (auth != null && auth.token.email === 'contato@feliperodrigues.net' && auth.token.email_verified === true))",
+        "$exId": {
+          ".write": "(auth != null && auth.token.email === 'contato@feliperodrigues.net' && auth.token.email_verified === true) || (auth != null && ((newData.exists() && newData.val() === auth.uid && root.child('excursoes').child(auth.uid).child($exId).exists()) || (!newData.exists() && (data.val() === auth.uid || $colab === auth.uid))))",
+          ".validate": "newData.isString()"
+        }
+      }
+    },
+    "notificacoes": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && auth.uid === $uid",
+        ".indexOn": [
+          "em"
+        ],
+        "$notifId": {
+          ".write": "!data.exists() && ((auth != null && newData.child('de').val() === auth.uid) || (newData.child('tipo').val() === 'inscricao' && newData.child('de').val() === 'publico' && root.child('inscricoes').child(newData.child('exId').val()).child('ativa').val() === true && root.child('inscricoes').child(newData.child('exId').val()).child('notificar').child($uid).exists()))",
+          ".validate": "newData.hasChildren(['tipo', 'titulo', 'em', 'lida']) && newData.child('titulo').isString() && newData.child('titulo').val().length <= 120 && newData.child('lida').isBoolean() && (data.exists() || newData.child('em').val() === now)",
+          "texto": {
+            ".validate": "newData.isString() && newData.val().length <= 300"
+          },
+          "link": {
+            ".validate": "newData.isString() && newData.val().length <= 200"
           }
         }
       }

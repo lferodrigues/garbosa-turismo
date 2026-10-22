@@ -1,5 +1,5 @@
 import { auth, db, ADMIN_EMAIL, authSecundario } from "./firebase.js";
-import { baixarXLSX, baixarPDF, baixarPDFPoltronas } from "./exportar.js";
+import { baixarXLSX, baixarPDF, baixarPDFPoltronas, carregarXLSX } from "./exportar.js";
 import {
   onAuthStateChanged, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword,
   sendPasswordResetEmail, sendEmailVerification, updateProfile
@@ -27,13 +27,17 @@ const TIPOS = { agencia: "Agência de turismo", transportadora: "Transporte / Fr
 const TIPO_CURTO = { agencia: "Agência", transportadora: "Transporte", admin: "Admin" };
 const MESES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
 const ACOES = { login: "Login", sessao: "Sessão retomada", logout: "Logout", cadastro: "Cadastro", admin: "Ação administrativa" };
+const FORMAS = ["Pix", "Dinheiro", "Cartão de crédito", "Cartão de débito", "Boleto", "Transferência"];
+const normInsta = (v) => String(v || "").trim().toLowerCase().replace(/^@+/, "").replace(/\s+/g, "");
+const instaValido = (h) => /^[a-z0-9._]{1,30}$/.test(h);
 
 /* Rotas da SPA e quem pode acessar cada uma */
 const ROTAS = {
   calendario: { nome: "Calendário",           icone: "fa-calendar-days", cor: "c1", tipos: ["agencia", "transportadora", "admin"] },
-  excursoes:  { nome: "Excursões",            icone: "fa-route",         cor: "c2", tipos: ["agencia", "admin"] },
-  viajantes:  { nome: "Viajantes",            icone: "fa-users",         cor: "c3", tipos: ["agencia", "admin"] },
-  poltronas:  { nome: "Poltronas",            icone: "fa-couch",         cor: "c4", tipos: ["agencia", "admin"] },
+  excursoes:  { nome: "Excursões",            icone: "fa-route",         cor: "c2", tipos: ["agencia", "admin"], compart: true },
+  viajantes:  { nome: "Viajantes",            icone: "fa-users",         cor: "c3", tipos: ["agencia", "admin"], compart: true },
+  poltronas:  { nome: "Poltronas",            icone: "fa-couch",         cor: "c4", tipos: ["agencia", "admin"], compart: true },
+  financeiro: { nome: "Financeiro",           icone: "fa-sack-dollar",   cor: "c3", tipos: ["agencia", "admin"], compart: true },
   viagens:    { nome: "Viagens / Orçamentos", icone: "fa-bus",           cor: "c2", tipos: ["transportadora", "admin"] },
   usuarios:   { nome: "Usuários",             icone: "fa-user-gear",     cor: "c5", tipos: ["admin"] },
   logs:       { nome: "Logs de acesso",       icone: "fa-clipboard-list", cor: "c5", tipos: ["admin"] }
@@ -151,12 +155,19 @@ let P = null;   // perfil
 let unsubs = [];
 let eventoAuth = null;     // "login" | "cadastro" — o que causou a entrada
 let cadastrando = false;
+const inicioCarga = Date.now();
+function esconderLoading() {
+  const falta = Math.max(0, 1600 - (Date.now() - inicioCarga));
+  setTimeout(() => $("#loading").classList.add("hidden"), falta);
+}
 const S = {
   view: "calendario", param: null,
   viagens: {}, excursoes: {}, viajantes: {}, poltronas: {}, agencias: {}, usuarios: {}, logs: null,
   mes: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
   exSel: null, veicSel: null, passSel: null, busca: "",
   filtroLogs: { de: "", ate: "", uid: "", acao: "" }, buscaUsuarios: "",
+  prop: { ex: {}, via: {}, pol: {} }, comp: {}, notifs: {}, notifInicio: Date.now(),
+  finFiltro: "", finBusca: "",
   exportar: null
 };
 const ehAdmin = () => P?.tipo === "admin";
@@ -165,6 +176,11 @@ const ehTransp = () => P?.tipo === "transportadora";
 const podeAgencia = () => ehAgencia() || ehAdmin();
 const podeTransp = () => ehTransp() || ehAdmin();
 const dono = (exId) => S.excursoes[exId]?._owner || U.uid;
+const temCompart = () => Object.keys(S.comp).length > 0;
+const acessoEx = () => podeAgencia() || temCompart();
+function pode(view) { const r = ROTAS[view]; return !!r && (r.tipos.includes(P.tipo) || (!!r.compart && temCompart())); }
+const souDono = (exId) => ehAdmin() || dono(exId) === U.uid;
+const membrosEx = (exId) => [dono(exId), ...Object.keys(S.excursoes[exId]?.colaboradores || {})];
 const nomeAgencia = (uid) => S.agencias[uid]?.nome || S.usuarios[uid]?.empresa || (uid === U?.uid ? P?.empresa : "") || "—";
 
 /* =========================================================
@@ -188,10 +204,10 @@ function rotear() {
     return;
   }
   const rota = ROTAS[view];
-  if (!rota || !rota.tipos.includes(P.tipo)) { history.replaceState(null, "", "#/calendario"); S.view = "calendario"; S.param = null; }
+  if (!rota || !pode(view)) { history.replaceState(null, "", "#/calendario"); S.view = "calendario"; S.param = null; }
   else {
     S.view = view; S.param = param;
-    if ((view === "viajantes" || view === "poltronas") && param && param !== S.exSel) { S.exSel = param; S.veicSel = null; S.passSel = null; }
+    if (["viajantes", "poltronas", "financeiro"].includes(view) && param && param !== S.exSel) { S.exSel = param; S.veicSel = null; S.passSel = null; }
   }
   if (S.view === "logs" && S.logs === null) carregarLogs();
   render();
@@ -216,7 +232,7 @@ const traduz = (e) => ERROS_AUTH[e.code] || ("Erro: " + (e.message || e));
 function msg(texto, tipo = "erro") { const m = $("#loginMsg"); m.textContent = texto; m.className = "login-msg " + tipo; }
 
 function mostrarAuth(aba) {
-  $("#loading").classList.add("hidden");
+  esconderLoading();
   $("#app").classList.add("hidden");
   $("#authScreen").classList.remove("hidden");
   const verificando = aba === "verificar";
@@ -246,22 +262,25 @@ $("#formCadastrar").addEventListener("submit", async (e) => {
   const documento = mascaraDoc($("#cadDoc").value);
   const whatsapp = mascaraTel($("#cadWhats").value);
   const email = $("#cadEmail").value.trim().toLowerCase();
+  const instagram = normInsta($("#cadInsta").value);
   const senha = $("#cadSenha").value;
   let tipo = $("input[name=cadTipo]:checked").value;
   if (nome.split(/\s+/).length < 2) return msg("Informe o nome completo.");
   if (!empresa) return msg("Informe o nome da agência / empresa.");
   if (!docValido(documento)) return msg("CPF ou CNPJ inválido.");
   if (soDig(whatsapp).length < 10) return msg("WhatsApp inválido.");
+  if (!instaValido(instagram)) return msg("Informe um @ do Instagram válido (letras, números, ponto e _).");
   if (!/^\S+@\S+\.\S+$/.test(email)) return msg("E-mail inválido.");
   if (senha.length < 6) return msg("A senha precisa ter pelo menos 6 caracteres.");
   const admin = email === ADMIN_EMAIL;
   if (admin) tipo = "admin";
   msg("Criando conta...", "info");
+  try { if ((await get(ref(db, `instagram/${instagram}`))).exists()) return msg(`O @${instagram} já está cadastrado no sistema.`); } catch (e) { console.warn(e); }
   cadastrando = true;
   try {
     const cred = await createUserWithEmailAndPassword(auth, email, senha);
     await updateProfile(cred.user, { displayName: nome });
-    await gravarPerfil(cred.user.uid, { nome, empresa, documento, whatsapp, email, tipo });
+    await gravarPerfil(cred.user.uid, { nome, empresa, documento, whatsapp, email, tipo, instagram });
     if (admin) await sendEmailVerification(cred.user).catch(() => {});
     cadastrando = false;
     eventoAuth = "cadastro";
@@ -273,8 +292,9 @@ $("#formCadastrar").addEventListener("submit", async (e) => {
 });
 
 async function gravarPerfil(uid, d) {
-  const perfil = { nome: d.nome, empresa: d.empresa, documento: d.documento, whatsapp: d.whatsapp, email: d.email, tipo: d.tipo, ativo: true, criadoEm: Date.now() };
+  const perfil = { nome: d.nome, empresa: d.empresa, documento: d.documento, whatsapp: d.whatsapp, email: d.email, tipo: d.tipo, ativo: true, criadoEm: Date.now(), instagram: d.instagram || "" };
   const dados = { [`usuarios/${uid}`]: perfil };
+  if (d.instagram) dados[`instagram/${d.instagram}`] = { uid, nome: d.nome, empresa: d.empresa };
   if (d.tipo === "agencia") dados[`agencias/${uid}`] = { nome: d.empresa };
   await update(ref(db), dados);
 }
@@ -348,7 +368,7 @@ async function iniciarSessao(user) {
   montarAbas();
   assinar();
   $("#authScreen").classList.add("hidden");
-  $("#loading").classList.add("hidden");
+  esconderLoading();
   $("#app").classList.remove("hidden");
   const { view } = lerHash();
   if (!ROTAS[view]) history.replaceState(null, "", "#/calendario");
@@ -378,10 +398,46 @@ function registrarLog(acao, detalhe = "") {
   }).catch((e) => console.warn("log", e));
 }
 
+let compUnsubs = {};
 function pararAssinaturas() {
   unsubs.forEach((u) => u());
   unsubs = [];
-  Object.assign(S, { viagens: {}, excursoes: {}, viajantes: {}, poltronas: {}, agencias: {}, usuarios: {}, logs: null });
+  Object.values(compUnsubs).forEach((l) => l.forEach((u) => u()));
+  compUnsubs = {};
+  Object.assign(S, { viagens: {}, excursoes: {}, viajantes: {}, poltronas: {}, agencias: {}, usuarios: {}, logs: null,
+    prop: { ex: {}, via: {}, pol: {} }, comp: {}, notifs: {} });
+}
+
+/* junta excursões próprias + compartilhadas comigo */
+function reconstruir() {
+  if (ehAdmin()) return;
+  S.excursoes = {}; S.viajantes = {}; S.poltronas = {};
+  Object.entries(S.prop.ex).forEach(([id, e]) => { S.excursoes[id] = { ...e, _owner: U.uid }; });
+  Object.assign(S.viajantes, S.prop.via);
+  Object.assign(S.poltronas, S.prop.pol);
+  Object.entries(S.comp).forEach(([id, c]) => {
+    if (!c.ex) return;
+    S.excursoes[id] = { ...c.ex, _owner: c.owner, _compart: true };
+    S.viajantes[id] = c.via || {};
+    S.poltronas[id] = c.pol || {};
+  });
+}
+
+function sincronizarCompart(mapa) {
+  const antes = temCompart();
+  Object.keys(compUnsubs).forEach((id) => { if (!mapa[id]) { compUnsubs[id].forEach((u) => u()); delete compUnsubs[id]; delete S.comp[id]; } });
+  Object.entries(mapa).forEach(([id, owner]) => {
+    if (compUnsubs[id]) return;
+    S.comp[id] = { owner, ex: null, via: {}, pol: {} };
+    const ouvirC = (path, campo) => onValue(ref(db, path), (snap) => {
+      if (!S.comp[id]) return;
+      S.comp[id][campo] = snap.val() || (campo === "ex" ? null : {});
+      reconstruir(); render();
+    }, () => {});
+    compUnsubs[id] = [ouvirC(`excursoes/${owner}/${id}`, "ex"), ouvirC(`viajantes/${owner}/${id}`, "via"), ouvirC(`poltronas/${owner}/${id}`, "pol")];
+  });
+  reconstruir();
+  if (antes !== temCompart()) { montarAbas(); const { view } = lerHash(); if (view && view !== S.view && pode(view)) rotear(); }
 }
 
 function assinar() {
@@ -399,20 +455,22 @@ function assinar() {
   } else {
     const campo = ehAgencia() ? "agenciaUid" : "transportadoraUid";
     ouvir(query(ref(db, "viagens"), orderByChild(campo), equalTo(U.uid)), (v) => { S.viagens = v; });
+    if (ehAgencia()) {
+      ouvir(ref(db, `excursoes/${U.uid}`), (v) => { S.prop.ex = v; reconstruir(); });
+      ouvir(ref(db, `viajantes/${U.uid}`), (v) => { S.prop.via = v; reconstruir(); });
+      ouvir(ref(db, `poltronas/${U.uid}`), (v) => { S.prop.pol = v; reconstruir(); });
+    }
+    unsubs.push(onValue(ref(db, `compartilhadas/${U.uid}`), (snap) => { sincronizarCompart(snap.val() || {}); render(); }, () => {}));
   }
-  if (podeAgencia() && !ehAdmin()) {
-    ouvir(ref(db, `excursoes/${U.uid}`), (v) => { S.excursoes = {}; Object.entries(v).forEach(([id, e]) => { S.excursoes[id] = { ...e, _owner: U.uid }; }); });
-    ouvir(ref(db, `viajantes/${U.uid}`), (v) => { S.viajantes = v; });
-    ouvir(ref(db, `poltronas/${U.uid}`), (v) => { S.poltronas = v; });
-  }
-  if (podeTransp()) ouvir(ref(db, "agencias"), (v) => { S.agencias = v; });
+  ouvir(ref(db, "agencias"), (v) => { S.agencias = v; });
+  unsubs.push(onValue(query(ref(db, `notificacoes/${U.uid}`), orderByChild("em"), limitToLast(60)), (snap) => receberNotificacoes(snap.val() || {}), () => {}));
 }
 
 /* =========================================================
    ABAS / RENDER
 ========================================================= */
 function montarAbas() {
-  $("#tabstrip").innerHTML = Object.entries(ROTAS).filter(([, r]) => r.tipos.includes(P.tipo)).map(([id, r]) =>
+  $("#tabstrip").innerHTML = Object.entries(ROTAS).filter(([id]) => pode(id)).map(([id, r]) =>
     `<a class="tab" href="#/${id}" data-view="${id}"><i class="fa-solid ${r.icone} ${r.cor}"></i><span>${r.nome}</span></a>`).join("");
 }
 function irPara(view, exId) { navegar(view, exId); }
@@ -422,7 +480,7 @@ function render() {
   $$("#tabstrip .tab").forEach((b) => b.classList.toggle("active", b.dataset.view === S.view));
   document.title = `${ROTAS[S.view]?.nome || "Sistema"} | Garbosa System`;
   S.exportar = null;
-  const views = { calendario: viewCalendario, excursoes: viewExcursoes, viajantes: viewViajantes, poltronas: viewPoltronas, viagens: viewViagens, usuarios: viewUsuarios, logs: viewLogs };
+  const views = { calendario: viewCalendario, excursoes: viewExcursoes, viajantes: viewViajantes, poltronas: viewPoltronas, financeiro: viewFinanceiro, viagens: viewViagens, usuarios: viewUsuarios, logs: viewLogs };
   (views[S.view] || viewCalendario)();
   const bx = $("#btnXlsx"), bp = $("#btnPdf");
   if (bx) bx.onclick = () => exportar("xlsx", bx);
@@ -481,7 +539,7 @@ function eventos() {
     tipo: "viagem", id, ini: v.dataSaida, fim: v.dataRetorno || v.dataSaida, hora: v.horaSaida,
     titulo: `${veic(v.tipoVeiculo).nome.replace(" lugares", "")} · ${v.destino || "Viagem"}`
   }));
-  if (podeAgencia()) Object.entries(S.excursoes).forEach(([id, e]) => ev.push({
+  if (acessoEx()) Object.entries(S.excursoes).forEach(([id, e]) => ev.push({
     tipo: "excursao", id, ini: e.dataSaida, fim: e.dataRetorno || e.dataSaida, titulo: e.destino, hora: e.horaSaida
   }));
   return ev.filter((e) => e.ini).sort((a, b) => (a.ini + (a.hora || "")).localeCompare(b.ini + (b.hora || "")));
@@ -517,7 +575,7 @@ function viewCalendario() {
         <div class="cal-grid">${cells}</div>
         <div class="legenda">
           <span><i class="dot dot-viagem"></i> Veículo agendado</span>
-          ${podeAgencia() ? `<span><i class="dot dot-excursao"></i> Excursão da agência</span>` : ""}
+          ${acessoEx() ? `<span><i class="dot dot-excursao"></i> Excursão da agência</span>` : ""}
         </div>
       </div>
       <aside class="side-list">
@@ -612,7 +670,7 @@ function viewExcursoes() {
   const lista = ordenar(S.excursoes, "dataSaida").reverse();
   $("#workspace").innerHTML = `
   <section class="panel">
-    ${toolbar(ehAdmin() ? "Excursões de todas as agências" : "Excursões da agência", "fa-route", tbBtn("btnNovaEx", "fa-plus", "Cadastrar excursão", "tool-accent"))}
+    ${toolbar(ehAdmin() ? "Excursões de todas as agências" : "Excursões", "fa-route", podeAgencia() ? tbBtn("btnNovaEx", "fa-plus", "Cadastrar excursão", "tool-accent") : "")}
     <div class="regra"><i class="fa-solid fa-calculator"></i> Valor por poltrona = (valor do transporte + ingressos) ÷ poltronas de rateio:
       ${Object.values(VEICULOS).map((v) => `<span>${v.nome.replace(" lugares", "")}: ÷${v.div}</span>`).join("")}</div>
     ${lista.length ? `<div class="table-wrap"><table class="grid">
@@ -621,7 +679,7 @@ function viewExcursoes() {
         const vs = veiculosDe(e), cap = capacidadeEx(e), occ = ocupantes(id).length;
         return `<tr>
           ${ehAdmin() ? `<td>${esc(nomeAgencia(e._owner))}</td>` : ""}
-          <td><strong>${esc(e.destino)}</strong></td>
+          <td><strong>${esc(e.destino)}</strong>${e._compart ? ` <span class="pill pill-comp" title="Compartilhada por ${esc(nomeAgencia(e._owner))}">compartilhada</span>` : ""}${Object.keys(e.colaboradores || {}).length ? ` <span class="pill" title="Colaboradores"><i class="fa-solid fa-user-group"></i> ${Object.keys(e.colaboradores).length}</span>` : ""}</td>
           <td>${fData(e.dataSaida)} ${esc(e.horaSaida || "")}</td>
           <td>${fData(e.dataRetorno)} ${esc(e.horaRetorno || "")}</td>
           <td>${vs.map(([, v]) => esc(veic(v.tipo).nome)).join("<br>")}</td>
@@ -630,20 +688,26 @@ function viewExcursoes() {
           <td class="acoes">
             <button class="ic" title="Viajantes" data-a="via" data-id="${id}"><i class="fa-solid fa-users"></i></button>
             <button class="ic" title="Poltronas" data-a="pol" data-id="${id}"><i class="fa-solid fa-couch"></i></button>
+            <button class="ic" title="Financeiro" data-a="fin" data-id="${id}"><i class="fa-solid fa-sack-dollar"></i></button>
+            <button class="ic" title="Link de inscrição" data-a="link" data-id="${id}"><i class="fa-solid fa-link"></i></button>
             <button class="ic" title="Editar" data-a="edit" data-id="${id}"><i class="fa-solid fa-pen"></i></button>
-            <button class="ic danger" title="Excluir" data-a="del" data-id="${id}"><i class="fa-solid fa-trash"></i></button>
+            ${souDono(id) ? `<button class="ic danger" title="Excluir" data-a="del" data-id="${id}"><i class="fa-solid fa-trash"></i></button>` : ""}
           </td></tr>`;
       }).join("")}</tbody></table></div>`
     : `<div class="empty"><i class="fa-solid fa-route"></i><p>Nenhuma excursão cadastrada ainda.</p></div>`}
   </section>`;
-  $("#btnNovaEx").onclick = () => formExcursao();
+  if ($("#btnNovaEx")) $("#btnNovaEx").onclick = () => formExcursao();
   $$("[data-a]").forEach((b) => b.addEventListener("click", () => {
     const id = b.dataset.id, own = dono(id);
     if (b.dataset.a === "via") irPara("viajantes", id);
     if (b.dataset.a === "pol") irPara("poltronas", id);
     if (b.dataset.a === "edit") formExcursao(id);
-    if (b.dataset.a === "del") confirmar(`Excluir a excursão <strong>${esc(S.excursoes[id].destino)}</strong> com todos os viajantes e o mapa de poltronas?`, async () => {
-      await update(ref(db), { [`excursoes/${own}/${id}`]: null, [`viajantes/${own}/${id}`]: null, [`poltronas/${own}/${id}`]: null });
+    if (b.dataset.a === "fin") irPara("financeiro", id);
+    if (b.dataset.a === "link") mostrarLink(id, own);
+    if (b.dataset.a === "del") confirmar(`Excluir a excursão <strong>${esc(S.excursoes[id].destino)}</strong> com todos os viajantes, pagamentos e o mapa de poltronas? O link de inscrição também deixa de funcionar.`, async () => {
+      const upd = { [`excursoes/${own}/${id}`]: null, [`viajantes/${own}/${id}`]: null, [`poltronas/${own}/${id}`]: null, [`inscricoes/${id}`]: null };
+      Object.keys(S.excursoes[id].colaboradores || {}).forEach((uid) => { upd[`compartilhadas/${uid}/${id}`] = null; });
+      await update(ref(db), upd);
       if (S.exSel === id) S.exSel = null;
       toast("Excursão excluída");
     });
@@ -673,6 +737,8 @@ function formExcursao(id = null, viagemId = null) {
   const vinc = viagemId || v0.viagemId || "";
   const vgPre = viagemId ? S.viagens[viagemId] : null;
   const ownerPadrao = id ? e._owner : (vgPre?.agenciaUid && S.agencias[vgPre.agenciaUid] ? vgPre.agenciaUid : U.uid);
+  const gerenciaColab = !id || souDono(id);
+  const colabs = { ...(e.colaboradores || {}) };
   abrirModal(id ? "Editar excursão" : "Cadastrar excursão", `
     <form id="fEx" class="form-grid">
       ${ehAdmin() ? `<label class="span2">Agência responsável<select name="owner" id="exOwner" ${id ? "disabled" : ""}>${opcoesAgenciaDona(ownerPadrao)}</select></label>` : ""}
@@ -681,16 +747,26 @@ function formExcursao(id = null, viagemId = null) {
       <label>Horário de saída<input type="time" name="horaSaida" value="${esc(e.horaSaida)}"></label>
       <label>Data de retorno<input type="date" name="dataRetorno" value="${esc(e.dataRetorno)}"></label>
       <label>Horário de retorno<input type="time" name="horaRetorno" value="${esc(e.horaRetorno)}"></label>
-      <label class="span2">Local de saída<input name="localSaida" value="${esc(e.localSaida)}" placeholder="Ex.: Rodoviária de São João Nepomuceno"></label>
+      <label class="span2">Local de saída<input name="localSaida" required value="${esc(e.localSaida)}" placeholder="Ex.: Rodoviária de São João Nepomuceno"></label>
       <div class="section-label span2"><i class="fa-solid fa-bus"></i> ${id ? "Veículo principal" : "Veículo"}</div>
       <label class="span2">Vincular a um veículo agendado pela transportadora (opcional)<select name="viagemId" id="exViagem">${opcoesViagens(vinc, ownerPadrao)}</select></label>
       <label>Tipo de veículo<select name="tipo" id="exTipo" required>${opcoesVeiculo(v0.tipo || "onibus46")}</select></label>
       <label>Valor cobrado pela empresa de transporte (R$)<input type="number" step="0.01" min="0" name="valorTransporte" id="exTransp" required value="${esc(v0.valorTransporte)}"></label>
-      <label class="span2">Ingressos — valor total (R$, deixe 0 se não houver)<input type="number" step="0.01" min="0" name="valorIngressos" id="exIngr" value="${esc(v0.valorIngressos ?? 0)}"></label>
+      <label>Ingressos — valor total (R$, 0 se não houver)<input type="number" step="0.01" min="0" name="valorIngressos" id="exIngr" value="${esc(v0.valorIngressos ?? 0)}"></label>
+      <label>Valor para criança de colo (R$)<input type="number" step="0.01" min="0" name="valorColo" value="${esc(e.valorColo ?? 0)}"></label>
       <div class="calc-box span2" id="exCalc"></div>
+      <div class="section-label span2"><i class="fa-solid fa-user-group"></i> Colaboradores</div>
+      <div class="span2">
+        ${gerenciaColab ? `<div class="colab-add">
+          <span class="input-prefix"><b>@</b><input id="colabInsta" placeholder="instagram do colaborador" autocapitalize="none" autocomplete="off"></span>
+          <button type="button" class="btn btn-light btn-sm" id="btnAddColab"><i class="fa-solid fa-user-plus"></i> Adicionar</button>
+        </div>
+        <small class="muted">Colaboradores enxergam e editam esta excursão: viajantes, poltronas e financeiro.</small>` : `<small class="muted">Somente a agência responsável altera os colaboradores.</small>`}
+        <div class="chips" id="colabChips"></div>
+      </div>
     </form>`, [
     { html: "Cancelar", acao: fecharModal },
-    { html: `<i class="fa-solid fa-floppy-disk"></i> Salvar`, classe: "btn-primary", acao: () => salvarExcursao(id, vk) }
+    { html: `<i class="fa-solid fa-floppy-disk"></i> Salvar`, classe: "btn-primary", acao: () => salvarExcursao(id, vk, colabs, e.colaboradores || {}) }
   ], true);
   const f = $("#fEx");
   const calc = () => {
@@ -698,6 +774,25 @@ function formExcursao(id = null, viagemId = null) {
     const soma = num(d.valorTransporte) + num(d.valorIngressos);
     $("#exCalc").innerHTML = `${linha("Transporte + ingressos", brl(soma))}${linha(`Rateio (${vv.nome})`, `÷ ${vv.div}`)}
       <div class="calc-total"><span>Valor por poltrona</span><strong>${brl(soma / vv.div)}</strong></div>`;
+  };
+  const chips = () => {
+    $("#colabChips").innerHTML = Object.entries(colabs).map(([uid, c]) => `<span class="chip"><strong>@${esc(c.instagram)}</strong><small>${esc(c.nome)} · ${esc(c.empresa || "")}</small>
+      ${gerenciaColab ? `<button type="button" data-rm="${uid}" title="Remover">×</button>` : ""}</span>`).join("") || `<small class="muted">Nenhum colaborador.</small>`;
+    $$("[data-rm]", $("#colabChips")).forEach((b) => b.addEventListener("click", () => { delete colabs[b.dataset.rm]; chips(); }));
+  };
+  const addColab = async () => {
+    const h = normInsta($("#colabInsta").value);
+    if (!instaValido(h)) return toast("Digite um @ do Instagram válido.", "erro");
+    try {
+      const snap = await get(ref(db, `instagram/${h}`));
+      if (!snap.exists()) return toast(`Nenhum usuário do sistema com @${h}.`, "erro");
+      const c = snap.val();
+      const own = id ? dono(id) : (ehAdmin() ? ($("#exOwner")?.value || U.uid) : U.uid);
+      if (c.uid === own || c.uid === U.uid) return toast("Este usuário já é o responsável pela excursão.", "erro");
+      colabs[c.uid] = { nome: c.nome || "", empresa: c.empresa || "", instagram: h };
+      $("#colabInsta").value = "";
+      chips();
+    } catch (err) { falha(err); }
   };
   const aplicarViagem = () => {
     const vg = S.viagens[$("#exViagem").value];
@@ -710,33 +805,108 @@ function formExcursao(id = null, viagemId = null) {
   f.addEventListener("input", calc);
   $("#exViagem").addEventListener("change", aplicarViagem);
   if ($("#exOwner") && !id) $("#exOwner").addEventListener("change", () => { $("#exViagem").innerHTML = opcoesViagens("", $("#exOwner").value); });
+  if ($("#btnAddColab")) {
+    $("#btnAddColab").addEventListener("click", addColab);
+    $("#colabInsta").addEventListener("keydown", (ev) => { if (ev.key === "Enter") { ev.preventDefault(); addColab(); } });
+  }
   if (viagemId) aplicarViagem();
-  calc();
-  f.addEventListener("submit", (ev) => { ev.preventDefault(); salvarExcursao(id, vk); });
+  calc(); chips();
+  f.addEventListener("submit", (ev) => { ev.preventDefault(); salvarExcursao(id, vk, colabs, e.colaboradores || {}); });
 }
 
-async function salvarExcursao(id, vk) {
+async function salvarExcursao(id, vk, colabs = {}, colabsAntes = {}) {
   const f = $("#fEx");
   if (!f.reportValidity()) return;
   const d = lerForm(f);
   if (d.dataRetorno && d.dataRetorno < d.dataSaida) return toast("O retorno não pode ser antes da saída.", "erro");
   const veiculo = { tipo: d.tipo, valorTransporte: num(d.valorTransporte), valorIngressos: num(d.valorIngressos), viagemId: d.viagemId || null };
-  const info = { destino: d.destino, dataSaida: d.dataSaida, horaSaida: d.horaSaida, dataRetorno: d.dataRetorno || d.dataSaida, horaRetorno: d.horaRetorno, localSaida: d.localSaida };
+  const info = { destino: d.destino, dataSaida: d.dataSaida, horaSaida: d.horaSaida, dataRetorno: d.dataRetorno || d.dataSaida, horaRetorno: d.horaRetorno, localSaida: d.localSaida, valorColo: num(d.valorColo) };
+  const podeColab = !id || souDono(id);
   try {
+    let exId, own;
     if (id) {
-      const own = dono(id), k = vk || "v" + Date.now();
-      await update(ref(db, `excursoes/${own}/${id}`), { ...info, atualizadoEm: Date.now(), [`veiculos/${k}`]: { ...veiculo, ordem: S.excursoes[id].veiculos?.[k]?.ordem ?? 0 } });
+      exId = id; own = dono(id);
+      const k = vk || "v" + Date.now();
+      const upd = { ...info, atualizadoEm: Date.now(), [`veiculos/${k}`]: { ...veiculo, ordem: S.excursoes[id].veiculos?.[k]?.ordem ?? 0 } };
+      await update(ref(db, `excursoes/${own}/${id}`), upd);
+      if (podeColab) await set(ref(db, `excursoes/${own}/${id}/colaboradores`), Object.keys(colabs).length ? colabs : null);
       toast("Excursão atualizada");
     } else {
-      const own = ehAdmin() ? (d.owner || U.uid) : U.uid;
+      own = ehAdmin() ? (d.owner || U.uid) : U.uid;
       const novo = push(ref(db, `excursoes/${own}`));
-      await set(novo, { ...info, criadoEm: Date.now(), veiculos: { ["v" + Date.now()]: { ...veiculo, ordem: 0 } } });
-      S.exSel = novo.key;
+      exId = novo.key;
+      await set(novo, { ...info, criadoEm: Date.now(), linkAtivo: true, colaboradores: Object.keys(colabs).length ? colabs : null, veiculos: { ["v" + Date.now()]: { ...veiculo, ordem: 0 } } });
+      S.exSel = exId;
       if (ehAdmin()) registrarLog("admin", `Criou excursão ${info.destino} para ${nomeAgencia(own)}`);
-      toast("Excursão cadastrada");
     }
+    // índice de compartilhamento + avisos
+    if (podeColab) {
+      const upd = {};
+      Object.keys(colabs).forEach((uid) => { if (!colabsAntes[uid]) upd[`compartilhadas/${uid}/${exId}`] = own; });
+      Object.keys(colabsAntes).forEach((uid) => { if (!colabs[uid]) upd[`compartilhadas/${uid}/${exId}`] = null; });
+      if (Object.keys(upd).length) await update(ref(db), upd);
+      const novos = Object.keys(colabs).filter((uid) => !colabsAntes[uid]);
+      notificar(novos, { tipo: "colaboracao", titulo: "Você foi adicionado como colaborador", texto: `${P.empresa} compartilhou a excursão ${info.destino} (${fData(info.dataSaida)}) com você.`, link: `#/viajantes/${exId}`, exId });
+    }
+    const pub = await publicarInscricao(exId, own);
     fecharModal();
+    if (!id) mostrarLink(exId, own, true, pub);
   } catch (e) { falha(e); }
+}
+
+/* ---------- link público de inscrição ---------- */
+const urlInscricao = (exId) => `${location.origin}${location.pathname.replace(/[^/]*$/, "")}inscricao.html?e=${encodeURIComponent(exId)}`;
+
+async function publicarInscricao(exId, own = dono(exId)) {
+  const snap = await get(ref(db, `excursoes/${own}/${exId}`));
+  if (!snap.exists()) return;
+  const e = snap.val();
+  const v0 = veiculosDe(e)[0]?.[1];
+  if (!v0) return;
+  const notificar_ = { [own]: true };
+  Object.keys(e.colaboradores || {}).forEach((uid) => { notificar_[uid] = true; });
+  const pub = {
+    owner: own, agencia: nomeAgencia(own), destino: e.destino, dataSaida: e.dataSaida, horaSaida: e.horaSaida || "",
+    dataRetorno: e.dataRetorno || e.dataSaida, horaRetorno: e.horaRetorno || "", localSaida: e.localSaida || "",
+    valor: Math.round(precoPoltrona(v0) * 100) / 100, valorColo: num(e.valorColo), ativa: e.linkAtivo !== false,
+    notificar: notificar_, atualizadoEm: Date.now()
+  };
+  await set(ref(db, `inscricoes/${exId}`), pub);
+  return pub;
+}
+
+function mostrarLink(exId, own = dono(exId), recemCriada = false, pub = null) {
+  const doEstado = S.excursoes[exId];
+  const e = doEstado || pub || {};
+  const url = urlInscricao(exId);
+  const v0 = veiculosDe(doEstado)[0]?.[1];
+  const valor = v0 ? precoPoltrona(v0) : num(pub?.valor);
+  const ativo = doEstado ? doEstado.linkAtivo !== false : pub?.ativa !== false;
+  const texto = `Inscrição para a excursão *${e.destino || ""}*\n📅 Saída: ${fData(e.dataSaida)}${e.horaSaida ? " às " + e.horaSaida : ""}\n📍 Local: ${e.localSaida || "a combinar"}\n💰 Valor: ${brl(valor)}\n\nFaça seu cadastro: ${url}`;
+  abrirModal(recemCriada ? "Excursão cadastrada! Link de inscrição" : "Link de inscrição dos viajantes", `
+    ${recemCriada ? `<p class="muted" style="margin-bottom:10px">O link abaixo foi gerado automaticamente. Envie para os viajantes se cadastrarem sozinhos.</p>` : ""}
+    <div class="dl">
+      ${linha("Excursão", esc(e.destino || ""))}
+      ${linha("Saída", `${fData(e.dataSaida)}${e.horaSaida ? " às " + esc(e.horaSaida) : ""}`)}
+      ${linha("Local de saída", esc(e.localSaida || "—"))}
+      ${linha("Valor final por pessoa", `<span class="money">${brl(valor)}</span>`)}
+      ${num(e.valorColo) ? linha("Criança de colo", brl(e.valorColo)) : ""}
+      ${linha("Situação", ativo ? `<span class="pill pill-green">Recebendo inscrições</span>` : `<span class="pill pill-red">Inscrições encerradas</span>`)}
+    </div>
+    <div class="link-box"><input id="linkUrl" readonly value="${esc(url)}"><button class="btn btn-primary btn-sm" id="btnCopiar"><i class="fa-solid fa-copy"></i> Copiar</button></div>
+    <div class="link-acoes">
+      <a class="btn btn-wpp btn-sm" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(texto)}"><i class="fa-brands fa-whatsapp"></i> Enviar no WhatsApp</a>
+      <a class="btn btn-light btn-sm" target="_blank" rel="noopener" href="${esc(url)}"><i class="fa-solid fa-arrow-up-right-from-square"></i> Abrir formulário</a>
+    </div>`, [
+    { html: ativo ? `<i class="fa-solid fa-lock"></i> Encerrar inscrições` : `<i class="fa-solid fa-lock-open"></i> Reabrir inscrições`, acao: async () => {
+      try { await update(ref(db, `excursoes/${own}/${exId}`), { linkAtivo: !ativo }); await publicarInscricao(exId, own); toast(ativo ? "Inscrições encerradas" : "Inscrições reabertas"); fecharModal(); } catch (err) { falha(err); }
+    } },
+    { html: "Fechar", classe: "btn-primary", acao: fecharModal }
+  ]);
+  $("#btnCopiar").onclick = async () => {
+    try { await navigator.clipboard.writeText(url); } catch { $("#linkUrl").select(); document.execCommand("copy"); }
+    toast("Link copiado");
+  };
 }
 
 function formVeiculoExtra(exId) {
@@ -759,6 +929,7 @@ function formVeiculoExtra(exId) {
       try {
         await set(ref(db, `excursoes/${own}/${exId}/veiculos/${k}`), { tipo: d.tipo, valorTransporte: num(d.valorTransporte), valorIngressos: num(d.valorIngressos), viagemId: d.viagemId || null, ordem: veiculosDe(ex).length });
         S.veicSel = k;
+        publicarInscricao(exId, own).catch(() => {});
         fecharModal();
         toast("Veículo inserido");
       } catch (e) { falha(e); }
@@ -784,14 +955,14 @@ function ligarSeletor() {
   if (p) p.onchange = () => { S.exSel = p.value; S.veicSel = null; S.passSel = null; navegar(S.view, p.value); };
 }
 function semExcursao(titulo, icone) {
-  $("#workspace").innerHTML = `<section class="panel">${toolbar(titulo, icone, tbBtn("btnNovaEx", "fa-plus", "Cadastrar excursão", "tool-accent"), false)}
+  $("#workspace").innerHTML = `<section class="panel">${toolbar(titulo, icone, podeAgencia() ? tbBtn("btnNovaEx", "fa-plus", "Cadastrar excursão", "tool-accent") : "", false)}
     <div class="empty"><i class="fa-solid ${icone}"></i><p>Cadastre uma excursão primeiro.</p></div></section>`;
-  $("#btnNovaEx").onclick = () => formExcursao();
+  if ($("#btnNovaEx")) $("#btnNovaEx").onclick = () => formExcursao();
 }
 function linhasPassageiros(exId) {
-  return viajantesEx(exId).map(([pid, p], i) => [i + 1, p.nome, DOCS[p.docTipo] || p.docTipo, p.docNumero, p.telefone, p.idade, p.colo ? "Sim" : "Não", p.colo ? "—" : rotuloPoltrona(exId, pid)]);
+  return viajantesEx(exId).map(([pid, p], i) => [i + 1, p.nome, DOCS[p.docTipo] || p.docTipo || "", p.docNumero || "", p.telefone || "", p.idade ?? "", p.colo ? "Sim" : "Não", p.colo ? "—" : rotuloPoltrona(exId, pid), brl(p.valor), brl(pagoDe(p)), statusPag(p).nome]);
 }
-const COLS_PASS = ["#", "Nome completo", "Documento", "Número", "Telefone", "Idade", "Colo", "Poltrona"];
+const COLS_PASS = ["#", "Nome completo", "Documento", "Número", "Telefone", "Idade", "Colo", "Poltrona", "Valor", "Pago", "Situação"];
 
 /* =========================================================
    VIAJANTES
@@ -805,7 +976,8 @@ function viewViajantes() {
   $("#workspace").innerHTML = `
   <section class="panel">
     ${toolbar("Cadastro de viajantes", "fa-users",
-      tbBtn("btnNovoPass", "fa-user-plus", "Cadastrar viajante", "tool-accent") + tbBtn("btnVeicExtra", "fa-bus", "Inserir veículo") + tbBtn("btnIrPolt", "fa-couch", "Poltronas"))}
+      tbBtn("btnNovoPass", "fa-user-plus", "Cadastrar viajante", "tool-accent") + tbBtn("btnImportar", "fa-file-arrow-up", "Importar planilha") +
+      tbBtn("btnLinkInsc", "fa-link", "Link de inscrição") + tbBtn("btnVeicExtra", "fa-bus", "Inserir veículo") + tbBtn("btnIrPolt", "fa-couch", "Poltronas"))}
     <div class="subbar">${sel}
       <div class="lotacao"><div class="lot-txt"><strong>${occ}</strong> de <strong>${cap}</strong> poltronas · ${lista.length - occ} de colo</div>
       <div class="bar"><span style="width:${pct}%" class="${occ > cap ? "red" : occ === cap ? "yellow" : ""}"></span></div></div>
@@ -815,13 +987,14 @@ function viewViajantes() {
       : occ === cap && cap > 0 ? `<div class="alerta amarelo"><i class="fa-solid fa-circle-info"></i> Veículos lotados. Novos viajantes vão precisar de mais um veículo.
       <button class="btn btn-primary btn-sm" id="btnVeicExtra2"><i class="fa-solid fa-plus"></i> Inserir mais um veículo</button></div>` : ""}
     ${lista.length ? `<div class="table-wrap"><table class="grid">
-      <thead><tr><th>#</th><th>Nome completo</th><th>Documento</th><th>Telefone</th><th>Idade</th><th>Poltrona</th><th></th></tr></thead>
+      <thead><tr><th>#</th><th>Nome completo</th><th>Documento</th><th>Telefone</th><th>Idade</th><th>Pagamento</th><th>Poltrona</th><th></th></tr></thead>
       <tbody>${lista.map(([pid, p], i) => `<tr>
         <td>${i + 1}</td>
-        <td><strong>${esc(p.nome)}</strong>${p.colo ? ` <span class="pill pill-yellow">colo</span>` : ""}</td>
+        <td><strong>${esc(p.nome)}</strong>${p.colo ? ` <span class="pill pill-yellow">colo</span>` : ""}${p.origem === "link" ? ` <span class="pill pill-link" title="Cadastrado pelo link">link</span>` : ""}${p.origem === "planilha" ? ` <span class="pill" title="Importado de planilha">planilha</span>` : ""}${p.obs ? `<br><small class="muted">${esc(p.obs)}</small>` : ""}</td>
         <td><small class="muted">${esc(DOCS[p.docTipo] || p.docTipo)}</small><br>${esc(p.docNumero)}</td>
         <td>${esc(p.telefone)}</td>
-        <td>${esc(p.idade)}</td>
+        <td>${esc(p.idade ?? "—")}</td>
+        <td>${pillStatus(p)}</td>
         <td>${p.colo ? "—" : `<span class="pill">${esc(rotuloPoltrona(exId, pid))}</span>`}</td>
         <td class="acoes">
           <button class="ic" title="Editar" data-a="edit" data-id="${pid}"><i class="fa-solid fa-pen"></i></button>
@@ -834,6 +1007,8 @@ function viewViajantes() {
   $("#btnVeicExtra").onclick = () => formVeiculoExtra(exId);
   if ($("#btnVeicExtra2")) $("#btnVeicExtra2").onclick = () => formVeiculoExtra(exId);
   $("#btnIrPolt").onclick = () => irPara("poltronas", exId);
+  $("#btnImportar").onclick = () => importarPlanilha(exId);
+  $("#btnLinkInsc").onclick = () => mostrarLink(exId, own);
   $$("[data-a]").forEach((b) => b.addEventListener("click", () => {
     const pid = b.dataset.id, p = S.viajantes[exId][pid];
     if (b.dataset.a === "edit") formViajante(exId, pid);
@@ -856,7 +1031,8 @@ function formViajante(exId, pid = null) {
     const f = $("#fPass");
     if (!f.reportValidity()) return;
     const d = lerForm(f);
-    const dados = { nome: d.nome, docTipo: d.docTipo, docNumero: d.docNumero, telefone: d.telefone, idade: parseInt(d.idade, 10) || 0, colo: !!d.colo };
+    const dados = { nome: d.nome, docTipo: d.docTipo, docNumero: d.docNumero, telefone: d.telefone, idade: d.idade === "" ? null : (parseInt(d.idade, 10) || 0), colo: !!d.colo,
+      valor: num(d.valor), formaPagamento: d.formaPagamento || null, obs: d.obs || null };
     try {
       if (pid) await update(ref(db, `viajantes/${own}/${exId}/${pid}`), dados);
       else await set(push(ref(db, `viajantes/${own}/${exId}`)), { ...dados, criadoEm: Date.now() });
@@ -874,10 +1050,16 @@ function formViajante(exId, pid = null) {
       <label>Tipo de documento<select name="docTipo" id="pDoc">${Object.entries(DOCS).map(([k, n]) => `<option value="${k}" ${k === p.docTipo ? "selected" : ""}>${n}</option>`).join("")}</select></label>
       <label>Número do documento<input name="docNumero" required value="${esc(p.docNumero)}"></label>
       <label>Telefone<input name="telefone" data-mask="tel" inputmode="tel" required value="${esc(p.telefone)}" placeholder="(32) 99999-9999"></label>
-      <label>Idade<input type="number" min="0" max="120" name="idade" id="pIdade" required value="${esc(p.idade)}"></label>
+      <label>Idade<input type="number" min="0" max="120" name="idade" id="pIdade" value="${esc(p.idade)}"></label>
       <label class="check span2"><input type="checkbox" name="colo" id="pColo" ${p.colo ? "checked" : ""}> Criança de colo (não ocupa poltrona)</label>
+      <label>Valor a pagar (R$)<input type="number" step="0.01" min="0" name="valor" id="pValor" value="${esc(p.valor ?? valorPadrao(exId, !!p.colo))}"></label>
+      <label>Forma de pagamento<select name="formaPagamento"><option value="">—</option>${FORMAS.concat(p.formaPagamento && !FORMAS.includes(p.formaPagamento) ? [p.formaPagamento] : []).map((x) => `<option ${x === p.formaPagamento ? "selected" : ""}>${esc(x)}</option>`).join("")}</select></label>
+      <label class="span2">Observação<input name="obs" value="${esc(p.obs)}" placeholder="Ex.: guia, poltrona preferida..."></label>
     </form>`, botoes);
-  const sug = () => { if (!pid && $("#pIdade").value !== "" && num($("#pIdade").value) <= 5 && $("#pDoc").value === "CERTIDAO") $("#pColo").checked = true; };
+  let valorMexido = !!pid;
+  $("#pValor").addEventListener("input", () => { valorMexido = true; });
+  $("#pColo").addEventListener("change", () => { if (!valorMexido) $("#pValor").value = valorPadrao(exId, $("#pColo").checked); });
+  const sug = () => { if (!pid && $("#pIdade").value !== "" && num($("#pIdade").value) <= 5 && $("#pDoc").value === "CERTIDAO") { $("#pColo").checked = true; if (!valorMexido) $("#pValor").value = valorPadrao(exId, true); } };
   $("#pIdade").addEventListener("change", sug);
   $("#pDoc").addEventListener("change", sug);
   $("#fPass").addEventListener("submit", (e) => { e.preventDefault(); salvar(!pid); });
@@ -1163,6 +1345,8 @@ function calcularViagem(id) {
       try {
         if (id) await set(ref(db, `viagens/${id}`), { ...dados, criadoEm: S.viagens[id]?.criadoEm || Date.now(), atualizadoEm: Date.now() });
         else await set(push(ref(db, "viagens")), { ...dados, criadoEm: Date.now() });
+        if (dados.agenciaUid) notificar([dados.agenciaUid], { tipo: "viagem", titulo: id ? "Viagem atualizada" : "Novo veículo agendado",
+          texto: `${trNome}: ${veic(dados.tipoVeiculo).nome} para ${dados.destino} em ${fData(dados.dataSaida)} às ${dados.horaSaida}. Valor ${brl(dados.valorFinal)}.`, link: "#/calendario" });
         if (ehAdmin()) registrarLog("admin", `${id ? "Editou" : "Criou"} viagem ${dados.destino} (${trNome})`);
         fecharModal();
         toast("Viagem salva e agendada no calendário");
@@ -1180,7 +1364,7 @@ function calcularViagem(id) {
 function viewUsuarios() {
   const termo = S.buscaUsuarios.toLowerCase();
   const todos = ordenar(S.usuarios, "nome");
-  const lista = todos.filter(([, u]) => !termo || [u.nome, u.empresa, u.email, u.documento, u.whatsapp].join(" ").toLowerCase().includes(termo));
+  const lista = todos.filter(([, u]) => !termo || [u.nome, u.empresa, u.email, u.documento, u.whatsapp, u.instagram].join(" ").toLowerCase().includes(termo));
   const cont = (t) => todos.filter(([, u]) => u.tipo === t).length;
   $("#workspace").innerHTML = `
   <section class="panel">
@@ -1194,13 +1378,14 @@ function viewUsuarios() {
       </div>
     </div>
     ${lista.length ? `<div class="table-wrap"><table class="grid">
-      <thead><tr><th>Nome</th><th>Agência / empresa</th><th>CPF/CNPJ</th><th>WhatsApp</th><th>E-mail</th><th>Tipo</th><th>Status</th><th>Cadastro</th><th></th></tr></thead>
+      <thead><tr><th>Nome</th><th>Agência / empresa</th><th>Instagram</th><th>CPF/CNPJ</th><th>WhatsApp</th><th>E-mail</th><th>Tipo</th><th>Status</th><th>Cadastro</th><th></th></tr></thead>
       <tbody>${lista.map(([uid, u]) => {
         const souEu = uid === U.uid;
         const wpp = soDig(u.whatsapp);
         return `<tr class="${u.ativo === false ? "inativo" : ""}">
         <td><strong>${esc(u.nome)}</strong>${souEu ? ` <span class="pill">você</span>` : ""}</td>
         <td>${esc(u.empresa)}</td>
+        <td>${u.instagram ? `<a class="wpp" style="color:#c13584" href="https://instagram.com/${esc(u.instagram)}" target="_blank" rel="noopener"><i class="fa-brands fa-instagram"></i> @${esc(u.instagram)}</a>` : "—"}</td>
         <td>${esc(u.documento || "—")}</td>
         <td>${wpp ? `<a class="wpp" href="https://wa.me/55${wpp}" target="_blank" rel="noopener"><i class="fa-brands fa-whatsapp"></i> ${esc(u.whatsapp)}</a>` : "—"}</td>
         <td>${esc(u.email)}</td>
@@ -1234,6 +1419,7 @@ function viewUsuarios() {
       ${u.tipo === "agencia" ? `<label class="check" style="margin-top:12px"><input type="checkbox" name="apagarDados"> Apagar também as excursões, viajantes e poltronas desta agência</label>` : ""}
       ${u.tipo === "transportadora" ? `<label class="check" style="margin-top:12px"><input type="checkbox" name="apagarDados"> Apagar também as viagens desta transportadora</label>` : ""}`, async (extra) => {
       const upd = { [`usuarios/${uid}`]: null, [`agencias/${uid}`]: null };
+      if (u.instagram) upd[`instagram/${u.instagram}`] = null;
       if (extra.apagarDados && u.tipo === "agencia") Object.assign(upd, { [`excursoes/${uid}`]: null, [`viajantes/${uid}`]: null, [`poltronas/${uid}`]: null });
       if (extra.apagarDados && u.tipo === "transportadora") Object.entries(S.viagens).forEach(([id, v]) => { if (v.transportadoraUid === uid) upd[`viagens/${id}`] = null; });
       await update(ref(db), upd);
@@ -1242,8 +1428,8 @@ function viewUsuarios() {
     }, "Remover");
   }));
   S.exportar = { titulo: "Usuários do sistema", sub: `${lista.length} usuário(s)`,
-    sheets: [{ nome: "Usuários", colunas: ["Nome completo", "Agência / empresa", "CPF/CNPJ", "WhatsApp", "E-mail", "Tipo", "Status", "Cadastro"],
-      linhas: lista.map(([, u]) => [u.nome, u.empresa, u.documento || "", u.whatsapp || "", u.email, TIPOS[u.tipo] || u.tipo, u.ativo === false ? "Desativado" : "Ativo", u.criadoEm ? new Date(u.criadoEm).toLocaleDateString("pt-BR") : ""]) }] };
+    sheets: [{ nome: "Usuários", colunas: ["Nome completo", "Agência / empresa", "Instagram", "CPF/CNPJ", "WhatsApp", "E-mail", "Tipo", "Status", "Cadastro"],
+      linhas: lista.map(([, u]) => [u.nome, u.empresa, u.instagram ? "@" + u.instagram : "", u.documento || "", u.whatsapp || "", u.email, TIPOS[u.tipo] || u.tipo, u.ativo === false ? "Desativado" : "Ativo", u.criadoEm ? new Date(u.criadoEm).toLocaleDateString("pt-BR") : ""]) }] };
 }
 
 function formUsuario(uid = null) {
@@ -1255,6 +1441,7 @@ function formUsuario(uid = null) {
       <label class="span2">Agência / empresa<input name="empresa" required value="${esc(u.empresa)}"></label>
       <label>CPF ou CNPJ<input name="documento" data-mask="doc" inputmode="numeric" ${admin ? "" : "required"} value="${esc(u.documento)}"></label>
       <label>WhatsApp<input name="whatsapp" data-mask="tel" inputmode="tel" ${admin ? "" : "required"} value="${esc(u.whatsapp)}"></label>
+      <label class="span2">Instagram<span class="input-prefix"><b>@</b><input name="instagram" ${admin ? "" : "required"} autocapitalize="none" value="${esc(u.instagram)}"></span></label>
       <label class="${uid ? "span2" : ""}">E-mail<input type="email" name="email" required value="${esc(u.email)}" ${uid ? "readonly title='O e-mail de login não pode ser alterado por aqui'" : ""}></label>
       ${uid ? "" : `<label>Senha inicial<input type="text" name="senha" required minlength="6" placeholder="mínimo 6 caracteres" autocomplete="off"></label>`}
       ${admin ? "" : `<fieldset class="tipo-conta span2"><legend>Tipo de conta</legend>
@@ -1278,15 +1465,22 @@ async function salvarUsuario(uid) {
   if (tipo !== "admin" && !docValido(d.documento)) return toast("CPF ou CNPJ inválido.", "erro");
   if (tipo !== "admin" && soDig(d.whatsapp).length < 10) return toast("WhatsApp inválido.", "erro");
   d.documento = d.documento ? mascaraDoc(d.documento) : "";
+  d.instagram = normInsta(d.instagram);
+  if ((tipo !== "admin" || d.instagram) && !instaValido(d.instagram)) return toast("@ do Instagram inválido.", "erro");
+  if (d.instagram && d.instagram !== atual?.instagram) {
+    try { const ig = await get(ref(db, `instagram/${d.instagram}`)); if (ig.exists() && ig.val().uid !== uid) return toast(`O @${d.instagram} já pertence a outro usuário.`, "erro"); } catch (e) { return falha(e); }
+  }
   d.whatsapp = d.whatsapp ? mascaraTel(d.whatsapp) : "";
   try {
     if (uid) {
       const upd = {
         [`usuarios/${uid}/nome`]: d.nome, [`usuarios/${uid}/empresa`]: d.empresa, [`usuarios/${uid}/documento`]: d.documento,
-        [`usuarios/${uid}/whatsapp`]: d.whatsapp, [`usuarios/${uid}/tipo`]: tipo,
+        [`usuarios/${uid}/whatsapp`]: d.whatsapp, [`usuarios/${uid}/tipo`]: tipo, [`usuarios/${uid}/instagram`]: d.instagram,
         [`agencias/${uid}`]: tipo === "agencia" ? { nome: d.empresa } : null
       };
       if ("ativo" in d) upd[`usuarios/${uid}/ativo`] = d.ativo;
+      if (atual.instagram && atual.instagram !== d.instagram) upd[`instagram/${atual.instagram}`] = null;
+      if (d.instagram) upd[`instagram/${d.instagram}`] = { uid, nome: d.nome, empresa: d.empresa };
       await update(ref(db), upd);
       registrarLog("admin", `Editou usuário ${atual.email}`);
       toast("Usuário atualizado");
@@ -1297,8 +1491,9 @@ async function salvarUsuario(uid) {
       const cred = await createUserWithEmailAndPassword(authSec, email, d.senha);
       await updateProfile(cred.user, { displayName: d.nome }).catch(() => {});
       await signOut(authSec);
-      const perfil = { nome: d.nome, empresa: d.empresa, documento: d.documento, whatsapp: d.whatsapp, email, tipo, ativo: d.ativo !== false, criadoEm: Date.now(), criadoPor: U.uid };
-      await update(ref(db), { [`usuarios/${cred.user.uid}`]: perfil, ...(tipo === "agencia" ? { [`agencias/${cred.user.uid}`]: { nome: d.empresa } } : {}) });
+      const perfil = { nome: d.nome, empresa: d.empresa, documento: d.documento, whatsapp: d.whatsapp, email, tipo, ativo: d.ativo !== false, criadoEm: Date.now(), criadoPor: U.uid, instagram: d.instagram };
+      await update(ref(db), { [`usuarios/${cred.user.uid}`]: perfil, [`instagram/${d.instagram}`]: { uid: cred.user.uid, nome: d.nome, empresa: d.empresa },
+        ...(tipo === "agencia" ? { [`agencias/${cred.user.uid}`]: { nome: d.empresa } } : {}) });
       registrarLog("admin", `Criou usuário ${email} (${TIPOS[tipo]})`);
       toast("Usuário criado");
     }
@@ -1360,4 +1555,370 @@ function navegadorCurto(ua = "") {
   const so = /Android/.test(ua) ? "Android" : /iPhone|iPad/.test(ua) ? "iOS" : /Windows/.test(ua) ? "Windows" : /Mac OS/.test(ua) ? "macOS" : /Linux/.test(ua) ? "Linux" : "";
   const nav = /Edg\//.test(ua) ? "Edge" : /OPR\//.test(ua) ? "Opera" : /Chrome\//.test(ua) ? "Chrome" : /Firefox\//.test(ua) ? "Firefox" : /Safari\//.test(ua) ? "Safari" : "";
   return [nav, so].filter(Boolean).join(" · ") || ua.slice(0, 40);
+}
+
+/* =========================================================
+   VALORES / PAGAMENTOS
+========================================================= */
+function valorPadrao(exId, colo) {
+  const ex = S.excursoes[exId];
+  if (!ex) return 0;
+  if (colo) return num(ex.valorColo);
+  const v0 = veiculosDe(ex)[0]?.[1];
+  return v0 ? Math.round(precoPoltrona(v0) * 100) / 100 : 0;
+}
+const pagoDe = (p) => Object.values(p?.pagamentos || {}).reduce((s, x) => s + num(x.valor), 0);
+function statusPag(p) {
+  const valor = num(p.valor), pago = pagoDe(p);
+  if (valor <= 0) return pago > 0 ? { id: "pago", nome: "Pago" } : { id: "isento", nome: "Sem valor" };
+  if (pago >= valor - 0.009) return { id: "pago", nome: "Pago" };
+  if (pago > 0) return { id: "parcial", nome: "Parcial" };
+  return { id: "pendente", nome: "Pendente" };
+}
+const pillStatus = (p) => { const st = statusPag(p); return `<span class="pill st-${st.id}">${st.nome}</span>`; };
+
+/* =========================================================
+   NOTIFICAÇÕES (sininho)
+========================================================= */
+const ICONE_NOTIF = { inscricao: "fa-user-plus", viagem: "fa-bus", colaboracao: "fa-user-group", pagamento: "fa-sack-dollar" };
+
+function notificar(uids, n) {
+  const destinos = [...new Set(uids)].filter((u) => u && u !== U?.uid);
+  if (!destinos.length) return Promise.resolve();
+  const upd = {};
+  destinos.forEach((d) => {
+    const k = push(ref(db, `notificacoes/${d}`)).key;
+    upd[`notificacoes/${d}/${k}`] = { tipo: n.tipo, titulo: n.titulo.slice(0, 120), texto: (n.texto || "").slice(0, 300), link: n.link || "", exId: n.exId || "",
+      de: U.uid, deNome: P?.nome || "", lida: false, em: serverTimestamp() };
+  });
+  return update(ref(db), upd).catch((e) => console.warn("notificação", e));
+}
+
+function receberNotificacoes(v) {
+  const antes = S.notifs;
+  S.notifs = v;
+  const novas = Object.entries(v).filter(([id, n]) => !antes[id] && !n.lida && (n.em || 0) > S.notifInicio);
+  if (novas.length) {
+    const [, n] = novas[novas.length - 1];
+    toast(n.titulo);
+    const b = $("#btnSino");
+    b.classList.remove("toca"); void b.offsetWidth; b.classList.add("toca");
+  }
+  renderSino();
+}
+
+function tempoAtras(ts) {
+  if (!ts) return "";
+  const m = Math.round((Date.now() - ts) / 60000);
+  if (m < 1) return "agora";
+  if (m < 60) return `há ${m} min`;
+  const h = Math.round(m / 60);
+  if (h < 24) return `há ${h} h`;
+  const d = Math.round(h / 24);
+  return d < 30 ? `há ${d} dia${d > 1 ? "s" : ""}` : new Date(ts).toLocaleDateString("pt-BR");
+}
+
+function renderSino() {
+  const lista = Object.entries(S.notifs).sort((a, b) => (b[1].em || 0) - (a[1].em || 0));
+  const naoLidas = lista.filter(([, n]) => !n.lida).length;
+  const badge = $("#sinoBadge");
+  badge.textContent = naoLidas > 9 ? "9+" : naoLidas;
+  badge.classList.toggle("hidden", !naoLidas);
+  $("#btnSino").title = naoLidas ? `${naoLidas} notificação(ões) nova(s)` : "Notificações";
+  $("#sinoLista").innerHTML = lista.length ? lista.map(([id, n]) => `
+    <button class="notif t-${esc(n.tipo)} ${n.lida ? "" : "nova"}" data-n="${id}">
+      <span class="n-ic"><i class="fa-solid ${ICONE_NOTIF[n.tipo] || "fa-bell"}"></i></span>
+      <span style="flex:1"><strong>${esc(n.titulo)}</strong><small>${esc(n.texto)}</small><em>${tempoAtras(n.em)}</em></span>
+      ${n.lida ? "" : `<span class="ponto"></span>`}
+    </button>`).join("") : `<p class="vazio" style="padding:18px;text-align:center">Nenhuma notificação por aqui.</p>`;
+  $$("#sinoLista [data-n]").forEach((b) => b.addEventListener("click", () => {
+    const n = S.notifs[b.dataset.n];
+    if (!n.lida) update(ref(db, `notificacoes/${U.uid}/${b.dataset.n}`), { lida: true }).catch(() => {});
+    fecharSino();
+    if (n.link) location.hash = n.link;
+  }));
+}
+function fecharSino() { $("#sinoPainel").classList.add("hidden"); $("#btnSino").setAttribute("aria-expanded", "false"); }
+$("#btnSino").addEventListener("click", (e) => {
+  e.stopPropagation();
+  const abrir = $("#sinoPainel").classList.contains("hidden");
+  $("#sinoPainel").classList.toggle("hidden", !abrir);
+  $("#btnSino").setAttribute("aria-expanded", String(abrir));
+});
+$("#sinoPainel").addEventListener("click", (e) => e.stopPropagation());
+document.addEventListener("click", fecharSino);
+$("#btnLerTodas").addEventListener("click", () => {
+  const upd = {};
+  Object.entries(S.notifs).forEach(([id, n]) => { if (!n.lida) upd[`${id}/lida`] = true; });
+  if (Object.keys(upd).length) update(ref(db, `notificacoes/${U.uid}`), upd).catch(falha);
+});
+
+/* =========================================================
+   FINANCEIRO
+========================================================= */
+function viewFinanceiro() {
+  const sel = seletorExcursao();
+  if (!sel) return semExcursao("Financeiro", "fa-sack-dollar");
+  const exId = S.exSel, ex = S.excursoes[exId];
+  const todos = viajantesEx(exId);
+  const previsto = todos.reduce((s, [, p]) => s + num(p.valor), 0);
+  const recebido = todos.reduce((s, [, p]) => s + pagoDe(p), 0);
+  const aReceber = todos.reduce((s, [, p]) => s + Math.max(0, num(p.valor) - pagoDe(p)), 0);
+  const quitados = todos.filter(([, p]) => statusPag(p).id === "pago").length;
+  const pct = previsto ? Math.min(100, Math.round((recebido / previsto) * 100)) : 0;
+  const termo = S.finBusca.toLowerCase();
+  const lista = todos.filter(([, p]) => (!S.finFiltro || statusPag(p).id === S.finFiltro) && (!termo || p.nome.toLowerCase().includes(termo)));
+
+  $("#workspace").innerHTML = `
+  <section class="panel">
+    ${toolbar("Financeiro da excursão", "fa-sack-dollar", tbBtn("btnIrVia", "fa-users", "Viajantes") + tbBtn("btnLinkFin", "fa-link", "Link de inscrição"))}
+    <div class="subbar">${sel}
+      <input type="search" id="finBusca" class="search" placeholder="Buscar viajante..." value="${esc(S.finBusca)}">
+      <select id="finFiltro" class="search" style="flex:0 0 170px">
+        <option value="">Todas as situações</option>
+        ${[["pendente", "Pendente"], ["parcial", "Parcial"], ["pago", "Pago"], ["isento", "Sem valor"]].map(([k, n]) => `<option value="${k}" ${S.finFiltro === k ? "selected" : ""}>${n}</option>`).join("")}
+      </select>
+    </div>
+    <div class="cards-fin">
+      <div class="card-fin"><small>Valor previsto</small><strong>${brl(previsto)}</strong></div>
+      <div class="card-fin verde"><small>Recebido</small><strong>${brl(recebido)}</strong><div class="bar"><span style="width:${pct}%"></span></div></div>
+      <div class="card-fin vermelho"><small>A receber</small><strong>${brl(aReceber)}</strong></div>
+      <div class="card-fin"><small>Viajantes quitados</small><strong>${quitados}/${todos.length}</strong></div>
+    </div>
+    ${lista.length ? `<div class="table-wrap" style="margin-top:12px"><table class="grid">
+      <thead><tr><th>#</th><th>Viajante</th><th>Forma</th><th>Valor</th><th>Pago</th><th>Saldo</th><th>Situação</th><th></th></tr></thead>
+      <tbody>${lista.map(([pid, p], i) => {
+        const pago = pagoDe(p), saldo = Math.max(0, num(p.valor) - pago), tel = soDig(p.telefone);
+        return `<tr>
+          <td>${i + 1}</td>
+          <td><strong>${esc(p.nome)}</strong>${p.colo ? ` <span class="pill pill-yellow">colo</span>` : ""}<br><small class="muted">${esc(p.telefone || "")}</small></td>
+          <td>${esc(p.formaPagamento || "—")}</td>
+          <td>${brl(p.valor)}</td>
+          <td class="money">${brl(pago)}</td>
+          <td><strong>${brl(saldo)}</strong></td>
+          <td>${pillStatus(p)}</td>
+          <td class="acoes">
+            <button class="ic" title="Registrar pagamento" data-a="pag" data-id="${pid}"><i class="fa-solid fa-plus"></i></button>
+            ${saldo > 0 ? `<button class="ic" title="Marcar como pago (quitar)" data-a="quitar" data-id="${pid}"><i class="fa-solid fa-check-double"></i></button>` : ""}
+            <button class="ic" title="Histórico e valor" data-a="hist" data-id="${pid}"><i class="fa-solid fa-clock-rotate-left"></i></button>
+            ${saldo > 0 && tel.length >= 10 ? `<a class="ic" style="display:inline-grid;place-items:center;color:#1d9a55" title="Cobrar no WhatsApp" target="_blank" rel="noopener"
+              href="https://wa.me/55${tel}?text=${encodeURIComponent(`Olá, ${p.nome.split(" ")[0]}! Passando para lembrar do saldo de ${brl(saldo)} da excursão ${ex.destino} (${fData(ex.dataSaida)}). Qualquer dúvida estou à disposição.`)}"><i class="fa-brands fa-whatsapp"></i></a>` : ""}
+          </td></tr>`;
+      }).join("")}</tbody></table></div>`
+    : `<div class="empty"><i class="fa-solid fa-sack-dollar"></i><p>${todos.length ? "Nenhum viajante nesta situação." : "Cadastre viajantes para acompanhar os pagamentos."}</p></div>`}
+  </section>`;
+  ligarSeletor();
+  $("#btnIrVia").onclick = () => irPara("viajantes", exId);
+  $("#btnLinkFin").onclick = () => mostrarLink(exId);
+  $("#finFiltro").onchange = (e) => { S.finFiltro = e.target.value; render(); };
+  $("#finBusca").addEventListener("input", (e) => {
+    S.finBusca = e.target.value; const pos = e.target.selectionStart; render();
+    const b = $("#finBusca"); b.focus(); b.setSelectionRange(pos, pos);
+  });
+  $$("[data-a]", $("#workspace")).forEach((b) => b.addEventListener("click", () => {
+    const pid = b.dataset.id;
+    if (b.dataset.a === "pag") formPagamento(exId, pid);
+    if (b.dataset.a === "hist") historicoPagamentos(exId, pid);
+    if (b.dataset.a === "quitar") {
+      const p = S.viajantes[exId][pid], saldo = Math.max(0, num(p.valor) - pagoDe(p));
+      confirmar(`Registrar pagamento de <strong>${brl(saldo)}</strong> e marcar <strong>${esc(p.nome)}</strong> como pago?`,
+        () => registrarPagamento(exId, pid, { valor: saldo, data: hoje(), forma: p.formaPagamento || "Pix", obs: "Quitação" }), "Marcar como pago");
+    }
+  }));
+  const pagLinhas = [];
+  todos.forEach(([, p]) => Object.values(p.pagamentos || {}).sort((a, b) => String(a.data).localeCompare(String(b.data)))
+    .forEach((x) => pagLinhas.push([p.nome, fData(x.data), brl(x.valor), x.forma || "", x.obs || "", x.por || ""])));
+  S.exportar = { titulo: `Financeiro ${ex.destino} ${fData(ex.dataSaida)}`,
+    sub: `${tituloEx(ex)} · previsto ${brl(previsto)} · recebido ${brl(recebido)} · a receber ${brl(aReceber)}`,
+    sheets: [
+      { nome: "Financeiro", colunas: ["#", "Viajante", "Telefone", "Forma", "Valor", "Pago", "Saldo", "Situação"],
+        linhas: lista.map(([, p], i) => [i + 1, p.nome, p.telefone || "", p.formaPagamento || "", brl(p.valor), brl(pagoDe(p)), brl(Math.max(0, num(p.valor) - pagoDe(p))), statusPag(p).nome])
+          .concat([["", "TOTAL", "", "", brl(previsto), brl(recebido), brl(aReceber), `${quitados}/${todos.length} quitados`]]) },
+      { nome: "Pagamentos", colunas: ["Viajante", "Data", "Valor", "Forma", "Observação", "Registrado por"], linhas: pagLinhas }
+    ] };
+}
+
+async function registrarPagamento(exId, pid, x) {
+  const own = dono(exId), p = S.viajantes[exId][pid], ex = S.excursoes[exId];
+  await set(push(ref(db, `viajantes/${own}/${exId}/${pid}/pagamentos`)), {
+    valor: Math.round(num(x.valor) * 100) / 100, data: x.data, forma: x.forma || "", obs: x.obs || "", por: P.nome, porUid: U.uid, em: Date.now()
+  });
+  toast(`Pagamento de ${brl(x.valor)} registrado`);
+  notificar(membrosEx(exId), { tipo: "pagamento", titulo: "Pagamento registrado", texto: `${P.nome} registrou ${brl(x.valor)} de ${p.nome} (${ex.destino}).`, link: `#/financeiro/${exId}`, exId });
+}
+
+function formPagamento(exId, pid) {
+  const p = S.viajantes[exId][pid];
+  const saldo = Math.max(0, num(p.valor) - pagoDe(p));
+  abrirModal(`Registrar pagamento — ${p.nome}`, `
+    <div class="dl" style="margin-bottom:12px">${linha("Valor a pagar", brl(p.valor))}${linha("Já pago", brl(pagoDe(p)))}${linha("Saldo", `<strong class="money">${brl(saldo)}</strong>`)}</div>
+    <form id="fPag" class="form-grid">
+      <label>Valor recebido (R$)<input type="number" step="0.01" min="0.01" name="valor" required value="${saldo ? saldo.toFixed(2) : ""}"></label>
+      <label>Data<input type="date" name="data" required value="${hoje()}"></label>
+      <label>Forma<select name="forma">${FORMAS.map((f) => `<option ${f === (p.formaPagamento || "Pix") ? "selected" : ""}>${f}</option>`).join("")}</select></label>
+      <label>Observação<input name="obs" placeholder="Ex.: 2ª parcela"></label>
+    </form>`, [
+    { html: "Cancelar", acao: fecharModal },
+    { html: `<i class="fa-solid fa-check"></i> Registrar`, classe: "btn-primary", acao: async () => {
+      const f = $("#fPag");
+      if (!f.reportValidity()) return;
+      try { await registrarPagamento(exId, pid, lerForm(f)); fecharModal(); } catch (e) { falha(e); }
+    } }
+  ]);
+}
+
+function historicoPagamentos(exId, pid) {
+  const own = dono(exId), p = S.viajantes[exId][pid];
+  const pags = Object.entries(p.pagamentos || {}).sort((a, b) => String(a[1].data).localeCompare(String(b[1].data)));
+  abrirModal(`Pagamentos — ${p.nome}`, `
+    <form id="fValor" class="form-grid">
+      <label>Valor a pagar (R$)<input type="number" step="0.01" min="0" name="valor" value="${esc(num(p.valor))}"></label>
+      <label>Forma combinada<select name="formaPagamento"><option value="">—</option>${FORMAS.concat(p.formaPagamento && !FORMAS.includes(p.formaPagamento) ? [p.formaPagamento] : []).map((f) => `<option ${f === p.formaPagamento ? "selected" : ""}>${esc(f)}</option>`).join("")}</select></label>
+    </form>
+    <h4 class="sub">Histórico (${brl(pagoDe(p))} pagos)</h4>
+    <div class="hist">${pags.length ? pags.map(([k, x]) => `<div class="hist-item"><div><strong>${brl(x.valor)}</strong> · ${fData(x.data)} · ${esc(x.forma || "")}<small>${esc(x.obs || "")}${x.por ? " · por " + esc(x.por) : ""}</small></div>
+      <button class="ic danger" data-del="${k}" title="Excluir pagamento"><i class="fa-solid fa-trash"></i></button></div>`).join("") : `<p class="vazio">Nenhum pagamento registrado.</p>`}</div>`, [
+    { html: "Fechar", acao: fecharModal },
+    { html: `<i class="fa-solid fa-plus"></i> Novo pagamento`, acao: () => formPagamento(exId, pid) },
+    { html: `<i class="fa-solid fa-floppy-disk"></i> Salvar valor`, classe: "btn-primary", acao: async () => {
+      const d = lerForm($("#fValor"));
+      try { await update(ref(db, `viajantes/${own}/${exId}/${pid}`), { valor: num(d.valor), formaPagamento: d.formaPagamento || null }); toast("Valor atualizado"); fecharModal(); } catch (e) { falha(e); }
+    } }
+  ]);
+  $$("[data-del]", $("#modalBody")).forEach((b) => b.addEventListener("click", async () => {
+    try { await remove(ref(db, `viajantes/${own}/${exId}/${pid}/pagamentos/${b.dataset.del}`)); toast("Pagamento excluído"); historicoPagamentos(exId, pid); } catch (e) { falha(e); }
+  }));
+}
+
+/* =========================================================
+   IMPORTAÇÃO DE PLANILHA DE VIAJANTES
+   Formato do Google Forms: Numeração | Carimbo de data/hora | Nome completo | RG | Whatsapp |
+   Faixa etaria | Forma de pagamento | OBS | Pagamento  (colunas reconhecidas pelo nome)
+========================================================= */
+const semAcento = (t) => String(t ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim();
+
+function mapearColunas(cab) {
+  const h = cab.map(semAcento);
+  const achar = (teste, exceto = []) => h.findIndex((c, i) => c && teste(c) && !exceto.includes(i));
+  const m = {};
+  m.forma = achar((c) => c.includes("forma") && c.includes("pag"));
+  m.nome = achar((c) => c.includes("nome"));
+  m.doc = achar((c) => /^(rg|cpf|cnh|documento|identidade|doc)\b/.test(c) || c === "rg");
+  m.tel = achar((c) => /whats|telefone|celular|fone|contato/.test(c));
+  m.faixa = achar((c) => /faixa|idade|categoria|tipo de ingresso/.test(c));
+  m.obs = achar((c) => /^obs|observ|poltrona/.test(c));
+  m.pag = achar((c) => /^pagamento|situac|status|pago/.test(c), [m.forma]);
+  m.data = achar((c) => /carimbo|data\/hora|timestamp|^data/.test(c));
+  return m;
+}
+
+function analisarPlanilha(XLSX, wb, exId) {
+  let melhor = null;
+  wb.SheetNames.forEach((n) => {
+    const linhas = XLSX.utils.sheet_to_json(wb.Sheets[n], { header: 1, raw: true, defval: null });
+    const iCab = linhas.findIndex((l) => (l || []).some((c) => semAcento(c).includes("nome")));
+    if (iCab >= 0 && (!melhor || linhas.length > melhor.linhas.length)) melhor = { linhas, iCab };
+  });
+  if (!melhor) throw new Error("Não encontrei a coluna de nome na planilha.");
+  const cab = melhor.linhas[melhor.iCab];
+  const m = mapearColunas(cab);
+  const cel = (l, k) => (m[k] >= 0 ? l[m[k]] : null);
+  const ex = S.excursoes[exId];
+  const capV1 = veic(veiculosDe(ex)[0]?.[1]?.tipo).cap;
+  const existentes = new Set(viajantesEx(exId).map(([, p]) => semAcento(p.nome)));
+  const vistos = new Set();
+  const out = [];
+  melhor.linhas.slice(melhor.iCab + 1).forEach((l) => {
+    const nome = String(cel(l, "nome") ?? "").replace(/\s+/g, " ").trim();
+    if (!nome) return;
+    const faixa = String(cel(l, "faixa") ?? "").trim();
+    const precos = [...faixa.matchAll(/R\$\s*([\d.]+(?:,\d{1,2})?)/gi)].map((x) => parseFloat(x[1].replace(/\./g, "").replace(",", ".")));
+    const colo = /colo|menor(es)? de [0-6]\b|0 a [0-6] anos/i.test(faixa);
+    let docBruto = cel(l, "doc");
+    let docNumero = docBruto == null || docBruto === 0 || String(docBruto).trim() === "0" ? "" : String(docBruto).trim();
+    const telBruto = String(cel(l, "tel") ?? "").trim();
+    const td = soDig(telBruto);
+    const telefone = td.length === 10 || td.length === 11 ? mascaraTel(td) : (td.length === 12 || td.length === 13) && td.startsWith("55") ? mascaraTel(td.slice(2)) : telBruto;
+    const obsBruta = String(cel(l, "obs") ?? "").trim();
+    const mp = obsBruta.match(/poltrona\s*(?:n[ºo°.]*\s*)?(\d{1,2})/i);
+    const poltrona = mp ? parseInt(mp[1], 10) : null;
+    let obs = obsBruta.replace(/poltrona\s*(?:n[ºo°.]*\s*)?\d{1,2}/i, "").replace(/\s+/g, " ").trim();
+    const pagTxt = String(cel(l, "pag") ?? "").trim();
+    const quitado = /pago integral|quitad|pago total|^pago$|integral/i.test(pagTxt);
+    if (pagTxt && !quitado) obs = [obs, `Pagamento: ${pagTxt}`].filter(Boolean).join(" · ");
+    const idadeCol = m.faixa >= 0 && /^idade$/.test(semAcento(cab[m.faixa])) && !isNaN(parseInt(faixa, 10)) ? parseInt(faixa, 10) : null;
+    const dt = cel(l, "data");
+    const criadoEm = dt instanceof Date && !isNaN(dt) ? dt.getTime() : typeof dt === "number" && dt > 30000 ? Math.round((dt - 25569) * 86400000) : Date.now();
+    const chave = semAcento(nome);
+    const dup = existentes.has(chave) || vistos.has(chave);
+    vistos.add(chave);
+    out.push({
+      nome, docTipo: !docNumero && colo ? "CERTIDAO" : /cnh/i.test(cab[m.doc] || "") ? "CNH" : "RG", docNumero, telefone, colo,
+      valor: precos.length ? precos[precos.length - 1] : valorPadrao(exId, colo), faixa, formaPagamento: String(cel(l, "forma") ?? "").trim(),
+      obs, poltrona: !colo && poltrona && poltrona <= capV1 ? poltrona : null, quitado, idade: idadeCol, criadoEm, dup
+    });
+  });
+  return { linhas: out, mapa: m, cab };
+}
+
+function importarPlanilha(exId) {
+  const inp = document.createElement("input");
+  inp.type = "file";
+  inp.accept = ".xlsx,.xls,.csv,.ods";
+  inp.onchange = async () => {
+    const arq = inp.files[0];
+    if (!arq) return;
+    toast("Lendo planilha...");
+    try {
+      const XLSX = await carregarXLSX();
+      const wb = XLSX.read(await arq.arrayBuffer(), { type: "array", cellDates: true });
+      previaImportacao(exId, analisarPlanilha(XLSX, wb, exId), arq.name);
+    } catch (e) { falha(e); }
+  };
+  inp.click();
+}
+
+function previaImportacao(exId, { linhas, mapa, cab }, nomeArq) {
+  const novos = linhas.filter((l) => !l.dup);
+  const comPolt = novos.filter((l) => l.poltrona).length;
+  const quit = novos.filter((l) => l.quitado).length;
+  const reconhecidas = Object.entries({ nome: "Nome", doc: "Documento", tel: "WhatsApp", faixa: "Faixa etária", forma: "Forma de pagamento", obs: "OBS", pag: "Pagamento" })
+    .map(([k, n]) => `<span class="pill ${mapa[k] >= 0 ? "pill-green" : "pill-red"}">${n}${mapa[k] >= 0 ? ": " + esc(String(cab[mapa[k]]).trim()) : " (não encontrada)"}</span>`).join(" ");
+  abrirModal(`Importar viajantes — ${nomeArq}`, `
+    <div class="stats-mini" style="margin-bottom:10px">
+      <span><strong>${novos.length}</strong> novos</span><span><strong>${linhas.length - novos.length}</strong> repetidos (ignorados)</span>
+      <span><strong>${comPolt}</strong> com poltrona</span><span><strong>${quit}</strong> pagos integral</span>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px">${reconhecidas}</div>
+    <div class="import-prev"><table class="grid">
+      <thead><tr><th>Nome</th><th>Documento</th><th>WhatsApp</th><th>Valor</th><th>Forma</th><th>Poltrona</th><th>Obs / pagamento</th></tr></thead>
+      <tbody>${linhas.map((l) => `<tr class="${l.dup ? "dup" : ""}"><td>${esc(l.nome)}${l.colo ? ` <span class="pill pill-yellow">colo</span>` : ""}</td><td>${esc(l.docNumero || "—")}</td><td>${esc(l.telefone || "—")}</td>
+        <td>${brl(l.valor)}</td><td>${esc(l.formaPagamento || "—")}</td><td>${l.poltrona || "—"}</td><td>${l.quitado ? `<span class="pill st-pago">Pago integral</span> ` : ""}${esc(l.obs)}</td></tr>`).join("")}</tbody>
+    </table></div>
+    <label class="check" style="margin-top:12px"><input type="checkbox" id="impPolt" checked> Posicionar nas poltronas indicadas na coluna OBS (veículo 1)</label>
+    <label class="check" style="margin-top:8px"><input type="checkbox" id="impPag" checked> Registrar pagamento total para quem está como "Pago integral"</label>`, [
+    { html: "Cancelar", acao: fecharModal },
+    { html: `<i class="fa-solid fa-file-import"></i> Importar ${novos.length} viajante(s)`, classe: "btn-primary", acao: async () => {
+      if (!novos.length) return toast("Nenhum viajante novo para importar.", "erro");
+      const optPolt = $("#impPolt").checked, optPag = $("#impPag").checked;
+      const own = dono(exId), ex = S.excursoes[exId];
+      const vk0 = veiculosDe(ex)[0]?.[0];
+      const ocupadas = new Set(Object.keys((S.poltronas[exId] || {})[vk0] || {}).map(Number));
+      const upd = {};
+      let posicionados = 0;
+      novos.forEach((l) => {
+        const k = push(ref(db, `viajantes/${own}/${exId}`)).key;
+        const dado = { nome: l.nome, docTipo: l.docTipo, docNumero: l.docNumero, telefone: l.telefone, colo: l.colo, valor: l.valor,
+          formaPagamento: l.formaPagamento || null, obs: l.obs || null, faixa: l.faixa || null, idade: l.idade, origem: "planilha", criadoEm: l.criadoEm };
+        if (optPag && l.quitado && l.valor > 0) dado.pagamentos = { importado: { valor: l.valor, data: hoje(), forma: l.formaPagamento || "", obs: "Importado: pago integral", por: P.nome, porUid: U.uid, em: Date.now() } };
+        upd[`viajantes/${own}/${exId}/${k}`] = dado;
+        if (optPolt && l.poltrona && vk0 && !ocupadas.has(l.poltrona)) { upd[`poltronas/${own}/${exId}/${vk0}/${l.poltrona}`] = k; ocupadas.add(l.poltrona); posicionados++; }
+      });
+      try {
+        await update(ref(db), upd);
+        fecharModal();
+        toast(`${novos.length} viajante(s) importado(s)${posicionados ? `, ${posicionados} já na poltrona` : ""}`);
+      } catch (e) { falha(e); }
+    } }
+  ], true);
 }
