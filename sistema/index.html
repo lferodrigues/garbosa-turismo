@@ -5,75 +5,138 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex, nofollow">
 <link rel="icon" href="../Assets/img/logo.ico" type="image/x-icon">
-<title>Entrar | Garbosa System</title>
+<title>Garbosa System</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
 <link rel="stylesheet" href="css/sistema.css">
 </head>
-<body class="login-body">
+<body>
 
-<main class="login-wrap">
-  <section class="login-brand">
-    <img src="../Assets/img/logo.ico" alt="Garbosa Turismo" class="login-logo">
-    <span class="tag">Garbosa System</span>
-    <h1>Gestão de excursões, frota e poltronas em um só lugar.</h1>
-    <ul class="login-features">
-      <li><i class="fa-solid fa-calendar-days"></i> Calendário de viagens agendadas</li>
-      <li><i class="fa-solid fa-route"></i> Cadastro de excursões com preço por poltrona</li>
-      <li><i class="fa-solid fa-users"></i> Lista de viajantes</li>
-      <li><i class="fa-solid fa-couch"></i> Montagem do mapa de poltronas</li>
-      <li><i class="fa-solid fa-bus"></i> Orçamento de viagens para empresas de transporte</li>
-    </ul>
-  </section>
+<!-- ============ CARREGANDO ============ -->
+<div id="loading" class="loading-screen">
+  <img src="../Assets/img/logo.ico" alt="">
+  <div class="spinner"></div>
+  <p>Carregando o sistema...</p>
+</div>
 
-  <section class="login-card">
-    <div class="login-tabs">
-      <button class="login-tab active" data-tab="entrar">Entrar</button>
-      <button class="login-tab" data-tab="cadastrar">Criar conta</button>
+<!-- ============ TELA DE ACESSO (login / cadastro) ============ -->
+<div id="authScreen" class="login-body hidden">
+  <main class="login-wrap">
+    <section class="login-brand">
+      <img src="../Assets/img/logo.ico" alt="Garbosa Turismo" class="login-logo">
+      <span class="tag">Garbosa System</span>
+      <h1>Gestão de excursões, frota e poltronas em um só lugar.</h1>
+      <ul class="login-features">
+        <li><i class="fa-solid fa-calendar-days"></i> Calendário de viagens agendadas</li>
+        <li><i class="fa-solid fa-route"></i> Cadastro de excursões com preço por poltrona</li>
+        <li><i class="fa-solid fa-users"></i> Lista de viajantes</li>
+        <li><i class="fa-solid fa-couch"></i> Montagem do mapa de poltronas</li>
+        <li><i class="fa-solid fa-bus"></i> Orçamentos para transporte e fretamento</li>
+        <li><i class="fa-solid fa-file-export"></i> Relatórios em XLSX e PDF</li>
+      </ul>
+    </section>
+
+    <section class="login-card">
+      <div class="login-tabs">
+        <a class="login-tab" href="#/login" data-tab="login">Entrar</a>
+        <a class="login-tab" href="#/cadastro" data-tab="cadastro">Criar conta</a>
+      </div>
+
+      <form id="formEntrar" class="login-form" autocomplete="on">
+        <h2>Bem-vindo de volta</h2>
+        <label>E-mail
+          <input type="email" id="loginEmail" required autocomplete="email">
+        </label>
+        <label>Senha
+          <input type="password" id="loginSenha" required autocomplete="current-password" minlength="6">
+        </label>
+        <button type="submit" class="btn btn-primary btn-block"><i class="fa-solid fa-right-to-bracket"></i> Entrar</button>
+        <button type="button" id="btnEsqueci" class="link-btn">Esqueci minha senha</button>
+      </form>
+
+      <form id="formCadastrar" class="login-form hidden" autocomplete="on" novalidate>
+        <h2>Criar conta</h2>
+        <label>Nome completo
+          <input type="text" id="cadNome" required autocomplete="name">
+        </label>
+        <label>Agência / empresa
+          <input type="text" id="cadEmpresa" required autocomplete="organization" placeholder="Nome da agência ou da empresa de transporte">
+        </label>
+        <div class="row2">
+          <label>CPF ou CNPJ
+            <input type="text" id="cadDoc" data-mask="doc" required inputmode="numeric" placeholder="000.000.000-00">
+          </label>
+          <label>WhatsApp
+            <input type="tel" id="cadWhats" data-mask="tel" required inputmode="tel" placeholder="(32) 99999-9999">
+          </label>
+        </div>
+        <label>E-mail
+          <input type="email" id="cadEmail" required autocomplete="email">
+        </label>
+        <label>Senha (mínimo 6 caracteres)
+          <input type="password" id="cadSenha" required minlength="6" autocomplete="new-password">
+        </label>
+        <fieldset class="tipo-conta">
+          <legend>Tipo de conta</legend>
+          <label class="tipo-op"><input type="radio" name="cadTipo" value="agencia" checked>
+            <span><i class="fa-solid fa-route"></i> Agência de turismo</span></label>
+          <label class="tipo-op"><input type="radio" name="cadTipo" value="transportadora">
+            <span><i class="fa-solid fa-bus"></i> Transporte / Fretamento</span></label>
+        </fieldset>
+        <button type="submit" class="btn btn-primary btn-block"><i class="fa-solid fa-user-plus"></i> Criar conta</button>
+      </form>
+
+      <div id="verifyBox" class="verify hidden">
+        <i class="fa-solid fa-envelope-circle-check"></i>
+        <h2>Confirme seu e-mail</h2>
+        <p>A conta de administrador só é liberada depois da confirmação do e-mail. Enviamos um link para <strong id="verifyEmail"></strong>.</p>
+        <button id="btnJaVerifiquei" class="btn btn-primary btn-block"><i class="fa-solid fa-rotate"></i> Já confirmei</button>
+        <button id="btnReenviar" class="link-btn">Reenviar e-mail</button>
+        <button id="btnSairVerify" class="link-btn">Sair</button>
+      </div>
+
+      <p id="loginMsg" class="login-msg" role="alert"></p>
+      <a href="../index.html" class="login-back"><i class="fa-solid fa-arrow-left"></i> Voltar ao site</a>
+    </section>
+  </main>
+</div>
+
+<!-- ============ SISTEMA ============ -->
+<div id="app" class="app hidden">
+  <header class="topbar">
+    <div class="topbar-left">
+      <img src="../Assets/img/logo.ico" alt="Garbosa" class="topbar-logo">
+      <div>
+        <strong>Garbosa System</strong>
+        <small id="userEmpresa"></small>
+      </div>
     </div>
+    <div class="topbar-right">
+      <span class="user-chip"><i class="fa-solid fa-circle-user"></i> <span id="userNome"></span> <em id="userTipo"></em></span>
+      <button id="btnSair" class="btn btn-ghost-light" title="Sair"><i class="fa-solid fa-right-from-bracket"></i><span class="hide-sm"> Sair</span></button>
+    </div>
+  </header>
 
-    <form id="formEntrar" class="login-form" autocomplete="on">
-      <h2>Bem-vindo de volta</h2>
-      <label>E-mail
-        <input type="email" id="loginEmail" required autocomplete="email">
-      </label>
-      <label>Senha
-        <input type="password" id="loginSenha" required autocomplete="current-password" minlength="6">
-      </label>
-      <button type="submit" class="btn btn-primary btn-block"><i class="fa-solid fa-right-to-bracket"></i> Entrar</button>
-      <button type="button" id="btnEsqueci" class="link-btn">Esqueci minha senha</button>
-    </form>
+  <nav class="tabstrip" id="tabstrip"></nav>
 
-    <form id="formCadastrar" class="login-form hidden" autocomplete="on">
-      <h2>Criar conta</h2>
-      <label>Tipo de conta
-        <select id="cadTipo" required>
-          <option value="agencia">Agência de turismo</option>
-          <option value="transportadora">Empresa de transporte</option>
-        </select>
-      </label>
-      <label>Seu nome
-        <input type="text" id="cadNome" required autocomplete="name">
-      </label>
-      <label>Nome da empresa
-        <input type="text" id="cadEmpresa" required autocomplete="organization">
-      </label>
-      <label>E-mail
-        <input type="email" id="cadEmail" required autocomplete="email">
-      </label>
-      <label>Senha (mínimo 6 caracteres)
-        <input type="password" id="cadSenha" required minlength="6" autocomplete="new-password">
-      </label>
-      <button type="submit" class="btn btn-primary btn-block"><i class="fa-solid fa-user-plus"></i> Criar conta</button>
-    </form>
+  <main class="workspace" id="workspace"></main>
+</div>
 
-    <p id="loginMsg" class="login-msg" role="alert"></p>
-    <a href="../index.html" class="login-back"><i class="fa-solid fa-arrow-left"></i> Voltar ao site</a>
-  </section>
-</main>
+<div id="modalBackdrop" class="modal-backdrop hidden">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal-head">
+      <h3 id="modalTitle"></h3>
+      <button class="modal-close" id="modalClose" aria-label="Fechar"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+    <div class="modal-foot" id="modalFoot"></div>
+  </div>
+</div>
 
-<script type="module" src="js/login.js"></script>
+<div id="toasts" class="toasts"></div>
+
+<script type="module" src="js/app.js"></script>
 </body>
 </html>

@@ -299,3 +299,63 @@ table.grid{width:100%;border-collapse:collapse;font-size:.88rem}
   .print-title{-webkit-print-color-adjust:exact;print-color-adjust:exact}
   .map-wrap{flex-wrap:nowrap}
 }
+
+/* =========================================================
+   v2 — SPA, cadastro, admin e exportação
+========================================================= */
+#authScreen.login-body{min-height:100vh}
+.login-tab{text-align:center;text-decoration:none}
+.tab{text-decoration:none}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.tipo-conta{border:none;margin:2px 0 16px}
+.tipo-conta legend{font-size:.85rem;font-weight:500;color:#444;margin-bottom:6px}
+.tipo-conta{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.tipo-conta legend{grid-column:span 2}
+.tipo-op{margin:0!important;cursor:pointer}
+.tipo-op input{position:absolute;opacity:0;pointer-events:none}
+.tipo-op span{display:flex;align-items:center;gap:8px;justify-content:center;text-align:center;border:1.5px solid var(--line);border-radius:12px;padding:12px 8px;font-weight:600;color:#444;font-size:.85rem;transition:.2s;height:100%}
+.tipo-op span i{color:var(--primary-2)}
+.tipo-op input:checked + span{border-color:var(--primary);background:#f1efff;color:var(--primary);box-shadow:0 0 0 3px rgba(111,92,255,.15)}
+.tipo-op input:focus-visible + span{outline:2px solid var(--secondary)}
+.verify{text-align:center}
+.verify>i{font-size:3rem;color:var(--primary-2);margin-bottom:10px}
+.verify h2{color:var(--primary);margin-bottom:8px}
+.verify p{color:var(--muted);font-size:.9rem;margin-bottom:18px}
+.verify .link-btn{display:block;margin:10px auto 0}
+
+.tool-sep{width:1px;background:var(--line);margin:4px 4px}
+.tool-xlsx i{color:#1d7a46}
+.tool-pdf i{color:#d2392b}
+.tool:disabled{opacity:.6;cursor:wait}
+.c5{color:#13a0b8}
+
+.search{flex:1;min-width:240px;padding:10px 14px;border:1.5px solid var(--line);border-radius:12px;outline:none}
+.search:focus{border-color:var(--secondary)}
+.stats-mini{display:flex;gap:10px;flex-wrap:wrap}
+.stats-mini span{background:#f4f3ff;border-radius:10px;padding:6px 12px;font-size:.82rem;color:var(--muted)}
+.stats-mini strong{color:var(--primary);font-size:1rem}
+
+.pill-green{background:#dcf5ea;color:#13734f}
+.tipo-agencia{background:#ece9ff;color:var(--primary)}
+.tipo-transportadora{background:#dff3f7;color:#0d6f82}
+.tipo-admin{background:var(--accent);color:var(--dark)}
+.acao-login{background:#dcf5ea;color:#13734f}
+.acao-logout{background:#eee;color:#555}
+.acao-sessao{background:#eef0ff;color:var(--primary)}
+.acao-cadastro{background:#fff3cc;color:#7a5c00}
+.acao-admin{background:#fde2e2;color:#a22}
+tr.inativo td{opacity:.55}
+.wpp{color:#1d9a55;text-decoration:none;font-weight:600;white-space:nowrap}
+
+.filtros{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;padding:14px 18px;border-bottom:1px solid var(--line)}
+.filtros label{font-size:.78rem;font-weight:500;color:#555}
+.filtros input,.filtros select{display:block;margin-top:3px;padding:8px 10px;border:1.5px solid var(--line);border-radius:10px;background:#fff;min-width:150px}
+.filtro-total{margin-left:auto;font-size:.85rem}
+
+@media(max-width:640px){
+  .row2,.tipo-conta{grid-template-columns:1fr}
+  .tipo-conta legend{grid-column:span 1}
+  .tool-sep{display:none}
+  .filtros label,.filtros input,.filtros select{width:100%}
+  .filtro-total{margin-left:0}
+}
