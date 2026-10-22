@@ -188,6 +188,7 @@
 <div id="app" class="app hidden">
   <header class="topbar">
     <div class="topbar-left">
+      <button id="btnMenu" class="btn-menu" title="Menu" aria-label="Abrir ou recolher o menu" aria-controls="sidebar"><i class="fa-solid fa-bars"></i></button>
       <img src="../Assets/img/logo.ico" alt="Garbosa" class="topbar-logo">
       <div>
         <strong>Garbosa System</strong>
@@ -207,9 +208,23 @@
     </div>
   </header>
 
-  <nav class="tabstrip" id="tabstrip"></nav>
-
-  <main class="workspace" id="workspace"></main>
+  <div class="shell">
+    <aside class="sidebar" id="sidebar" aria-label="Menu principal">
+      <nav id="menuLateral" class="menu-lateral"></nav>
+      <button id="btnRecolher" class="side-recolher" title="Recolher menu" aria-label="Recolher menu"><i class="fa-solid fa-angles-left"></i><span>Recolher menu</span></button>
+    </aside>
+    <div id="sideFundo" class="side-fundo hidden"></div>
+    <section class="area">
+      <div class="abas-bar" role="tablist" aria-label="Abas abertas">
+        <div class="abas-menu-wrap">
+          <button id="btnAbasMenu" class="abas-menu" title="Abas abertas" aria-label="Lista de abas abertas" aria-expanded="false"><i class="fa-solid fa-chevron-down"></i></button>
+          <div id="abasLista" class="abas-lista hidden"></div>
+        </div>
+        <div id="abasTrabalho" class="abas"></div>
+      </div>
+      <main class="workspace" id="workspace"></main>
+    </section>
+  </div>
 </div>
 
 <div id="modalBackdrop" class="modal-backdrop hidden">

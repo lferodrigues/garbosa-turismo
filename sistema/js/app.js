@@ -168,7 +168,7 @@ const S = {
   exSel: null, veicSel: null, passSel: null, busca: "",
   filtroLogs: { de: "", ate: "", uid: "", acao: "" }, buscaUsuarios: "",
   prop: { ex: {}, via: {}, pol: {} }, comp: {}, notifs: {}, notifInicio: Date.now(),
-  finFiltro: "", finBusca: "",
+  finFiltro: "", finBusca: "", abas: [],
   exportar: null
 };
 const ehAdmin = () => P?.tipo === "admin";
@@ -206,9 +206,18 @@ function rotear() {
     return;
   }
   const rota = ROTAS[view];
-  if (!rota || !pode(view)) { history.replaceState(null, "", "#/calendario"); S.view = "calendario"; S.param = null; }
+  if (view === "inicio") { S.view = "inicio"; S.param = null; }
+  else if (!rota || !pode(view)) {
+    const ult = abaAtivaSalva();
+    const alvo = ult ? ult.view : "calendario";
+    history.replaceState(null, "", `#/${alvo}${ult?.param ? "/" + encodeURIComponent(ult.param) : ""}`);
+    S.view = alvo; S.param = ult?.param || null;
+    abrirAba(S.view, S.param);
+  }
   else {
     S.view = view; S.param = param;
+    abrirAba(view, param);
+    salvarAbas();
     if (["viajantes", "poltronas", "financeiro"].includes(view) && param && param !== S.exSel) { S.exSel = param; S.veicSel = null; S.passSel = null; }
   }
   if (S.view === "logs" && S.logs === null) carregarLogs();
@@ -432,7 +441,8 @@ async function iniciarSessao(user) {
   esconderLoading();
   $("#app").classList.remove("hidden");
   const { view } = lerHash();
-  if (!ROTAS[view]) history.replaceState(null, "", "#/calendario");
+  carregarAbas();
+  if (!ROTAS[view] && view !== "inicio") { const a = abaAtivaSalva(); history.replaceState(null, "", a ? `#/${a.view}${a.param ? "/" + encodeURIComponent(a.param) : ""}` : "#/calendario"); }
   rotear();
 }
 
@@ -530,18 +540,141 @@ function assinar() {
 /* =========================================================
    ABAS / RENDER
 ========================================================= */
+/* ---------- menu lateral ---------- */
+const GRUPOS_MENU = [
+  ["Operacional", ["calendario", "excursoes", "viajantes", "poltronas", "financeiro"]],
+  ["Transporte", ["viagens"]],
+  ["Administração", ["usuarios", "logs"]]
+];
 function montarAbas() {
-  $("#tabstrip").innerHTML = Object.entries(ROTAS).filter(([id]) => pode(id)).map(([id, r]) =>
-    `<a class="tab" href="#/${id}" data-view="${id}"><i class="fa-solid ${r.icone} ${r.cor}"></i><span>${r.nome}</span></a>`).join("");
+  $("#menuLateral").innerHTML = GRUPOS_MENU.map(([grupo, ids]) => {
+    const itens = ids.filter((id) => pode(id));
+    if (!itens.length) return "";
+    return `<div class="menu-grupo"><small>${grupo}</small>${itens.map((id) => { const r = ROTAS[id]; return `
+      <a class="menu-item" href="#/${id}" data-view="${id}" title="${r.nome}"><i class="fa-solid ${r.icone}"></i><span>${r.nome}</span></a>`; }).join("")}</div>`;
+  }).join("");
+  $$("#menuLateral .menu-item").forEach((a) => a.addEventListener("click", (e) => {
+    const aba = S.abas.find((x) => x.view === a.dataset.view);
+    if (aba?.param) { e.preventDefault(); navegar(aba.view, aba.param); }
+    fecharMenuMobile();
+  }));
+  S.abas = S.abas.filter((a) => pode(a.view));
+  renderAbas();
 }
+
+/* ---------- abas de trabalho (cada tela aberta vira uma aba) ---------- */
+const chaveAbas = () => `garbosa.abas.${U?.uid || ""}`;
+function carregarAbas() {
+  try { S.abas = (JSON.parse(localStorage.getItem(chaveAbas()) || "[]") || []).filter((a) => a && ROTAS[a.view]); } catch { S.abas = []; }
+}
+function salvarAbas() {
+  try {
+    localStorage.setItem(chaveAbas(), JSON.stringify(S.abas));
+    if (S.view && S.view !== "inicio") localStorage.setItem(chaveAbas() + ".ativa", S.view);
+  } catch { /* armazenamento indisponível */ }
+}
+function abaAtivaSalva() {
+  let v = null;
+  try { v = localStorage.getItem(chaveAbas() + ".ativa"); } catch { /* ignora */ }
+  return S.abas.find((a) => a.view === v && pode(a.view)) || S.abas.find((a) => pode(a.view));
+}
+function abrirAba(view, param) {
+  if (!ROTAS[view]) return;
+  const a = S.abas.find((x) => x.view === view);
+  if (a) { if (param) a.param = param; }
+  else S.abas.push({ view, param: param || null });
+  salvarAbas();
+}
+const hrefAba = (a) => `#/${a.view}${a.param ? "/" + encodeURIComponent(a.param) : ""}`;
+function tituloAba(a) {
+  const ex = a.param && S.excursoes[a.param];
+  return ex ? `${ROTAS[a.view].nome} — ${ex.destino} (${fData(ex.dataSaida)})` : ROTAS[a.view].nome;
+}
+function fecharAba(view) {
+  const idx = S.abas.findIndex((a) => a.view === view);
+  if (idx < 0) return;
+  S.abas.splice(idx, 1);
+  salvarAbas();
+  if (view === S.view) {
+    const prox = S.abas[idx] || S.abas[idx - 1];
+    if (prox) location.hash = hrefAba(prox); else navegar("inicio");
+  } else renderAbas();
+}
+function fecharVarias(manter) {
+  S.abas = manter ? S.abas.filter((a) => a.view === manter) : [];
+  salvarAbas();
+  fecharListaAbas();
+  if (!S.abas.length) navegar("inicio"); else renderAbas();
+}
+function renderAbas() {
+  const cont = $("#abasTrabalho");
+  if (!cont) return;
+  const abas = S.abas.filter((a) => pode(a.view));
+  cont.innerHTML = abas.length ? abas.map((a) => {
+    const r = ROTAS[a.view], ativa = a.view === S.view;
+    return `<div class="aba ${ativa ? "ativa" : ""}" data-view="${a.view}" role="tab" aria-selected="${ativa}">
+      <a class="aba-link" href="${hrefAba(a)}" title="${esc(tituloAba(a))}"><i class="fa-solid fa-table-cells-large"></i><span>${esc(r.nome)}</span></a>
+      <button class="aba-x" data-fechar="${a.view}" title="Fechar aba" aria-label="Fechar aba ${esc(r.nome)}">×</button>
+    </div>`;
+  }).join("") : `<span class="abas-vazio">Nenhuma aba aberta — escolha uma opção no menu</span>`;
+  $$(".aba-x", cont).forEach((b) => b.addEventListener("click", (e) => { e.preventDefault(); e.stopPropagation(); fecharAba(b.dataset.fechar); }));
+  $$(".aba", cont).forEach((el) => el.addEventListener("auxclick", (e) => { if (e.button === 1) { e.preventDefault(); fecharAba(el.dataset.view); } }));
+  $(".aba.ativa", cont)?.scrollIntoView({ block: "nearest", inline: "nearest" });
+  $("#abasLista").innerHTML = (abas.length ? abas.map((a) => `<a class="lista-aba ${a.view === S.view ? "ativa" : ""}" href="${hrefAba(a)}"><i class="fa-solid ${ROTAS[a.view].icone}"></i><span>${esc(tituloAba(a))}</span></a>`).join("")
+    : `<p class="vazio" style="padding:10px 14px">Nenhuma aba aberta.</p>`) +
+    `<div class="lista-acoes"><button id="btnFecharOutras" ${abas.length < 2 || S.view === "inicio" ? "disabled" : ""}><i class="fa-solid fa-clone"></i> Fechar outras abas</button>
+      <button id="btnFecharTodas" ${abas.length ? "" : "disabled"}><i class="fa-solid fa-xmark"></i> Fechar todas</button></div>`;
+  $$("#abasLista .lista-aba").forEach((a) => a.addEventListener("click", fecharListaAbas));
+  $("#btnFecharOutras").onclick = () => fecharVarias(S.view);
+  $("#btnFecharTodas").onclick = () => fecharVarias(null);
+  $$("#menuLateral .menu-item").forEach((m) => m.classList.toggle("ativo", m.dataset.view === S.view));
+}
+function fecharListaAbas() { $("#abasLista").classList.add("hidden"); $("#btnAbasMenu").setAttribute("aria-expanded", "false"); }
+$("#btnAbasMenu").addEventListener("click", (e) => {
+  e.stopPropagation();
+  const abrir = $("#abasLista").classList.contains("hidden");
+  $("#abasLista").classList.toggle("hidden", !abrir);
+  $("#btnAbasMenu").setAttribute("aria-expanded", String(abrir));
+});
+$("#abasLista").addEventListener("click", (e) => e.stopPropagation());
+document.addEventListener("click", fecharListaAbas);
+
+/* ---------- abrir / recolher o menu ---------- */
+const mobile = () => window.matchMedia("(max-width: 900px)").matches;
+function fecharMenuMobile() { $("#app").classList.remove("menu-aberto"); $("#sideFundo").classList.add("hidden"); }
+function alternarRecolhido() {
+  const rec = !$("#app").classList.contains("menu-recolhido");
+  $("#app").classList.toggle("menu-recolhido", rec);
+  $("#btnRecolher").title = rec ? "Expandir menu" : "Recolher menu";
+  try { localStorage.setItem("garbosa.menuRecolhido", rec ? "1" : "0"); } catch { /* ignora */ }
+}
+try { if (localStorage.getItem("garbosa.menuRecolhido") === "1") $("#app").classList.add("menu-recolhido"); } catch { /* ignora */ }
+$("#btnMenu").addEventListener("click", () => {
+  if (mobile()) { const abrir = !$("#app").classList.contains("menu-aberto"); $("#app").classList.toggle("menu-aberto", abrir); $("#sideFundo").classList.toggle("hidden", !abrir); }
+  else alternarRecolhido();
+});
+$("#btnRecolher").addEventListener("click", alternarRecolhido);
+$("#sideFundo").addEventListener("click", fecharMenuMobile);
+
+/* ---------- tela sem abas ---------- */
+function viewInicio() {
+  const itens = Object.entries(ROTAS).filter(([id]) => pode(id));
+  $("#workspace").innerHTML = `
+  <section class="panel">
+    <div class="panel-head"><h2><i class="fa-solid fa-house"></i> Bem-vindo, ${esc(P.nome.split(" ")[0])}</h2></div>
+    <div class="empty" style="padding:30px 20px 10px"><i class="fa-solid fa-table-cells-large"></i><p>Nenhuma aba aberta. Escolha o que deseja abrir:</p></div>
+    <div class="atalhos">${itens.map(([id, r]) => `<a class="atalho" href="#/${id}"><i class="fa-solid ${r.icone} ${r.cor}"></i><span>${r.nome}</span></a>`).join("")}</div>
+  </section>`;
+}
+
 function irPara(view, exId) { navegar(view, exId); }
 
 function render() {
   if (!P || $("#app").classList.contains("hidden")) return;
-  $$("#tabstrip .tab").forEach((b) => b.classList.toggle("active", b.dataset.view === S.view));
-  document.title = `${ROTAS[S.view]?.nome || "Sistema"} | Garbosa System`;
+  renderAbas();
+  document.title = `${ROTAS[S.view]?.nome || "Início"} | Garbosa System`;
   S.exportar = null;
-  const views = { calendario: viewCalendario, excursoes: viewExcursoes, viajantes: viewViajantes, poltronas: viewPoltronas, financeiro: viewFinanceiro, viagens: viewViagens, usuarios: viewUsuarios, logs: viewLogs };
+  const views = { inicio: viewInicio, calendario: viewCalendario, excursoes: viewExcursoes, viajantes: viewViajantes, poltronas: viewPoltronas, financeiro: viewFinanceiro, viagens: viewViagens, usuarios: viewUsuarios, logs: viewLogs };
   (views[S.view] || viewCalendario)();
   const bx = $("#btnXlsx"), bp = $("#btnPdf");
   if (bx) bx.onclick = () => exportar("xlsx", bx);
