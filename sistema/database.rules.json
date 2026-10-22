@@ -1,0 +1,84 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+
+    "usuarios": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && auth.uid === $uid && newData.exists()",
+        ".validate": "newData.hasChildren(['nome', 'empresa', 'tipo', 'email']) && (newData.child('tipo').val() === 'agencia' || newData.child('tipo').val() === 'transportadora') && (!data.exists() || data.child('tipo').val() === newData.child('tipo').val())",
+        "nome":    { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 120" },
+        "empresa": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 120" },
+        "email":   { ".validate": "newData.isString() && newData.val() === auth.token.email" }
+      }
+    },
+
+    "agencias": {
+      ".read": "auth != null",
+      "$uid": {
+        ".write": "auth != null && auth.uid === $uid && newData.parent().parent().child('usuarios').child(auth.uid).child('tipo').val() === 'agencia'",
+        ".validate": "newData.hasChildren(['nome']) && newData.child('nome').isString()"
+      }
+    },
+
+    "viagens": {
+      ".indexOn": ["agenciaUid", "transportadoraUid"],
+      ".read": "auth != null && (query.orderByChild === 'agenciaUid' || query.orderByChild === 'transportadoraUid') && query.equalTo === auth.uid",
+      "$viagemId": {
+        ".read": "auth != null && (data.child('agenciaUid').val() === auth.uid || data.child('transportadoraUid').val() === auth.uid)",
+        ".write": "auth != null && root.child('usuarios').child(auth.uid).child('tipo').val() === 'transportadora' && (!data.exists() || data.child('transportadoraUid').val() === auth.uid) && (!newData.exists() || newData.child('transportadoraUid').val() === auth.uid)",
+        ".validate": "newData.hasChildren(['transportadoraUid', 'tipoVeiculo', 'destino', 'motorista', 'dataSaida', 'dataRetorno', 'valorFinal'])",
+        "tipoVeiculo": { ".validate": "newData.val().matches(/^(van15|van20|micro32|micro36|onibus42|onibus46|onibus50|onibus64)$/)" },
+        "dataSaida":   { ".validate": "newData.isString() && newData.val().matches(/^\\d{4}-\\d{2}-\\d{2}$/)" },
+        "dataRetorno": { ".validate": "newData.isString() && newData.val().matches(/^\\d{4}-\\d{2}-\\d{2}$/)" },
+        "valorFinal":  { ".validate": "newData.isNumber() && newData.val() >= 0" },
+        "valorChofer": { ".validate": "newData.isNumber() && newData.val() >= 0" },
+        "valorDiesel": { ".validate": "newData.isNumber() && newData.val() >= 0" },
+        "gastosAdicionais": { ".validate": "newData.isNumber() && newData.val() >= 0" },
+        "margem":      { ".validate": "newData.isNumber() && newData.val() >= 0" }
+      }
+    },
+
+    "excursoes": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && auth.uid === $uid && root.child('usuarios').child(auth.uid).child('tipo').val() === 'agencia'",
+        "$excursaoId": {
+          ".validate": "newData.hasChildren(['destino', 'dataSaida', 'veiculos'])",
+          "veiculos": {
+            "$veiculoId": {
+              ".validate": "newData.hasChildren(['tipo', 'valorTransporte']) && newData.child('tipo').val().matches(/^(van15|van20|micro32|micro36|onibus42|onibus46|onibus50|onibus64)$/) && newData.child('valorTransporte').isNumber()"
+            }
+          }
+        }
+      }
+    },
+
+    "viajantes": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && auth.uid === $uid && root.child('usuarios').child(auth.uid).child('tipo').val() === 'agencia'",
+        "$excursaoId": {
+          "$viajanteId": {
+            ".validate": "newData.hasChildren(['nome', 'docTipo', 'docNumero', 'telefone', 'idade']) && newData.child('docTipo').val().matches(/^(RG|CNH|CERTIDAO)$/) && newData.child('idade').isNumber()"
+          }
+        }
+      }
+    },
+
+    "poltronas": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && auth.uid === $uid && root.child('usuarios').child(auth.uid).child('tipo').val() === 'agencia'",
+        "$excursaoId": {
+          "$veiculoId": {
+            "$poltrona": {
+              ".validate": "newData.isString() && root.child('viajantes').child($uid).child($excursaoId).child(newData.val()).exists()"
+            }
+          }
+        }
+      }
+    }
+  }
+}

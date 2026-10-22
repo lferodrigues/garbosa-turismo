@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="../Assets/img/logo.ico" type="image/x-icon">
+<title>Entrar | Garbosa System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+<link rel="stylesheet" href="css/sistema.css">
+</head>
+<body class="login-body">
+
+<main class="login-wrap">
+  <section class="login-brand">
+    <img src="../Assets/img/logo.ico" alt="Garbosa Turismo" class="login-logo">
+    <span class="tag">Garbosa System</span>
+    <h1>Gestão de excursões, frota e poltronas em um só lugar.</h1>
+    <ul class="login-features">
+      <li><i class="fa-solid fa-calendar-days"></i> Calendário de viagens agendadas</li>
+      <li><i class="fa-solid fa-route"></i> Cadastro de excursões com preço por poltrona</li>
+      <li><i class="fa-solid fa-users"></i> Lista de viajantes</li>
+      <li><i class="fa-solid fa-couch"></i> Montagem do mapa de poltronas</li>
+      <li><i class="fa-solid fa-bus"></i> Orçamento de viagens para empresas de transporte</li>
+    </ul>
+  </section>
+
+  <section class="login-card">
+    <div class="login-tabs">
+      <button class="login-tab active" data-tab="entrar">Entrar</button>
+      <button class="login-tab" data-tab="cadastrar">Criar conta</button>
+    </div>
+
+    <form id="formEntrar" class="login-form" autocomplete="on">
+      <h2>Bem-vindo de volta</h2>
+      <label>E-mail
+        <input type="email" id="loginEmail" required autocomplete="email">
+      </label>
+      <label>Senha
+        <input type="password" id="loginSenha" required autocomplete="current-password" minlength="6">
+      </label>
+      <button type="submit" class="btn btn-primary btn-block"><i class="fa-solid fa-right-to-bracket"></i> Entrar</button>
+      <button type="button" id="btnEsqueci" class="link-btn">Esqueci minha senha</button>
+    </form>
+
+    <form id="formCadastrar" class="login-form hidden" autocomplete="on">
+      <h2>Criar conta</h2>
+      <label>Tipo de conta
+        <select id="cadTipo" required>
+          <option value="agencia">Agência de turismo</option>
+          <option value="transportadora">Empresa de transporte</option>
+        </select>
+      </label>
+      <label>Seu nome
+        <input type="text" id="cadNome" required autocomplete="name">
+      </label>
+      <label>Nome da empresa
+        <input type="text" id="cadEmpresa" required autocomplete="organization">
+      </label>
+      <label>E-mail
+        <input type="email" id="cadEmail" required autocomplete="email">
+      </label>
+      <label>Senha (mínimo 6 caracteres)
+        <input type="password" id="cadSenha" required minlength="6" autocomplete="new-password">
+      </label>
+      <button type="submit" class="btn btn-primary btn-block"><i class="fa-solid fa-user-plus"></i> Criar conta</button>
+    </form>
+
+    <p id="loginMsg" class="login-msg" role="alert"></p>
+    <a href="../index.html" class="login-back"><i class="fa-solid fa-arrow-left"></i> Voltar ao site</a>
+  </section>
+</main>
+
+<script type="module" src="js/login.js"></script>
+</body>
+</html>
