@@ -607,7 +607,7 @@ $("#btnRecolherGrupos").addEventListener("click", () => todosGrupos(false));
 /* ---------- abas de trabalho (cada tela aberta vira uma aba) ---------- */
 const chaveAbas = () => `garbosa.abas.${U?.uid || ""}`;
 function carregarAbas() {
-  try { S.abas = (JSON.parse(localStorage.getItem(chaveAbas()) || "[]") || []).filter((a) => a && ROTAS[a.view]); } catch { S.abas = []; }
+  try { S.abas = (JSON.parse(localStorage.getItem(chaveAbas()) || "[]") || []).filter((a) => a && ROTAS[a.view] && a.view !== "inicio"); } catch { S.abas = []; }
 }
 function salvarAbas() {
   try {
@@ -621,7 +621,7 @@ function abaAtivaSalva() {
   return S.abas.find((a) => a.view === v && pode(a.view)) || S.abas.find((a) => pode(a.view));
 }
 function abrirAba(view, param) {
-  if (!ROTAS[view]) return;
+  if (!ROTAS[view] || view === "inicio") return;
   const a = S.abas.find((x) => x.view === view);
   if (a) { if (param) a.param = param; }
   else S.abas.push({ view, param: param || null });
@@ -652,6 +652,7 @@ function renderAbas() {
   const cont = $("#abasTrabalho");
   if (!cont) return;
   const abas = S.abas.filter((a) => pode(a.view));
+  $(".abas-bar").classList.toggle("hidden", !abas.length);
   cont.innerHTML = abas.length ? abas.map((a) => {
     const r = ROTAS[a.view], ativa = a.view === S.view;
     return `<div class="aba ${ativa ? "ativa" : ""}" data-view="${a.view}" role="tab" aria-selected="${ativa}">
