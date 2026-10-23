@@ -23,6 +23,8 @@ Todas as páginas exportam **XLSX** e **PDF** (o PDF de poltronas desenha o mapa
 - **Importar planilha** no formato do Google Forms: Numeração, Carimbo, Nome completo, RG, Whatsapp, Faixa etária
   (o valor é lido do texto, ex.: "R$231,00"), Forma de pagamento, OBS ("Poltrona 5" posiciona) e Pagamento ("Pago integral" quita).
   Colunas reconhecidas pelo nome; nomes repetidos são ignorados.
+  Limpezas automáticas: "ok" no Pagamento conta como pago; valores arrastados (R$231,01, 231,02…) voltam para o valor da faixa;
+  documento/telefone só com zeros ficam em branco; linhas sem letras no nome (somas/fórmulas no fim da planilha) são ignoradas.
 - **Sino de notificações**: inscrição pelo link, veículo agendado, colaboração e pagamentos.
 
 ## Cálculo do valor por poltrona

@@ -2107,13 +2107,14 @@ function analisarPlanilha(XLSX, wb, exId) {
   const out = [];
   melhor.linhas.slice(melhor.iCab + 1).forEach((l) => {
     const nome = String(cel(l, "nome") ?? "").replace(/\s+/g, " ").trim();
-    if (!nome) return;
+    if (!nome || !/[a-zA-ZÀ-ÿ]/.test(nome) || nome.startsWith("=")) return;
     const faixa = String(cel(l, "faixa") ?? "").trim();
     const precos = [...faixa.matchAll(/R\$\s*([\d.]+(?:,\d{1,2})?)/gi)].map((x) => parseFloat(x[1].replace(/\./g, "").replace(",", ".")));
     const colo = /colo|menor(es)? de [0-6]\b|0 a [0-6] anos/i.test(faixa);
     let docBruto = cel(l, "doc");
-    let docNumero = docBruto == null || docBruto === 0 || String(docBruto).trim() === "0" ? "" : String(docBruto).trim();
-    const telBruto = String(cel(l, "tel") ?? "").trim();
+    let docNumero = docBruto == null || /^[0\s.\-]*$/.test(String(docBruto)) || String(docBruto).startsWith("=") ? "" : String(docBruto).trim();
+    let telBruto = String(cel(l, "tel") ?? "").trim();
+    if (/^[0\s]*$/.test(telBruto) || telBruto.startsWith("=")) telBruto = "";
     const td = soDig(telBruto);
     const telefone = td.length === 10 || td.length === 11 ? mascaraTel(td) : (td.length === 12 || td.length === 13) && td.startsWith("55") ? mascaraTel(td.slice(2)) : telBruto;
     const obsBruta = String(cel(l, "obs") ?? "").trim();
@@ -2121,7 +2122,7 @@ function analisarPlanilha(XLSX, wb, exId) {
     const poltrona = mp ? parseInt(mp[1], 10) : null;
     let obs = obsBruta.replace(/poltrona\s*(?:n[ºo°.]*\s*)?\d{1,2}/i, "").replace(/\s+/g, " ").trim();
     const pagTxt = String(cel(l, "pag") ?? "").trim();
-    const quitado = /pago integral|quitad|pago total|^pago$|integral/i.test(pagTxt);
+    const quitado = /pago integral|quitad|pago total|^pago$|integral|^ok\.?$/i.test(pagTxt);
     if (pagTxt && !quitado) obs = [obs, `Pagamento: ${pagTxt}`].filter(Boolean).join(" · ");
     const idadeCol = m.faixa >= 0 && /^idade$/.test(semAcento(cab[m.faixa])) && !isNaN(parseInt(faixa, 10)) ? parseInt(faixa, 10) : null;
     const dt = cel(l, "data");
@@ -2131,9 +2132,18 @@ function analisarPlanilha(XLSX, wb, exId) {
     vistos.add(chave);
     out.push({
       nome, docTipo: !docNumero && colo ? "CERTIDAO" : /cnh/i.test(cab[m.doc] || "") ? "CNH" : "RG", docNumero, telefone, colo,
-      valor: precos.length ? precos[precos.length - 1] : valorPadrao(exId, colo), faixa, formaPagamento: String(cel(l, "forma") ?? "").trim(),
+      valor: precos.length ? precos[precos.length - 1] : valorPadrao(exId, colo), faixa, _rotulo: precos.length ? semAcento(faixa.replace(/R\$\s*[\d.,]+/gi, "")) : "", formaPagamento: String(cel(l, "forma") ?? "").trim(),
       obs, poltrona: !colo && poltrona && poltrona <= capV1 ? poltrona : null, quitado, idade: idadeCol, criadoEm, dup
     });
+  });
+  const moda = {};
+  out.forEach((o) => { if (o._rotulo) { const c = (moda[o._rotulo] = moda[o._rotulo] || {}); c[o.valor] = (c[o.valor] || 0) + 1; } });
+  out.forEach((o) => {
+    const c = moda[o._rotulo];
+    if (!c) return;
+    const comum = +Object.entries(c).sort((a, b) => b[1] - a[1])[0][0];
+    if (o.valor !== comum && Math.abs(o.valor - comum) < 1) { o.valorOriginal = o.valor; o.valor = comum; }
+    delete o._rotulo;
   });
   return { linhas: out, mapa: m, cab };
 }
@@ -2170,7 +2180,7 @@ function previaImportacao(exId, { linhas, mapa, cab }, nomeArq) {
     <div class="import-prev"><table class="grid">
       <thead><tr><th>Nome</th><th>Documento</th><th>WhatsApp</th><th>Valor</th><th>Forma</th><th>Poltrona</th><th>Obs / pagamento</th></tr></thead>
       <tbody>${linhas.map((l) => `<tr class="${l.dup ? "dup" : ""}"><td>${esc(l.nome)}${l.colo ? ` <span class="pill pill-yellow">colo</span>` : ""}</td><td>${esc(l.docNumero || "—")}</td><td>${esc(l.telefone || "—")}</td>
-        <td>${brl(l.valor)}</td><td>${esc(l.formaPagamento || "—")}</td><td>${l.poltrona || "—"}</td><td>${l.quitado ? `<span class="pill st-pago">Pago integral</span> ` : ""}${esc(l.obs)}</td></tr>`).join("")}</tbody>
+        <td>${brl(l.valor)}${l.valorOriginal ? `<br><small class="muted" title="Valor na planilha">era ${brl(l.valorOriginal)}</small>` : ""}</td><td>${esc(l.formaPagamento || "—")}</td><td>${l.poltrona || "—"}</td><td>${l.quitado ? `<span class="pill st-pago">Pago integral</span> ` : ""}${esc(l.obs)}</td></tr>`).join("")}</tbody>
     </table></div>
     <label class="check" style="margin-top:12px"><input type="checkbox" id="impPolt" checked> Posicionar nas poltronas indicadas na coluna OBS (veículo 1)</label>
     <label class="check" style="margin-top:8px"><input type="checkbox" id="impPag" checked> Registrar pagamento total para quem está como "Pago integral"</label>`, [
