@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" role="img" aria-label="Garbosa Turismo">
+  <defs>
+    <linearGradient id="lgPino" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#5946da"/>
+      <stop offset="1" stop-color="#2A1F88"/>
+    </linearGradient>
+    <linearGradient id="lgEstrada" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#2A1F88"/>
+      <stop offset="1" stop-color="#1b1340"/>
+    </linearGradient>
+  </defs>
+
+  <!-- sol -->
+  <circle cx="52" cy="46" r="24" fill="#FFD54A"/>
+
+  <!-- rota do avião -->
+  <path d="M30 96 C 40 40, 120 6, 168 34" fill="none" stroke="#5946da" stroke-width="4" stroke-linecap="round" stroke-dasharray="1 10"/>
+  <g transform="translate(170 34) rotate(28)">
+    <path d="M-16 0 L14 0 Q20 0 20 3 Q20 6 14 6 L-16 6 Z" fill="#2A1F88"/>
+    <path d="M-2 3 L-12 -14 L-6 -14 L8 3 Z" fill="#2A1F88"/>
+    <path d="M-2 4 L-12 20 L-6 20 L8 4 Z" fill="#2A1F88"/>
+    <path d="M-16 3 L-22 -6 L-17 -6 L-11 3 Z" fill="#2A1F88"/>
+  </g>
+
+  <!-- estrada -->
+  <path d="M8 178 C 60 150, 130 168, 192 140 L192 162 C 130 190, 60 172, 8 196 Z" fill="url(#lgEstrada)"/>
+  <path d="M18 183 C 66 160, 130 176, 186 151" fill="none" stroke="#FFD54A" stroke-width="4" stroke-linecap="round" stroke-dasharray="12 10"/>
+
+  <!-- pino de localização -->
+  <path d="M100 172 C 92 150, 50 120, 50 84 A 50 50 0 1 1 150 84 C 150 120, 108 150, 100 172 Z" fill="url(#lgPino)"/>
+  <circle cx="100" cy="84" r="36" fill="#fff"/>
+
+  <!-- ônibus de dois andares dentro do pino -->
+  <g transform="translate(73 62)">
+    <path d="M0 6 Q0 0 6 0 H46 Q52 0 53 6 L54 14 V38 Q54 40 52 40 H2 Q0 40 0 38 Z" fill="#2A1F88"/>
+    <rect x="0" y="19" width="54" height="3" fill="#FFD54A"/>
+    <g fill="#fff">
+      <rect x="4" y="5" width="9" height="9" rx="2"/><rect x="16" y="5" width="9" height="9" rx="2"/><rect x="28" y="5" width="9" height="9" rx="2"/><path d="M40 5 H47 Q49 5 49.5 7 L50 14 H40 Z"/>
+      <rect x="4" y="25" width="9" height="8" rx="2"/><rect x="16" y="25" width="9" height="8" rx="2"/><rect x="28" y="25" width="9" height="8" rx="2"/>
+      <rect x="40" y="24" width="8" height="14" rx="1.5" opacity=".9"/>
+    </g>
+    <circle cx="13" cy="40" r="6" fill="#15153b"/><circle cx="13" cy="40" r="2.4" fill="#FFD54A"/>
+    <circle cx="42" cy="40" r="6" fill="#15153b"/><circle cx="42" cy="40" r="2.4" fill="#FFD54A"/>
+  </g>
+</svg>

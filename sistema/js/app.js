@@ -739,13 +739,7 @@ function viewInicio() {
   $("#workspace").innerHTML = `
   <section class="home">
     <div class="marca-home">
-      <svg class="marca-icone" viewBox="0 0 120 150" aria-hidden="true">
-        <circle cx="20" cy="20" r="18" fill="#FFD54A"/>
-        <rect x="44" y="2" width="34" height="34" rx="6" fill="#2A1F88"/><rect x="84" y="2" width="34" height="34" rx="6" fill="#2A1F88"/>
-        <rect x="2" y="42" width="34" height="34" rx="6" fill="#2A1F88"/><rect x="44" y="42" width="34" height="34" rx="6" fill="#5946da"/>
-        <rect x="2" y="82" width="34" height="34" rx="6" fill="#2A1F88"/><rect x="44" y="82" width="34" height="34" rx="6" fill="#2A1F88"/><rect x="84" y="82" width="34" height="34" rx="6" fill="#5946da"/>
-        <rect x="2" y="122" width="34" height="26" rx="6" fill="#2A1F88"/><rect x="44" y="122" width="34" height="26" rx="6" fill="#2A1F88"/>
-      </svg>
+      <img class="marca-icone" src="img/logo-garbosa.svg" alt="Logo Garbosa Turismo">
       <div class="marca-texto">
         <h1>GARBOSA TURISMO</h1>
         <p>Sistema de gestão de excursões</p>

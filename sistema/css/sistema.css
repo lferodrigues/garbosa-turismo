@@ -773,3 +773,5 @@ input:-webkit-autofill{-webkit-text-fill-color:#fff;-webkit-box-shadow:0 0 0 40p
   .marca-home{flex-direction:column;text-align:center}
 }
 @media print{#app .sidebar,.topo,.rodape,.abas-bar{display:none!important}}
+
+.marca-home .marca-icone{width:clamp(110px,13vw,180px);height:auto;display:block}
