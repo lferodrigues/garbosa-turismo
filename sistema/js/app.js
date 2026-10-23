@@ -744,7 +744,6 @@ function viewInicio() {
       <div class="marca-texto">
         <h1>GARBOSA TURISMO</h1>
         <p>Sistema de gestão de excursões</p>
-        <p>São João Nepomuceno – MG</p>
       </div>
     </div>
     <p class="home-dica">Use o <strong>Painel de Controle</strong> ao lado para abrir uma tela.</p>
