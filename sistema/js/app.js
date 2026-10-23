@@ -157,10 +157,8 @@ let P = null;   // perfil
 let unsubs = [];
 let eventoAuth = null;     // "login" | "cadastro" — o que causou a entrada
 let cadastrando = false;
-const inicioCarga = Date.now();
 function esconderLoading() {
-  const falta = Math.max(0, 1600 - (Date.now() - inicioCarga));
-  setTimeout(() => $("#loading").classList.add("hidden"), falta);
+  $("#loading").classList.add("hidden");
 }
 const S = {
   view: "calendario", param: null,
@@ -406,7 +404,8 @@ onAuthStateChanged(auth, (user) => {
 
 async function iniciarSessao(user) {
   U = user; P = null;
-  $("#loading").classList.remove("hidden");
+  // a animação do ônibus só aparece depois de clicar em Entrar/Criar conta, nunca ao abrir o endereço
+  if (eventoAuth) $("#loading").classList.remove("hidden");
   try {
     let snap = await get(ref(db, `usuarios/${user.uid}`));
     // conta de administrador criada direto no console do Firebase: cria o perfil
