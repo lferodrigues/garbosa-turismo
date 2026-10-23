@@ -1,5 +1,5 @@
-import { auth, db, ADMIN_EMAIL, authSecundario } from "./firebase.js";
-import { baixarXLSX, baixarPDF, baixarPDFPoltronas, carregarXLSX } from "./exportar.js";
+import { auth, db, ADMIN_EMAIL, authSecundario } from "./firebase.js?v=8";
+import { baixarXLSX, baixarPDF, baixarPDFPoltronas, carregarXLSX } from "./exportar.js?v=8";
 import {
   onAuthStateChanged, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword,
   sendPasswordResetEmail, updateProfile,
