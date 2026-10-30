@@ -287,6 +287,125 @@
       "$exId": {
         ".read": "auth != null && (root.child('inscricoes').child($exId).child('owner').val() === auth.uid || root.child('excursoes').child(root.child('inscricoes').child($exId).child('owner').val()).child($exId).child('colaboradores').child(auth.uid).exists() || (auth != null && auth.token.email === 'contato@feliperodrigues.net'))"
       }
+    },
+    "clientes": {
+      ".read": "(auth != null && auth.token.email === 'contato@feliperodrigues.net')",
+      "$uid": {
+        ".read": "auth != null && (auth.uid === $uid || (auth != null && auth.token.email === 'contato@feliperodrigues.net'))",
+        ".write": "auth != null && auth.uid === $uid",
+        ".validate": "newData.hasChildren(['nome', 'cpf', 'email']) && newData.child('cpf').val().length === 11",
+        "nome": {
+          ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 120"
+        },
+        "cpf": {
+          ".validate": "newData.isString() && newData.val().matches(/^(\\d{11})?$/)"
+        },
+        "rg": {
+          ".validate": "newData.isString() && newData.val().length <= 30"
+        },
+        "nascimento": {
+          ".validate": "newData.isString() && newData.val().matches(/^(\\d{4}-\\d{2}-\\d{2})?$/)"
+        },
+        "email": {
+          ".validate": "newData.isString() && newData.val().length <= 120"
+        },
+        "whatsapp": {
+          ".validate": "newData.isString() && newData.val().length <= 20"
+        },
+        "colo": {
+          ".validate": "newData.isBoolean()"
+        },
+        "endereco": {
+          "cep": {
+            ".validate": "newData.isString() && newData.val().length <= 9"
+          },
+          "rua": {
+            ".validate": "newData.isString() && newData.val().length <= 120"
+          },
+          "numero": {
+            ".validate": "newData.isString() && newData.val().length <= 20"
+          },
+          "complemento": {
+            ".validate": "newData.isString() && newData.val().length <= 60"
+          },
+          "bairro": {
+            ".validate": "newData.isString() && newData.val().length <= 80"
+          },
+          "cidade": {
+            ".validate": "newData.isString() && newData.val().length <= 80"
+          },
+          "uf": {
+            ".validate": "newData.isString() && newData.val().length <= 2"
+          },
+          "$outro": {
+            ".validate": false
+          }
+        },
+        "atualizadoEm": {
+          ".validate": "newData.isNumber()"
+        },
+        "criadoEm": {
+          ".validate": "newData.isNumber()"
+        },
+        "dependentes": {
+          "$dep": {
+            ".validate": "newData.hasChildren(['nome'])",
+            "nome": {
+              ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 120"
+            },
+            "cpf": {
+              ".validate": "newData.isString() && newData.val().matches(/^(\\d{11})?$/)"
+            },
+            "rg": {
+              ".validate": "newData.isString() && newData.val().length <= 30"
+            },
+            "nascimento": {
+              ".validate": "newData.isString() && newData.val().matches(/^(\\d{4}-\\d{2}-\\d{2})?$/)"
+            },
+            "colo": {
+              ".validate": "newData.isBoolean()"
+            },
+            "mesmoContato": {
+              ".validate": "newData.isBoolean()"
+            },
+            "email": {
+              ".validate": "newData.isString() && newData.val().length <= 120"
+            },
+            "whatsapp": {
+              ".validate": "newData.isString() && newData.val().length <= 20"
+            },
+            "endereco": {
+              "cep": {
+                ".validate": "newData.isString() && newData.val().length <= 9"
+              },
+              "rua": {
+                ".validate": "newData.isString() && newData.val().length <= 120"
+              },
+              "numero": {
+                ".validate": "newData.isString() && newData.val().length <= 20"
+              },
+              "complemento": {
+                ".validate": "newData.isString() && newData.val().length <= 60"
+              },
+              "bairro": {
+                ".validate": "newData.isString() && newData.val().length <= 80"
+              },
+              "cidade": {
+                ".validate": "newData.isString() && newData.val().length <= 80"
+              },
+              "uf": {
+                ".validate": "newData.isString() && newData.val().length <= 2"
+              },
+              "$outro": {
+                ".validate": false
+              }
+            }
+          }
+        },
+        "$outro": {
+          ".validate": false
+        }
+      }
     }
   }
 }

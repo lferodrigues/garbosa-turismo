@@ -9,6 +9,7 @@ import cupomApi from "../api/cupom.js";
 import pedido from "../api/pedido.js";
 import webhook from "../api/asaas-webhook.js";
 import cancelar from "../api/pedido-cancelar.js";
+import minhas from "../api/minhas-viagens.js";
 import { somarDias, hojeBR } from "../sistema/js/venda-regras.js";
 
 process.env.ASAAS_API_KEY = "teste";
@@ -28,9 +29,10 @@ beforeEach(() => {
       colaboradores: { uidColab: { nome: "Colab", instagram: "colab" } }
     } } },
     poltronas: { [OWN]: { [EX]: { v1: { 1: "viajanteAntigo" } } } },
-    viajantes: { [OWN]: { [EX]: { viajanteAntigo: { nome: "Já Cadastrado" } } } }
+    viajantes: { [OWN]: { [EX]: { viajanteAntigo: { nome: "Já Cadastrado" } } } },
+    clientes: { cli1: { nome: "Pessoa A Silva", cpf: pessoa(0).cpf, email: "p0@ex.com" }, cli2: { nome: "Sem Perfil" } }
   });
-  usarFalsos({ db, auth: { verifyIdToken: async (t) => (t === "tok-dono" ? { uid: OWN, email: "a@a.com" } : t === "tok-outro" ? { uid: "x" } : Promise.reject(new Error("x"))) } });
+  usarFalsos({ db, auth: { verifyIdToken: async (t) => (t === "tok-dono" ? { uid: OWN, email: "a@a.com" } : t === "tok-outro" ? { uid: "x" } : t === "tok-cli" ? { uid: "cli1" } : t === "tok-cli2" ? { uid: "cli2" } : Promise.reject(new Error("x"))) } });
   chamadas = []; falharPagamento = false;
   usarFetch(async (url, op) => {
     const corpo = op.body ? JSON.parse(op.body) : null;
@@ -47,7 +49,7 @@ beforeEach(() => {
 });
 
 const chamar = async (fn, req) => { const res = resposta(); await fn({ headers: {}, query: {}, ...req }, res); return res; };
-const comprar = (pessoas, extra = {}) => chamar(pedido, { method: "POST", body: { e: EX, pessoas, aceite: true, forma: "BOLETO", parcelas: 3, cupom: "promo5", ...extra } });
+const comprar = (pessoas, extra = {}, token = "tok-cli") => chamar(pedido, { method: "POST", headers: token ? { authorization: `Bearer ${token}` } : {}, body: { e: EX, pessoas, aceite: true, forma: "BOLETO", parcelas: 3, cupom: "promo5", ...extra } });
 const valorCheio = Math.round(10000 / 32 * 100);
 
 test("GET /api/venda mostra excursão e poltronas ocupadas sem nomes", async () => {
@@ -188,4 +190,39 @@ test("venda desativada", async () => {
   assert.equal(r.body.ativa, false);
   const p = await comprar([pessoa(0, { assento: { vk: "v1", n: 5 } })]);
   assert.equal(p.statusCode, 409);
+});
+
+test("compra exige conta com pré-cadastro e titular com o CPF da conta", async () => {
+  let r = await comprar([pessoa(0, { assento: { vk: "v1", n: 5 } })], {}, null);
+  assert.equal(r.statusCode, 401); assert.equal(r.body.login, true);
+  r = await comprar([pessoa(0, { assento: { vk: "v1", n: 5 } })], {}, "tok-cli2");
+  assert.equal(r.statusCode, 403); assert.equal(r.body.preCadastro, true);
+  r = await comprar([pessoa(1, { assento: { vk: "v1", n: 5 } })]);
+  assert.equal(r.statusCode, 400); assert.match(r.body.erro, /dono da conta/);
+});
+
+test("Minhas viagens: lista as compras da conta e mostra as parcelas do Asaas", async () => {
+  await comprar([pessoa(0, { assento: { vk: "v1", n: 8 } }), pessoa(1, { assento: { vk: "v1", n: 9 } })], { cupom: "", parcelas: 3 });
+  const pid = Object.keys(db.dump().pedidos[OWN][EX])[0];
+  let r = await chamar(minhas, { method: "GET", headers: { authorization: "Bearer tok-cli" } });
+  assert.equal(r.statusCode, 200);
+  assert.equal(r.body.viagens.length, 1);
+  assert.equal(r.body.viagens[0].destino, "Aldeia das Águas");
+  assert.deepEqual(r.body.viagens[0].viajantes.map((v) => v.poltrona), [8, 9]);
+  usarFetch(async (url) => ({ ok: true, status: 200, text: async () => JSON.stringify(url.includes("/installments/ins_1/payments") ? { data: [
+    { id: "p1", installmentNumber: 1, value: 100, dueDate: "2026-11-10", status: "RECEIVED", paymentDate: "2026-11-09", billingType: "BOLETO", invoiceUrl: "u1", bankSlipUrl: "b1" },
+    { id: "p2", installmentNumber: 2, value: 100, dueDate: "2026-12-10", status: "OVERDUE", billingType: "BOLETO", invoiceUrl: "u2", bankSlipUrl: "b2" },
+    { id: "p3", installmentNumber: 3, value: 100, dueDate: "2027-01-10", status: "PENDING", billingType: "BOLETO", invoiceUrl: "u3", bankSlipUrl: "b3" }] } : {}) }));
+  r = await chamar(minhas, { method: "GET", headers: { authorization: "Bearer tok-cli" }, query: { pedido: pid } });
+  assert.equal(r.statusCode, 200);
+  assert.deepEqual(r.body.parcelasLista.map((p) => p.situacao), ["paga", "vencida", "aberta"]);
+  assert.equal(r.body.pagoCent, 10000); assert.equal(r.body.abertoCent, 20000);
+  assert.equal(r.body.parcelasLista[1].boleto, "b2");
+  // outra conta não vê esta compra
+  r = await chamar(minhas, { method: "GET", headers: { authorization: "Bearer tok-cli2" }, query: { pedido: pid } });
+  assert.equal(r.statusCode, 404);
+  // Asaas fora do ar: mostra o que o sistema sabe
+  usarFetch(async () => ({ ok: false, status: 500, text: async () => "{}" }));
+  r = await chamar(minhas, { method: "GET", headers: { authorization: "Bearer tok-cli" }, query: { pedido: pid } });
+  assert.equal(r.body.fonte, "sistema"); assert.equal(r.body.parcelasLista.length, 3);
 });

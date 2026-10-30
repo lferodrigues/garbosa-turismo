@@ -128,3 +128,14 @@ vendasUso/{exId}/{CODIGO}              pessoas que já usaram o cupom
 vendasCpf/{exId}/{cpf}                 pedido aguardando pagamento do titular (só servidor)
 asaasEventos/{id}                      eventos do webhook já processados (só servidor)
 ```
+
+## Área do viajante (conta, pré-cadastro e Minhas viagens)
+- Para comprar pelo link, o viajante entra na conta (e-mail/senha ou Google). **Na primeira vez** cria a conta e faz o
+  **pré-cadastro** (nome, CPF, RG, nascimento, e-mail, WhatsApp e endereço). O titular da compra é sempre o dono da conta.
+- Nas próximas compras os dados vêm preenchidos e os **dependentes** usados antes aparecem para incluir com um toque.
+- `sistema/minha-conta.html` — **Minhas viagens**: próximas viagens e histórico; ao tocar numa viagem aparecem
+  os viajantes, as poltronas e as **parcelas pagas, em aberto e vencidas** (consultadas na hora no Asaas), com botão de pagar e boleto em PDF.
+  Aba **Meus dados** para atualizar o cadastro e remover dependentes salvos.
+- A conta do viajante usa uma sessão separada da agência; se um viajante tentar entrar no sistema da agência, é avisado e desconectado.
+- Banco: `clientes/{uid}` (perfil + dependentes, o próprio viajante lê e grava) e `clientesPedidos/{uid}/{pedidoId}` (só servidor).
+- API: `GET /api/minhas-viagens` e `GET /api/minhas-viagens?pedido=ID` (com o token da conta).
