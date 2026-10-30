@@ -3,177 +3,253 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Garbosa Turismo | Excursões saindo de São João Nepomuceno</title>
+<meta name="description" content="A primeira agência 100% digital de São João Nepomuceno. Excursões para parques, praias, shows e cidades históricas, com compra online, escolha de poltrona e parcelamento.">
+<meta property="og:title" content="Garbosa Turismo — a viagem dos seus sonhos começa aqui">
+<meta property="og:description" content="Excursões com conforto e segurança. Compre online: cartão em até 6x, Pix ou boleto.">
+<meta property="og:image" content="https://garbosaturismo.com.br/Assets/img/banner.png">
 <link rel="icon" type="image/png" sizes="192x192" href="./Assets/img/logo.ico">
-<title>Garbosa Turismo </title>
-<script src="./Assets/js/novosite/script.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="./Assets/css/novosite/style.css">
-<link rel="stylesheet"href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+<link rel="stylesheet" href="./Assets/css/novosite/home.css?v=1">
 <link rel="stylesheet" href="./Assets/css/novosite/conta.css?v=1">
-<script>
-document.addEventListener("DOMContentLoaded", function () {
-    document.getElementById("currentYear").textContent = new Date().getFullYear();
-});
-</script>
-
 </head>
 <body>
 
-<header class="hero">
-    <nav class="navbar">
-        <div class="container">
-    
-            <img src="Assets/img/logo.ico" class="logo">
-    
-            <button class="menu-toggle" aria-label="Abrir Menu">
-                <i class="fas fa-bars"></i>
-            </button>
-    
-            <ul>
-                <li><a href="#sobre">Sobre</a></li>
-                <li><a href="./excursoes.html">Excursões</a></li>
-                <li><a href="#contato">Contato</a></li>
-                <li><a href="./contrato.html">Contrato de prestação de serviço</a></li>
-                <li><a href="./sistema/minha-conta.html" id="linkConta"><i class="fa-regular fa-circle-user"></i> Área do cliente</a></li>
-            </ul>
-    
-            <a class="btn-primary" href="./excursoes.html">
-                Reservar
-            </a>
-    
-        </div>
+<!-- ============ BARRA DE CONTATO ============ -->
+<div class="gt-topo">
+  <div class="gt-container gt-topo-in">
+    <span><i class="fa-solid fa-location-dot"></i> São João Nepomuceno / MG</span>
+    <div class="gt-topo-dir">
+      <a href="https://wa.me/5532999874657" target="_blank" rel="noopener"><i class="fa-brands fa-whatsapp"></i> (32) 99987-4657</a>
+      <span class="gt-topo-redes">
+        <a href="https://www.instagram.com/garbosaturismo/" target="_blank" rel="noopener" aria-label="Instagram"><i class="fa-brands fa-instagram"></i></a>
+        <a href="https://www.tiktok.com/@garbosaturismo" target="_blank" rel="noopener" aria-label="TikTok"><i class="fa-brands fa-tiktok"></i></a>
+        <a href="https://www.facebook.com/profile.php?id=100093055390780" target="_blank" rel="noopener" aria-label="Facebook"><i class="fa-brands fa-facebook-f"></i></a>
+      </span>
+    </div>
+  </div>
+</div>
+
+<!-- ============ CABEÇALHO ============ -->
+<header class="gt-header" id="topo">
+  <div class="gt-container gt-header-in">
+    <a href="./index.html" class="gt-marca" aria-label="Garbosa Turismo — início">
+      <img src="./Assets/img/logo.ico" alt="">
+      <span><strong>Garbosa</strong><em>Turismo</em></span>
+    </a>
+    <button class="gt-menu-btn" id="gtMenuBtn" aria-label="Abrir menu" aria-expanded="false" aria-controls="gtMenu"><i class="fa-solid fa-bars"></i></button>
+    <nav class="gt-menu" id="gtMenu" aria-label="Menu principal">
+      <ul>
+        <li><a href="#inicio">Início</a></li>
+        <li><a href="#destinos">Destinos</a></li>
+        <li><a href="./excursoes.html">Excursões</a></li>
+        <li><a href="#sobre">A agência</a></li>
+        <li><a href="#parceiros">Parceiros</a></li>
+        <li><a href="./contrato.html">Contrato</a></li>
+        <li><a href="#contato">Contato</a></li>
+        <li class="gt-menu-conta"><a href="./sistema/minha-conta.html" id="linkConta"><i class="fa-regular fa-circle-user"></i> Área do cliente</a></li>
+      </ul>
     </nav>
-
-<div class="hero-content container">
-<div>
-<span class="tag">A primeira agência 100% digital de São João Nepomuceno</span>
-<h1>Viaje para destinos incríveis com conforto e segurança.</h1>
-<p>Parques, praias, cidades históricas e excursões organizadas para você aproveitar sem preocupações.</p>
-
-<div class="buttons">
-<a class="btn-primary" href="./excursoes.html">Ver Excursões</a>
-<a class="btn-secondary" href="https://wa.me/+5532999874657">WhatsApp</a>
-</div>
-
-</div>
-
-<div class="hero-image">
-<img src="Assets/img/banner.png">
-</div>
-
-</div>
+  </div>
 </header>
 
-<section id="sobre" class="container section">
-<h2>Sobre a Garbosa Turismo</h2>
-<p>Somos uma agência criada para oferecer experiências inesquecíveis com organização, segurança e atendimento personalizado.</p>
+<main>
+<!-- ============ BANNER ROTATIVO + BANNER LATERAL ============ -->
+<section class="gt-hero" id="inicio">
+  <div class="gt-container gt-hero-in">
+    <div class="gt-slider" id="gtSlider" aria-roledescription="carrossel" aria-label="Excursões em destaque">
+      <article class="gt-slide ativo" style="--bg-slide:linear-gradient(120deg,#15153b 0%,#2A1F88 55%,#5946da 100%)">
+        <div class="gt-slide-txt">
+          <span class="gt-selo"><i class="fa-solid fa-plane-departure"></i> Agência 100% digital</span>
+          <h1>A viagem dos seus sonhos <b>começa aqui!</b></h1>
+          <p>Parques, praias, shows e cidades históricas saindo de São João Nepomuceno, com conforto e segurança.</p>
+          <div class="gt-acoes"><a class="gt-btn gt-btn-amarelo" href="#destinos">Ver destinos</a><a class="gt-btn gt-btn-vazado" href="https://wa.me/5532999874657" target="_blank" rel="noopener"><i class="fa-brands fa-whatsapp"></i> Falar conosco</a></div>
+        </div>
+        <img class="gt-slide-img gt-slide-paisagem" src="./Assets/img/sobre/img-2.png" alt="Garbosa Turismo — a viagem dos seus sonhos começa aqui">
+      </article>
+      <article class="gt-slide" style="--bg-slide:linear-gradient(120deg,#0b4f6c 0%,#2A1F88 70%)">
+        <div class="gt-slide-txt">
+          <span class="gt-selo"><i class="fa-solid fa-umbrella-beach"></i> Bate e volta</span>
+          <h2>Praia da <b>Barra da Tijuca</b></h2>
+          <p>Um dia de sol e mar no Rio de Janeiro, em ônibus executivo. Parcelado no boleto.</p>
+          <div class="gt-acoes"><a class="gt-btn gt-btn-amarelo" href="./barra.html">Reserve agora</a></div>
+        </div>
+        <img class="gt-slide-img" src="./Assets/img/excursoes/barra.jpeg" alt="Cartaz da excursão para a Praia da Barra">
+      </article>
+      <article class="gt-slide" style="--bg-slide:linear-gradient(120deg,#0d6e6e 0%,#2A1F88 70%)">
+        <div class="gt-slide-txt">
+          <span class="gt-selo"><i class="fa-solid fa-water"></i> Parque aquático</span>
+          <h2>Aldeia das Águas <b>Park Resort</b></h2>
+          <p>O maior parque aquático do estado do Rio. Ingresso e transporte inclusos.</p>
+          <div class="gt-acoes"><a class="gt-btn gt-btn-amarelo" href="./aldeia-das-aguas.html">Reserve agora</a></div>
+        </div>
+        <img class="gt-slide-img" src="./Assets/img/excursoes/aldeia-das-aguas.jpg" alt="Cartaz da excursão para o Aldeia das Águas">
+      </article>
+      <article class="gt-slide" style="--bg-slide:linear-gradient(120deg,#5a1a8c 0%,#2A1F88 70%)">
+        <div class="gt-slide-txt">
+          <span class="gt-selo"><i class="fa-solid fa-ticket"></i> Parques</span>
+          <h2>Hopi Hari <b>+ Wet'n Wild</b></h2>
+          <p>Hotel, transporte e ingressos para os parques em Vinhedo (SP).</p>
+          <div class="gt-acoes"><a class="gt-btn gt-btn-amarelo" href="./hopihari.html">Reserve agora</a></div>
+        </div>
+        <img class="gt-slide-img" src="./Assets/img/excursoes/hopi.jpeg" alt="Cartaz da excursão para o Hopi Hari">
+      </article>
+      <button class="gt-seta ant" id="gtAnt" aria-label="Slide anterior"><i class="fa-solid fa-chevron-left"></i></button>
+      <button class="gt-seta prox" id="gtProx" aria-label="Próximo slide"><i class="fa-solid fa-chevron-right"></i></button>
+      <div class="gt-pontos" id="gtPontos" role="tablist" aria-label="Escolher slide"></div>
+    </div>
 
-<div class="cards">
-
-<div class="card">
-<h3>🚌 Transporte Seguro</h3>
-<p>Ônibus confortáveis e parceiros confiáveis.</p>
-</div>
-
-<div class="card">
-<h3>🌎 Destinos Exclusivos</h3>
-<p>Parques, praias e cidades históricas.</p>
-</div>
-
-<div class="card">
-<h3>⭐ Atendimento</h3>
-<p>Suporte antes, durante e depois da viagem.</p>
-</div>
-
-</div>
+    <aside class="gt-lateral">
+      <span class="gt-lateral-tag">Compre pela internet</span>
+      <h2>Escolha sua <b>poltrona</b> e pague do seu jeito</h2>
+      <ul>
+        <li><i class="fa-regular fa-credit-card"></i> Cartão em até <strong>6x</strong></li>
+        <li><i class="fa-brands fa-pix"></i> <strong>Pix</strong> à vista</li>
+        <li><i class="fa-solid fa-barcode"></i> Boleto <strong>parcelado</strong></li>
+        <li><i class="fa-solid fa-couch"></i> Mapa do ônibus com as poltronas livres</li>
+      </ul>
+      <a class="gt-btn gt-btn-roxo" href="./excursoes.html">Ver excursões <i class="fa-solid fa-arrow-right"></i></a>
+      <a class="gt-lateral-link" href="./sistema/minha-conta.html" data-abrir-conta>Já comprou? Veja suas parcelas</a>
+    </aside>
+  </div>
 </section>
 
-<section id="parceiros" class="parceiros">
+<!-- ============ DESTINOS EM DESTAQUE ============ -->
+<section class="gt-secao" id="destinos">
+  <div class="gt-container">
+    <header class="gt-titulo">
+      <h2>Destinos em destaque</h2>
+      <p>Excursões para parques, praias, eventos e turismo religioso. Confira algumas opções:</p>
+    </header>
+    <div class="gt-destinos">
+      <article class="gt-dest">
+        <a href="./aldeia-das-aguas.html" class="gt-dest-img"><img loading="lazy" src="./Assets/img/excursoes/aldeia-das-aguas.jpg" alt=""><span class="gt-tag">Parque aquático</span></a>
+        <h3>Aldeia das Águas</h3><p>Barra do Piraí · RJ</p>
+        <a class="gt-btn gt-btn-roxo gt-btn-p" href="./aldeia-das-aguas.html">Mais sobre Aldeia das Águas</a>
+      </article>
+      <article class="gt-dest">
+        <a href="./barra.html" class="gt-dest-img"><img loading="lazy" src="./Assets/img/excursoes/barra.jpeg" alt=""><span class="gt-tag">Praia</span></a>
+        <h3>Praia da Barra</h3><p>Rio de Janeiro · RJ</p>
+        <a class="gt-btn gt-btn-roxo gt-btn-p" href="./barra.html">Mais sobre a Barra</a>
+      </article>
+      <article class="gt-dest">
+        <a href="./Ipanema.html" class="gt-dest-img"><img loading="lazy" src="./Assets/img/excursoes/ipanema.png" alt=""><span class="gt-tag">Praia</span></a>
+        <h3>Praia de Ipanema</h3><p>Rio de Janeiro · RJ</p>
+        <a class="gt-btn gt-btn-roxo gt-btn-p" href="./Ipanema.html">Mais sobre Ipanema</a>
+      </article>
+      <article class="gt-dest">
+        <a href="./bh.html" class="gt-dest-img"><img loading="lazy" src="./Assets/img/excursoes/bh.png" alt=""><span class="gt-tag">Parque + Zoológico</span></a>
+        <h3>Guanabara + Zoo BH</h3><p>Belo Horizonte · MG</p>
+        <a class="gt-btn gt-btn-roxo gt-btn-p" href="./bh.html">Mais sobre BH</a>
+      </article>
+      <article class="gt-dest">
+        <a href="./hopihari.html" class="gt-dest-img"><img loading="lazy" src="./Assets/img/excursoes/hopi.jpeg" alt=""><span class="gt-tag">Parques</span></a>
+        <h3>Hopi Hari + Wet'n Wild</h3><p>Vinhedo · SP</p>
+        <a class="gt-btn gt-btn-roxo gt-btn-p" href="./hopihari.html">Mais sobre Hopi Hari</a>
+      </article>
+      <article class="gt-dest">
+        <a href="./evento-frei-gilson.html" class="gt-dest-img"><img loading="lazy" src="./Assets/img/excursoes/frei.png" alt=""><span class="gt-tag">Evento</span></a>
+        <h3>Show do Frei Gilson</h3><p>Juiz de Fora · MG</p>
+        <a class="gt-btn gt-btn-roxo gt-btn-p" href="./evento-frei-gilson.html">Mais sobre o show</a>
+      </article>
+      <article class="gt-dest">
+        <a href="./phn.html" class="gt-dest-img"><img loading="lazy" src="./Assets/img/excursoes/phn.webp" alt=""><span class="gt-tag">Religioso</span></a>
+        <h3>PHN 2026</h3><p>Aparecida + Canção Nova · SP</p>
+        <a class="gt-btn gt-btn-roxo gt-btn-p" href="./phn.html">Mais sobre o PHN</a>
+      </article>
+      <article class="gt-dest gt-dest-todas">
+        <a href="./excursoes.html" class="gt-dest-todas-in">
+          <i class="fa-solid fa-map-location-dot"></i>
+          <h3>Todas as excursões</h3>
+          <p>Veja o catálogo completo com datas e valores.</p>
+          <span class="gt-btn gt-btn-amarelo gt-btn-p">Ver catálogo <i class="fa-solid fa-arrow-right"></i></span>
+        </a>
+      </article>
+    </div>
+  </div>
+</section>
 
-    <div class="container">
-    
-    <h2>Nossos Parceiros</h2>
-    
-    <div class="slider-container">
-    
-    <div class="slider">
-    
-    <div class="partner">
-    <a href="https://www.instagram.com/rolecomigor/" target="_blank">
-    <img src="Assets/img/parceiros/role_com_o_igor.jpg">
-    </a>
-    <p>Rolê com o Igor</p>
+<!-- ============ A AGÊNCIA ============ -->
+<section class="gt-secao gt-sobre" id="sobre">
+  <div class="gt-container gt-sobre-in">
+    <div class="gt-sobre-img"><img loading="lazy" src="./Assets/img/sobre/img-1.png" alt="Praia ao entardecer com a marca Garbosa Turismo"></div>
+    <div>
+      <span class="gt-sobretitulo">Sobre a Garbosa Turismo</span>
+      <h2>Experiências inesquecíveis com organização e segurança</h2>
+      <p>Nascemos em São João Nepomuceno como a primeira agência 100% digital da cidade. Cuidamos de tudo — transporte, ingressos e roteiro — para você só aproveitar.</p>
+      <div class="gt-diferenciais">
+        <div><i class="fa-solid fa-bus"></i><strong>Transporte seguro</strong><span>Ônibus confortáveis e parceiros confiáveis.</span></div>
+        <div><i class="fa-solid fa-earth-americas"></i><strong>Destinos exclusivos</strong><span>Parques, praias, eventos e cidades históricas.</span></div>
+        <div><i class="fa-solid fa-headset"></i><strong>Atendimento</strong><span>Suporte antes, durante e depois da viagem.</span></div>
+        <div><i class="fa-solid fa-shield-halved"></i><strong>Cadastur</strong><span>Agência registrada no Ministério do Turismo.</span></div>
+      </div>
     </div>
-    
-    <div class="partner">
-    <a href="https://www.instagram.com/2irmaos_turismo_e_fretamentos/" target="_blank">
-    <img src="Assets/img/parceiros/2_irmaos.jpg">
-    </a>
-    <p>2 Irmãos Turismo</p>
-    </div>
-    
-    <div class="partner">
-    <a href="https://www.instagram.com/mund.ialturismo/" target="_blank">
-    <img src="Assets/img/parceiros/mundial.jpg">
-    </a>
-    <p>Mundial Turismo</p>
-    </div>
-    
-    <div class="partner">
-    <a href="https://www.instagram.com/flmr_transporte_e_turismo/" target="_blank">
-    <img src="Assets/img/parceiros/flmr.jpeg">
-    </a>
-    <p>FLMR Transporte</p>
-    </div>
-    
-    <div class="partner">
-    <a href="https://www.instagram.com/rio_novo_turismo" target="_blank">
-    <img src="Assets/img/parceiros/rio_novo.jpg">
-    </a>
-    <p>Rio Novo Turismo</p>
-    </div>
-    
-    </div>
-    
-    </div>
-    
-    </div>
-    
-    </section>
+  </div>
+</section>
 
-<footer id="contato">
-<div class="container">
-<h2>Pronto para viajar?</h2>
-<p>Entre em contato e reserve sua próxima experiência.</p>
-<div class="social-icons">
-
-    <a href="https://wa.me/+5532999874657" target="_blank" aria-label="WhatsApp">
-        <i class="fab fa-whatsapp"></i>
-    </a>
-    <a href="https://www.instagram.com/garbosaturismo/" target="_blank" aria-label="Instagram">
-        <i class="fab fa-instagram"></i>
-    </a>
-
-    <a href="https://www.tiktok.com/@garbosaturismo" target="_blank" aria-label="TikTok">
-        <i class="fab fa-tiktok"></i>
-    </a>
-
-    <a href="https://www.facebook.com/profile.php?id=100093055390780" target="_blank" aria-label="Facebook">
-        <i class="fab fa-facebook-f"></i>
-    </a>
+<!-- ============ PARCEIROS ============ -->
+<section class="gt-secao gt-parceiros" id="parceiros">
+  <div class="gt-container">
+    <header class="gt-titulo">
+      <h2>Nossos parceiros</h2>
+      <p>Empresas de transporte e turismo que viajam com a gente.</p>
+    </header>
+  </div>
+  <div class="gt-marquee" aria-label="Parceiros">
+    <div class="gt-marquee-trilho" id="gtParceiros">
+      <a class="gt-parceiro" href="https://www.instagram.com/rolecomigor/" target="_blank" rel="noopener"><img loading="lazy" src="./Assets/img/parceiros/role_com_o_igor.jpg" alt=""><span>Rolê com o Igor</span></a>
+      <a class="gt-parceiro" href="https://www.instagram.com/2irmaos_turismo_e_fretamentos/" target="_blank" rel="noopener"><img loading="lazy" src="./Assets/img/parceiros/2_irmaos.jpg" alt=""><span>2 Irmãos Turismo</span></a>
+      <a class="gt-parceiro" href="https://www.instagram.com/mund.ialturismo/" target="_blank" rel="noopener"><img loading="lazy" src="./Assets/img/parceiros/mundial.jpg" alt=""><span>Mundial Turismo</span></a>
+      <a class="gt-parceiro" href="https://www.instagram.com/flmr_transporte_e_turismo/" target="_blank" rel="noopener"><img loading="lazy" src="./Assets/img/parceiros/flmr.jpeg" alt=""><span>FLMR Transporte</span></a>
+      <a class="gt-parceiro" href="https://www.instagram.com/rio_novo_turismo" target="_blank" rel="noopener"><img loading="lazy" src="./Assets/img/parceiros/rio_novo.jpg" alt=""><span>Rio Novo Turismo</span></a>
     </div>
-	<div class="cadastur-footer">
-    <span>Clique no icone do cadastur para verificar o cadastro</span>
+  </div>
+</section>
 
-    <a href="./Assets/documentos/cadastro.pdf" target="_blank">
-        <img src="./Assets/img/cadastur.png" alt="Cadastur">
-    </a>
-</div>
-    <p>© <span id="currentYear">2024</span> Todos os direitos reservados | Garbosa Turismo</p>
-</div>
+<!-- ============ CHAMADA ============ -->
+<section class="gt-cta">
+  <div class="gt-container gt-cta-in">
+    <div><h2>Pronto para a próxima viagem?</h2><p>Fale com a gente ou garanta sua poltrona pela internet.</p></div>
+    <div class="gt-acoes"><a class="gt-btn gt-btn-amarelo" href="./excursoes.html">Ver excursões</a><a class="gt-btn gt-btn-vazado" href="https://wa.me/5532999874657" target="_blank" rel="noopener"><i class="fa-brands fa-whatsapp"></i> WhatsApp</a></div>
+  </div>
+</section>
+</main>
+
+<!-- ============ RODAPÉ ============ -->
+<footer class="gt-rodape" id="contato">
+  <div class="gt-container gt-rodape-in">
+    <div>
+      <a href="./index.html" class="gt-marca gt-marca-clara"><img src="./Assets/img/logo.ico" alt=""><span><strong>Garbosa</strong><em>Turismo</em></span></a>
+      <p>A viagem dos seus sonhos começa aqui. Excursões saindo de São João Nepomuceno, MG.</p>
+      <div class="gt-redes">
+        <a href="https://wa.me/5532999874657" target="_blank" rel="noopener" aria-label="WhatsApp"><i class="fa-brands fa-whatsapp"></i></a>
+        <a href="https://www.instagram.com/garbosaturismo/" target="_blank" rel="noopener" aria-label="Instagram"><i class="fa-brands fa-instagram"></i></a>
+        <a href="https://www.tiktok.com/@garbosaturismo" target="_blank" rel="noopener" aria-label="TikTok"><i class="fa-brands fa-tiktok"></i></a>
+        <a href="https://www.facebook.com/profile.php?id=100093055390780" target="_blank" rel="noopener" aria-label="Facebook"><i class="fa-brands fa-facebook-f"></i></a>
+      </div>
+    </div>
+    <div>
+      <h3>Navegue</h3>
+      <ul><li><a href="./excursoes.html">Excursões</a></li><li><a href="#destinos">Destinos em destaque</a></li><li><a href="./sistema/minha-conta.html" data-abrir-conta>Área do cliente</a></li><li><a href="./contrato.html">Contrato de prestação de serviço</a></li><li><a href="./fale-conosco.html">Fale conosco</a></li></ul>
+    </div>
+    <div>
+      <h3>Atendimento</h3>
+      <ul><li><a href="https://wa.me/5532999874657" target="_blank" rel="noopener"><i class="fa-brands fa-whatsapp"></i> (32) 99987-4657</a></li><li><i class="fa-solid fa-location-dot"></i> São João Nepomuceno / MG</li></ul>
+    </div>
+    <div class="gt-cadastur">
+      <h3>Cadastur</h3>
+      <a href="./Assets/documentos/cadastro.pdf" target="_blank" rel="noopener" title="Clique para verificar o cadastro"><img loading="lazy" src="./Assets/img/cadastur.png" alt="Selo Cadastur — verificar cadastro"></a>
+      <small>Clique no selo para verificar o cadastro</small>
+    </div>
+  </div>
+  <p class="gt-copy">© <span id="currentYear">2026</span> Todos os direitos reservados | Garbosa Turismo</p>
 </footer>
+
+<!-- WhatsApp flutuante -->
+<a class="gt-wpp" href="https://wa.me/5532999874657" target="_blank" rel="noopener" aria-label="Atendimento via WhatsApp"><i class="fa-brands fa-whatsapp"></i><span>Atendimento<br><b>via WhatsApp</b></span></a>
 
 <!-- Área do cliente: login e cadastro (e-mail/senha ou Google) -->
 <div class="gc-modal" id="gcModal" hidden role="dialog" aria-modal="true" aria-label="Área do cliente">
@@ -182,7 +258,8 @@ document.addEventListener("DOMContentLoaded", function () {
     <div id="gcCorpo"></div>
   </div>
 </div>
-<script type="module" src="./Assets/js/novosite/conta.js?v=1"></script>
 
+<script src="./Assets/js/novosite/home.js?v=1" defer></script>
+<script type="module" src="./Assets/js/novosite/conta.js?v=2"></script>
 </body>
 </html>

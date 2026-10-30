@@ -1,0 +1,209 @@
+/* =========================================================
+   Garbosa Turismo — página inicial (index.html)
+   Paleta da marca: roxo #2A1F88 · lilás #5946da · violeta #6f5cff · amarelo #FFD54A · noite #15153b
+========================================================= */
+:root{
+  --roxo:#2A1F88; --lilas:#5946da; --violeta:#6f5cff; --amarelo:#FFD54A; --noite:#15153b;
+  --fundo:#f6f7fb; --texto:#222; --cinza:#6b7080; --linha:#e3e5ef; --verde:#1fa855;
+  --sombra:0 14px 40px rgba(21,21,59,.12); --raio:18px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:90px}
+body{font-family:"Poppins",sans-serif;background:var(--fundo);color:var(--texto);line-height:1.6;-webkit-font-smoothing:antialiased}
+img{max-width:100%;display:block}
+a{color:inherit}
+.gt-container{width:min(1200px,92%);margin:auto}
+
+/* ---------- botões ---------- */
+.gt-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:13px 26px;border-radius:50px;font-weight:700;font-size:.92rem;text-decoration:none;transition:transform .2s,box-shadow .2s,background .2s;border:2px solid transparent;cursor:pointer;white-space:nowrap}
+.gt-btn:hover{transform:translateY(-2px)}
+.gt-btn-amarelo{background:var(--amarelo);color:var(--noite);box-shadow:0 8px 20px rgba(255,213,74,.35)}
+.gt-btn-roxo{background:var(--roxo);color:#fff}
+.gt-btn-roxo:hover{background:var(--lilas)}
+.gt-btn-vazado{border-color:rgba(255,255,255,.7);color:#fff}
+.gt-btn-vazado:hover{background:rgba(255,255,255,.12)}
+.gt-btn-p{padding:9px 16px;font-size:.78rem;white-space:normal;text-align:center}
+
+/* ---------- barra de contato ---------- */
+.gt-topo{background:var(--noite);color:#d9d8f2;font-size:.8rem}
+.gt-topo-in{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:8px 0;flex-wrap:wrap}
+.gt-topo i{color:var(--amarelo);margin-right:4px}
+.gt-topo a{text-decoration:none;color:#fff;font-weight:600}
+.gt-topo-dir{display:flex;align-items:center;gap:18px}
+.gt-topo-redes{display:flex;gap:6px}
+.gt-topo-redes a{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:rgba(255,255,255,.1)}
+.gt-topo-redes a i{color:#fff;margin:0}
+.gt-topo-redes a:hover{background:var(--lilas)}
+
+/* ---------- cabeçalho ---------- */
+.gt-header{position:sticky;top:0;z-index:900;background:rgba(255,255,255,.92);backdrop-filter:blur(14px);box-shadow:0 6px 24px rgba(21,21,59,.07)}
+.gt-header-in{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:12px 0}
+.gt-marca{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--roxo)}
+.gt-marca img{width:50px;height:50px;border-radius:14px}
+.gt-marca span{display:flex;flex-direction:column;line-height:1}
+.gt-marca strong{font-size:1.35rem;font-weight:800;letter-spacing:.5px}
+.gt-marca em{font-style:normal;font-size:.8rem;letter-spacing:4px;text-transform:uppercase;color:var(--lilas);margin-top:3px}
+.gt-menu ul{display:flex;align-items:center;gap:4px;list-style:none}
+.gt-menu a{display:block;padding:8px 12px;border-radius:30px;text-decoration:none;color:var(--noite);font-weight:600;font-size:.86rem;transition:.2s}
+.gt-menu a:hover{background:#f1efff;color:var(--roxo)}
+.gt-menu-conta a{background:var(--roxo);color:#fff!important;margin-left:6px;padding:9px 16px}
+.gt-menu-conta a:hover{background:var(--lilas)}
+.gt-menu-btn{display:none;background:#f1efff;border:none;width:44px;height:44px;border-radius:12px;color:var(--roxo);font-size:1.3rem;cursor:pointer}
+
+/* ---------- banner rotativo ---------- */
+.gt-hero{padding:24px 0 10px}
+.gt-hero-in{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:20px;align-items:stretch}
+.gt-slider{position:relative;border-radius:24px;overflow:hidden;min-height:430px;box-shadow:var(--sombra);background:var(--noite)}
+.gt-slide{position:absolute;inset:0;display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);align-items:center;gap:20px;padding:40px 70px 56px;background:var(--bg-slide,linear-gradient(120deg,#15153b,#2A1F88));color:#fff;opacity:0;visibility:hidden;transition:opacity .7s ease,visibility .7s}
+.gt-slide.ativo{opacity:1;visibility:visible}
+.gt-slide::before{content:"";position:absolute;inset:0;background:radial-gradient(circle at 85% 20%,rgba(255,213,74,.18),transparent 45%),radial-gradient(circle at 10% 90%,rgba(111,92,255,.35),transparent 50%);pointer-events:none}
+.gt-slide-txt{position:relative;z-index:1}
+.gt-selo{display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.2);padding:6px 14px;border-radius:30px;font-size:.78rem;font-weight:600;margin-bottom:14px}
+.gt-selo i{color:var(--amarelo)}
+.gt-slide h1,.gt-slide h2{font-size:clamp(1.8rem,3.4vw,2.9rem);line-height:1.08;font-weight:800;margin-bottom:12px}
+.gt-slide h1 b,.gt-slide h2 b{color:var(--amarelo);font-weight:800;display:block}
+.gt-slide p{opacity:.9;max-width:440px;font-size:.98rem}
+.gt-acoes{display:flex;gap:12px;flex-wrap:wrap;margin-top:22px}
+.gt-slide-img{position:relative;z-index:1;justify-self:center;max-height:340px;width:auto;border-radius:16px;box-shadow:0 24px 50px rgba(0,0,0,.4);transform:rotate(2deg);border:4px solid rgba(255,255,255,.9)}
+.gt-slide-paisagem{max-height:none;width:100%;transform:none;border:none;border-radius:20px}
+.gt-seta{position:absolute;top:50%;transform:translateY(-50%);z-index:3;width:42px;height:42px;border-radius:50%;border:none;background:rgba(255,255,255,.18);color:#fff;cursor:pointer;font-size:1rem;backdrop-filter:blur(6px);transition:.2s}
+.gt-seta:hover{background:var(--amarelo);color:var(--noite)}
+.gt-seta.ant{left:14px}.gt-seta.prox{right:14px}
+.gt-pontos{position:absolute;bottom:18px;left:0;right:0;display:flex;justify-content:center;gap:8px;z-index:3}
+.gt-pontos button{width:10px;height:10px;border-radius:10px;border:none;background:rgba(255,255,255,.45);cursor:pointer;transition:.3s;padding:0}
+.gt-pontos button[aria-selected=true]{width:28px;background:var(--amarelo)}
+
+/* ---------- banner lateral ---------- */
+.gt-lateral{position:relative;overflow:hidden;border-radius:24px;background:var(--amarelo);color:var(--noite);padding:28px 24px;display:flex;flex-direction:column;box-shadow:var(--sombra)}
+.gt-lateral::after{content:"";position:absolute;right:-60px;bottom:-60px;width:180px;height:180px;border-radius:50%;background:rgba(42,31,136,.08)}
+.gt-lateral-tag{align-self:flex-start;background:var(--roxo);color:#fff;font-size:.72rem;font-weight:700;padding:5px 12px;border-radius:30px;text-transform:uppercase;letter-spacing:1px}
+.gt-lateral h2{font-size:1.45rem;line-height:1.2;margin:14px 0 14px;font-weight:800}
+.gt-lateral h2 b{color:var(--roxo)}
+.gt-lateral ul{list-style:none;display:grid;gap:9px;margin-bottom:20px;font-size:.9rem}
+.gt-lateral li{display:flex;gap:10px;align-items:center}
+.gt-lateral li i{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;background:#fff;color:var(--roxo);flex:none}
+.gt-lateral .gt-btn{margin-top:auto;position:relative;z-index:1}
+.gt-lateral-link{position:relative;z-index:1;text-align:center;font-size:.82rem;font-weight:600;color:var(--roxo);margin-top:12px}
+
+/* ---------- seções ---------- */
+.gt-secao{padding:64px 0}
+.gt-titulo{text-align:center;max-width:620px;margin:0 auto 34px}
+.gt-titulo h2{font-size:clamp(1.6rem,3vw,2.2rem);color:var(--roxo);font-weight:800;text-transform:uppercase;letter-spacing:1px;position:relative;padding-bottom:12px}
+.gt-titulo h2::after{content:"";position:absolute;left:50%;bottom:0;transform:translateX(-50%);width:60px;height:4px;border-radius:4px;background:var(--amarelo)}
+.gt-titulo p{color:var(--cinza);margin-top:10px}
+
+/* ---------- destinos ---------- */
+.gt-destinos{display:grid;grid-template-columns:repeat(4,1fr);gap:20px}
+.gt-dest{background:#fff;border-radius:var(--raio);overflow:hidden;box-shadow:0 8px 24px rgba(21,21,59,.07);display:flex;flex-direction:column;text-align:center;padding-bottom:18px;transition:transform .25s,box-shadow .25s}
+.gt-dest:hover{transform:translateY(-6px);box-shadow:var(--sombra)}
+.gt-dest-img{position:relative;display:block;aspect-ratio:4/3;overflow:hidden;margin-bottom:14px}
+.gt-dest-img img{width:100%;height:100%;object-fit:cover;object-position:top;transition:transform .5s}
+.gt-dest:hover .gt-dest-img img{transform:scale(1.06)}
+.gt-tag{position:absolute;top:12px;left:12px;background:var(--roxo);color:#fff;font-size:.68rem;font-weight:700;padding:4px 10px;border-radius:30px;text-transform:uppercase;letter-spacing:.5px}
+.gt-dest h3{color:var(--noite);font-size:1.02rem;padding:0 14px}
+.gt-dest p{color:var(--cinza);font-size:.8rem;margin-bottom:14px;padding:0 14px}
+.gt-dest .gt-btn{margin:auto 18px 0}
+.gt-dest-todas{background:linear-gradient(140deg,var(--roxo),var(--lilas));padding:0}
+.gt-dest-todas-in{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;height:100%;padding:30px 20px;text-decoration:none;color:#fff}
+.gt-dest-todas i{font-size:2.4rem;color:var(--amarelo)}
+.gt-dest-todas h3{color:#fff}
+.gt-dest-todas p{color:rgba(255,255,255,.85);margin-bottom:8px}
+
+/* ---------- a agência ---------- */
+.gt-sobre{background:#fff}
+.gt-sobre-in{display:grid;grid-template-columns:1fr 1fr;gap:50px;align-items:center}
+.gt-sobre-img img{border-radius:24px;box-shadow:var(--sombra)}
+.gt-sobretitulo{color:var(--lilas);font-weight:700;text-transform:uppercase;font-size:.8rem;letter-spacing:2px}
+.gt-sobre h2{color:var(--roxo);font-size:clamp(1.5rem,2.6vw,2rem);line-height:1.2;margin:8px 0 14px}
+.gt-sobre p{color:#555}
+.gt-diferenciais{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:22px}
+.gt-diferenciais div{display:grid;grid-template-columns:auto 1fr;column-gap:12px;align-items:start;background:var(--fundo);border-radius:14px;padding:14px}
+.gt-diferenciais i{grid-row:span 2;width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:var(--roxo);color:var(--amarelo);font-size:1.05rem}
+.gt-diferenciais strong{color:var(--noite);font-size:.92rem}
+.gt-diferenciais span{color:var(--cinza);font-size:.8rem;line-height:1.4}
+
+/* ---------- parceiros ---------- */
+.gt-parceiros{background:linear-gradient(180deg,var(--fundo),#ecebfb);overflow:hidden}
+.gt-marquee{overflow:hidden;-webkit-mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent);mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent)}
+.gt-marquee-trilho{display:flex;gap:26px;width:max-content;animation:gtRolar 32s linear infinite;padding:10px 0 20px}
+.gt-marquee:hover .gt-marquee-trilho{animation-play-state:paused}
+@keyframes gtRolar{to{transform:translateX(-50%)}}
+.gt-parceiro{display:flex;flex-direction:column;align-items:center;gap:10px;width:170px;padding:20px 14px;background:#fff;border-radius:20px;box-shadow:0 8px 24px rgba(21,21,59,.07);text-decoration:none;transition:.25s}
+.gt-parceiro:hover{transform:translateY(-5px);box-shadow:var(--sombra)}
+.gt-parceiro img{width:96px;height:96px;border-radius:50%;object-fit:cover;border:4px solid var(--amarelo)}
+.gt-parceiro span{font-weight:700;font-size:.85rem;color:var(--roxo);text-align:center}
+
+/* ---------- chamada ---------- */
+.gt-cta{background:linear-gradient(120deg,var(--roxo),var(--lilas));color:#fff;padding:44px 0}
+.gt-cta-in{display:flex;justify-content:space-between;align-items:center;gap:20px;flex-wrap:wrap}
+.gt-cta h2{font-size:1.7rem;font-weight:800}
+.gt-cta p{opacity:.85}
+.gt-cta .gt-acoes{margin:0}
+
+/* ---------- rodapé ---------- */
+.gt-rodape{background:var(--noite);color:#c9c8e6;padding:54px 0 0;font-size:.88rem}
+.gt-rodape-in{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:34px}
+.gt-marca-clara{color:#fff;margin-bottom:12px}
+.gt-marca-clara em{color:var(--amarelo)}
+.gt-rodape h3{color:#fff;font-size:.95rem;margin-bottom:12px}
+.gt-rodape ul{list-style:none;display:grid;gap:8px}
+.gt-rodape a{text-decoration:none;color:#c9c8e6}
+.gt-rodape a:hover{color:var(--amarelo)}
+.gt-rodape i{color:var(--amarelo);margin-right:6px}
+.gt-redes{display:flex;gap:8px;margin-top:16px}
+.gt-redes a{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:rgba(255,255,255,.08);transition:.2s}
+.gt-redes a i{margin:0;color:#fff}
+.gt-redes a:hover{background:var(--lilas)}
+.gt-cadastur img{width:150px;border-radius:14px;box-shadow:0 8px 20px rgba(0,0,0,.3);transition:.3s}
+.gt-cadastur a:hover img{transform:scale(1.05)}
+.gt-cadastur small{display:block;margin-top:8px;font-size:.75rem;opacity:.8}
+.gt-copy{text-align:center;border-top:1px solid rgba(255,255,255,.08);margin-top:40px;padding:18px 4%;font-size:.8rem}
+
+/* ---------- WhatsApp flutuante ---------- */
+.gt-wpp{position:fixed;right:18px;bottom:18px;z-index:950;display:flex;align-items:center;gap:10px;background:var(--verde);color:#fff;text-decoration:none;padding:10px 18px 10px 12px;border-radius:50px;box-shadow:0 10px 30px rgba(31,168,85,.45);font-size:.75rem;line-height:1.2;transition:.25s}
+.gt-wpp i{font-size:1.9rem}
+.gt-wpp b{font-size:.85rem}
+.gt-wpp:hover{transform:translateY(-3px)}
+
+/* ---------- responsivo ---------- */
+@media(max-width:1100px){
+  .gt-menu a{padding:8px 9px;font-size:.82rem}
+  .gt-destinos{grid-template-columns:repeat(3,1fr)}
+}
+@media(max-width:980px){
+  .gt-menu-btn{display:block}
+  .gt-menu{position:absolute;top:100%;left:0;right:0;background:#fff;box-shadow:0 18px 30px rgba(21,21,59,.12);border-radius:0 0 20px 20px;display:none}
+  .gt-menu.aberto{display:block}
+  .gt-menu ul{flex-direction:column;align-items:stretch;padding:10px 4% 16px;gap:2px}
+  .gt-menu a{padding:13px 14px;font-size:.95rem;border-radius:12px}
+  .gt-menu-conta a{margin:8px 0 0;text-align:center}
+  .gt-hero-in{grid-template-columns:1fr}
+  .gt-sobre-in{grid-template-columns:1fr;gap:30px}
+  .gt-rodape-in{grid-template-columns:1fr 1fr}
+}
+@media(max-width:700px){
+  .gt-topo-in>span{display:none}
+  .gt-topo-dir{width:100%;justify-content:space-between}
+  .gt-slider{min-height:600px}
+  .gt-slide{grid-template-columns:1fr;padding:26px 22px 52px;align-content:start;text-align:left;gap:16px}
+  .gt-slide p{font-size:.9rem}
+  .gt-acoes{margin-top:16px;gap:10px}
+  .gt-acoes .gt-btn{padding:11px 18px;font-size:.85rem}
+  .gt-slide-img{max-height:190px;transform:none;justify-self:start}
+  .gt-slide-paisagem{width:100%;height:170px;max-height:170px;object-fit:cover}
+  .gt-seta{display:none}
+  .gt-destinos{grid-template-columns:1fr 1fr;gap:12px}
+  .gt-dest h3{font-size:.9rem}
+  .gt-btn-p{font-size:.72rem;padding:8px 10px}
+  .gt-dest .gt-btn{margin:auto 10px 0}
+  .gt-diferenciais{grid-template-columns:1fr}
+  .gt-secao{padding:46px 0}
+  .gt-rodape-in{grid-template-columns:1fr}
+  .gt-wpp span{display:none}
+  .gt-wpp{padding:12px}
+}
+@media(prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  .gt-slide{transition:none}
+  .gt-marquee-trilho{animation:none;flex-wrap:wrap;justify-content:center;width:auto}
+}
