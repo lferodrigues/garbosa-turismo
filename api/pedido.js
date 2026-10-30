@@ -7,6 +7,7 @@
 import { db } from "./_lib/firebase.js";
 import { enviar, lerCorpo, soMetodo, tratarErro, ErroUsuario } from "./_lib/http.js";
 import { asaas, clienteAsaas, cancelarCobranca } from "./_lib/asaas.js";
+import { clienteDoToken } from "./_lib/cliente.js";
 import {
   carregarExcursao, situacaoVenda, lerCupom, usarCupom, reservarPoltronas, liberarPoltronas, notificar, R
 } from "./_lib/venda.js";
@@ -34,6 +35,7 @@ export default async function handler(req, res) {
   let desfazer = [];
   try {
     const body = lerCorpo(req);
+    const cliente = await clienteDoToken(req);
     const { exId, own, ex, agencia } = await carregarExcursao(String(body.e || ""));
     const sit = situacaoVenda(ex);
     if (!sit.ativa) throw new ErroUsuario(sit.motivo, 409);
@@ -51,6 +53,7 @@ export default async function handler(req, res) {
     const cpfs = pessoas.map((p) => p.cpf).filter(Boolean);
     if (new Set(cpfs).size !== cpfs.length) throw new ErroUsuario("Há CPFs repetidos na compra.");
     const titular = pessoas[0];
+    if (titular.cpf !== R.soDig(cliente.perfil.cpf)) throw new ErroUsuario("O titular da compra precisa ser o dono da conta (mesmo CPF do pré-cadastro).", 400, { pessoa: 0 });
 
     const d = await db();
     const pendente = (await d.ref(`vendasCpf/${exId}/${titular.cpf}`).get()).val();
@@ -120,7 +123,8 @@ export default async function handler(req, res) {
       viajantesPed[vid] = { nome: p.nome, valorCent: item.valorCent, cupom: item.cupom, colo: p.colo, assento: p.assento ? `${p.assento.vk}/${p.assento.n}` : null };
     });
     const pedido = {
-      criadoEm: Date.now(), status: "aguardando", forma, parcelas, formaTxt, vencimento,
+      criadoEm: Date.now(), status: "aguardando", clienteUid: cliente.uid,
+      excursao: { destino: ex.destino, dataSaida: ex.dataSaida, horaSaida: ex.horaSaida || "", dataRetorno: ex.dataRetorno || ex.dataSaida, horaRetorno: ex.horaRetorno || "", localSaida: ex.localSaida || "", agencia }, forma, parcelas, formaTxt, vencimento,
       totalCent: conta.totalCent, descontoCent: conta.descontoCent, recebidoCent: 0,
       cupom: cupom?.ok && conta.comCupom ? cupom.codigo : null, cupomPessoas: conta.comCupom,
       titular: { nome: titular.nome, cpf: titular.cpf, email: titular.email, whatsapp: titular.whatsapp },
@@ -130,9 +134,10 @@ export default async function handler(req, res) {
     upd[`pedidos/${own}/${exId}/${pedidoId}`] = pedido;
     upd[`pedidosIdx/${pedidoId}`] = { own, exId };
     upd[`vendasCpf/${exId}/${titular.cpf}`] = pedidoId;
+    upd[`clientesPedidos/${cliente.uid}/${pedidoId}`] = { own, exId, criadoEm: Date.now() };
     await d.ref().update(upd);
     desfazer.push(() => {
-      const apagar = { [`pedidos/${own}/${exId}/${pedidoId}`]: null, [`pedidosIdx/${pedidoId}`]: null, [`vendasCpf/${exId}/${titular.cpf}`]: null };
+      const apagar = { [`pedidos/${own}/${exId}/${pedidoId}`]: null, [`pedidosIdx/${pedidoId}`]: null, [`vendasCpf/${exId}/${titular.cpf}`]: null, [`clientesPedidos/${cliente.uid}/${pedidoId}`]: null };
       vids.forEach((vid) => { apagar[`viajantes/${own}/${exId}/${vid}`] = null; });
       return d.ref().update(apagar);
     });

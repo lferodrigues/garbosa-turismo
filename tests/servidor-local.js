@@ -22,17 +22,18 @@ const db = criarDb({
   } } },
   poltronas: { ag1: { exTeste123: { v1: { 1: "a", 2: "b", 5: "c", 6: "d", 13: "e", 14: "f", 22: "g" } } } }
 });
-usarFalsos({ db });
+usarFalsos({ db, auth: { verifyIdToken: async (t) => (t.startsWith("tok-") ? { uid: t.slice(4), email: "teste@ex.com" } : Promise.reject(new Error("token"))) } });
 usarFetch(async (url, op) => {
   const ok = (o) => ({ ok: true, status: 200, text: async () => JSON.stringify(o) });
   console.log("ASAAS", op.method, url, op.body || "");
   if (url.includes("/customers?")) return ok({ data: [] });
   if (url.endsWith("/customers")) return ok({ id: "cus_local" });
-  if (url.endsWith("/payments")) return ok({ id: "pay_local", invoiceUrl: "http://localhost:5173/__asaas-fake" });
+  if (url.endsWith("/payments")) return ok({ id: "pay_local", installment: JSON.parse(op.body).installmentCount ? "ins_local" : undefined, invoiceUrl: "http://localhost:5173/__asaas-fake" });
+  if (url.includes("/installments/ins_local/payments")) return ok({ data: [1, 2, 3, 4].map((n) => ({ installmentNumber: n, value: 202.5, dueDate: somarDias(hojeBR(), 12 + (n - 1) * 30), status: n === 1 ? "RECEIVED" : "PENDING", paymentDate: hojeBR(), billingType: "BOLETO", invoiceUrl: "http://localhost:5173/__asaas-fake", bankSlipUrl: "http://localhost:5173/__asaas-fake" })) });
   return ok({});
 });
 const handlers = {};
-for (const n of ["venda", "cupom", "pedido", "asaas-webhook"]) handlers[n] = (await import(`../api/${n}.js`)).default;
+for (const n of ["venda", "cupom", "pedido", "asaas-webhook", "minhas-viagens", "pedido-cancelar"]) handlers[n] = (await import(`../api/${n}.js`)).default;
 const TIPOS = { ".html": "text/html; charset=utf-8", ".js": "text/javascript", ".css": "text/css", ".svg": "image/svg+xml", ".ico": "image/x-icon", ".png": "image/png", ".jpg": "image/jpeg" };
 
 http.createServer(async (req, res) => {
@@ -46,7 +47,12 @@ http.createServer(async (req, res) => {
     return h ? h(r, s) : s.status(404).json({ erro: "404" });
   }
   if (url.pathname === "/__asaas-fake") { res.setHeader("Content-Type", "text/html"); return res.end("<h1>Página de pagamento do Asaas (simulada)</h1>"); }
-  if (url.pathname === "/__db") { res.setHeader("Content-Type", "application/json"); return res.end(JSON.stringify(db.dump(), null, 1)); }
+  if (url.pathname === "/__db") {
+    res.setHeader("Content-Type", "application/json");
+    if (req.method === "POST") { let c = ""; for await (const x of req) c += x; const { path, valor, modo } = JSON.parse(c); await db.ref(path)[modo](valor); return res.end("{}"); }
+    if (url.searchParams.has("p")) return res.end(JSON.stringify((await db.ref(url.searchParams.get("p")).get()).val()));
+    return res.end(JSON.stringify(db.dump(), null, 1));
+  }
   try {
     const arq = normalize(join(RAIZ, decodeURIComponent(url.pathname.endsWith("/") ? url.pathname + "index.html" : url.pathname)));
     if (!arq.startsWith(RAIZ)) throw new Error();

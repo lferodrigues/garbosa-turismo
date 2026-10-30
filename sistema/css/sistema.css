@@ -901,3 +901,76 @@ input:-webkit-autofill{-webkit-text-fill-color:#fff;-webkit-box-shadow:0 0 0 40p
 .pedido-top{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;font-size:.86rem}
 .notif.t-venda .n-ic{background:#e7e4ff;color:var(--primary)}
 .pedido .acoes{display:flex;gap:4px;align-items:center}.pedido .acoes .ic{margin:0}
+
+/* =========================================================
+   CONTA DO VIAJANTE — login, pré-cadastro e Minhas viagens
+========================================================= */
+.cv-acesso h2,.cv-perfil h2{color:var(--primary);font-size:1.3rem;margin-bottom:6px}
+.cv-abas{display:grid;grid-template-columns:1fr 1fr;gap:6px;background:#f4f5fa;padding:5px;border-radius:14px;margin:12px 0 16px}
+.cv-aba{border:none;background:none;padding:10px 8px;border-radius:10px;font:inherit;font-weight:600;font-size:.85rem;color:var(--muted);cursor:pointer}
+.cv-aba.ativo{background:#fff;color:var(--primary);box-shadow:0 4px 12px rgba(21,21,59,.08)}
+.cv-acesso .login-form label{display:block;font-size:.85rem;font-weight:500;color:#444;margin-bottom:12px}
+.cv-ou{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:.8rem;margin:14px 0}
+.cv-ou::before,.cv-ou::after{content:"";flex:1;height:1px;background:var(--line)}
+.cv-barra{display:flex;align-items:center;gap:14px;flex-wrap:wrap;font-size:.85rem;background:#f6f5ff;border-radius:12px;padding:8px 14px;margin-bottom:14px}
+.cv-barra span{font-weight:600;color:var(--primary);margin-right:auto}
+.cv-barra a{color:var(--primary);font-weight:600;text-decoration:none}
+.cv-barra .link-btn{margin:0}
+.cp-deps-salvos{margin:-2px 0 12px}
+.cp-deps-salvos small{color:var(--muted);font-size:.8rem}
+.cp-deps-salvos div{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.cp-deps-salvos .cp-q{padding-left:12px}
+.cp-pessoa input[readonly]{background:#f4f5fa;color:#555}
+.mc-wrap{width:min(860px,94%);margin:auto}
+.mc-topo{display:flex;align-items:center;justify-content:space-between;gap:12px;color:#fff;margin-bottom:18px;flex-wrap:wrap}
+.mc-marca{display:flex;align-items:center;gap:12px;color:#fff;text-decoration:none}
+.mc-marca .login-logo{width:48px;height:48px;margin:0}
+.mc-marca strong{display:block;font-size:1.1rem}
+.mc-marca small{opacity:.8}
+.mc-user{display:flex;align-items:center;gap:12px;font-weight:600}
+.mc-card{padding:24px 26px}
+.mc-abas{display:grid;grid-template-columns:1fr 1fr;gap:6px;background:#f4f5fa;padding:5px;border-radius:14px;margin-bottom:18px}
+.mc-carregando{color:var(--muted);text-align:center;padding:40px 0}
+.mc-lista{display:grid;gap:10px;margin-bottom:10px}
+.mc-viagem{display:grid;grid-template-columns:auto 1fr auto;gap:14px;align-items:center;text-align:left;width:100%;border:1.5px solid var(--line);background:#fff;border-radius:16px;padding:12px 14px;font:inherit;cursor:pointer;transition:.2s}
+.mc-viagem:hover,.mc-viagem:focus-visible{border-color:var(--secondary);box-shadow:0 8px 20px rgba(42,31,136,.1);outline:none}
+.mc-viagem.passou{opacity:.75}
+.mc-data{background:var(--primary);color:#fff;border-radius:12px;padding:8px 10px;text-align:center;min-width:62px}
+.mc-data strong{display:block;font-size:1.05rem;color:var(--accent)}
+.mc-data small{font-size:.72rem;opacity:.85}
+.mc-info{display:grid;gap:3px;min-width:0}
+.mc-info strong{color:#222}
+.mc-info small{color:var(--muted);font-size:.78rem}
+.mc-info .bar{margin-top:4px;max-width:260px}
+.mc-st{display:flex;align-items:center;gap:10px;color:var(--muted)}
+.mc-voltar{display:inline-flex;gap:8px;align-items:center;margin:0 0 12px;text-decoration:none}
+.mc-cab{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:14px}
+.mc-cab h2{color:var(--primary);font-size:1.4rem;line-height:1.2}
+.mc-info-grid div{background:#f6f5ff;border-color:#e7e4ff;color:var(--text);backdrop-filter:none}
+.mc-info-grid i{color:var(--primary-2)}
+.mc-info-grid .span2{grid-column:span 2}
+.mc-totais{margin:14px 0 12px;grid-template-columns:repeat(3,1fr)}
+.mc-parcelas{display:grid;gap:8px}
+.mc-parc{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.mc-parc.paga{background:#f3fbf7;border-color:#cdeedd}
+.mc-parc.vencida{border-color:#f3b5b5;background:#fff6f6}
+.mc-num{font-weight:800;color:var(--primary);font-size:.85rem;min-width:36px}
+.mc-pinfo strong{display:block}
+.mc-pinfo small{color:var(--muted);font-size:.78rem}
+.mc-pacoes{display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+@media(max-width:640px){
+  .mc-card{padding:18px 14px}
+  .mc-viagem{grid-template-columns:auto 1fr}
+  .mc-st{grid-column:span 2;justify-content:space-between}
+  .mc-totais{grid-template-columns:1fr 1fr 1fr}
+  .mc-totais strong{font-size:.95rem}
+  .mc-parc{grid-template-columns:auto 1fr}
+  .mc-pacoes{grid-column:span 2;justify-content:flex-start}
+  .mc-info-grid .span2{grid-column:auto}
+}
+.mc-totais.cards-fin{padding:0}
+.mc-user .btn-ghost-light{color:#fff}
+.mc-user #btnSair{color:#fff!important}
+.mc-totais .card-fin{min-width:0}
+@media(max-width:640px){.mc-totais.cards-fin{gap:6px}.mc-totais .card-fin{padding:10px 8px}}
+.mc-user #btnSair i{color:#fff}

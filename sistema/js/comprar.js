@@ -1,5 +1,6 @@
 // Página pública de compra: viajantes → poltronas → pagamento no Asaas
-import * as R from "./venda-regras.js?v=9";
+import * as R from "./venda-regras.js?v=13";
+import { aoMudarSessao, telaAcesso, formPerfil, lerPerfil, salvarPerfil, paraPerfil, sair, api as apiConta } from "./conta-viajante.js?v=13";
 
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
@@ -8,7 +9,7 @@ const primeiro = (n) => String(n || "").trim().split(/\s+/)[0] || "";
 const exId = new URLSearchParams(location.search).get("e") || "";
 const CHAVE = `garbosa.compra.${exId}`;
 
-let EX = null;
+let EX = null, PERFIL = null, CONTA = null;
 const S = { pessoas: [], cupom: null, etapa: 1, veic: null, ativo: 0, forma: "", parcelas: { CREDIT_CARD: 1, BOLETO: 1 } };
 
 /* ---------- carregar ---------- */
@@ -51,9 +52,77 @@ async function carregar() {
   S.veic = EX.veiculos[0]?.id || null;
   restaurar();
   if (!S.pessoas.length) S.pessoas = [novaPessoa(true)];
-  renderPessoas();
+  aoMudarSessao(entrouOuSaiu);
+}
+
+/* ---------- conta do viajante (login + pré-cadastro) ---------- */
+async function entrouOuSaiu(u) {
+  CONTA = u;
+  if (!u) {
+    PERFIL = null; barraConta();
+    telaAcesso($("#etapa0"), { titulo: "Entre para comprar",
+      texto: "É a sua primeira vez? Clique em <strong>Criar conta</strong> e faça um pré-cadastro rápido. Nas próximas compras seus dados já vêm preenchidos e você acompanha as parcelas em <strong>Minhas viagens</strong>." });
+    irEtapa(0, false);
+    return mostrar("#compra");
+  }
+  try { PERFIL = await lerPerfil(); } catch (e) { console.warn(e); PERFIL = null; }
+  barraConta();
+  if (!PERFIL?.cpf) { preCadastro(); return mostrar("#compra"); }
+  aplicarPerfil();
   irEtapa(1, false);
   mostrar("#compra");
+}
+function preCadastro() {
+  formPerfil($("#etapa0"), PERFIL, { hoje: EX.hoje, titulo: "Pré-cadastro do viajante",
+    texto: "Preencha só uma vez. Estes dados ficam salvos na sua conta e serão usados como titular da compra.",
+    botao: "Salvar e continuar", aoSalvar: (p) => { PERFIL = p; barraConta(); aplicarPerfil(); irEtapa(1); } });
+  irEtapa(0, false);
+}
+function barraConta() {
+  const b = $("#contaBarra");
+  b.classList.toggle("hidden", !CONTA);
+  if (!CONTA) return;
+  b.innerHTML = `<span><i class="fa-solid fa-circle-user"></i> ${esc(primeiro(PERFIL?.nome) || CONTA.email)}</span>
+    <a href="minha-conta.html"><i class="fa-solid fa-suitcase-rolling"></i> Minhas viagens</a>
+    <button type="button" class="link-btn" id="btnSair">Sair</button>`;
+  $("#btnSair").onclick = async () => { try { sessionStorage.removeItem(CHAVE); } catch { /* ignora */ } S.pessoas = [novaPessoa(true)]; await sair(); };
+}
+/** O titular é sempre o dono da conta: dados do pré-cadastro (o CPF não muda) */
+function aplicarPerfil() {
+  const t = S.pessoas[0];
+  Object.assign(t, { nome: PERFIL.nome || "", cpf: R.mascaraCpf(PERFIL.cpf), rg: PERFIL.rg || "", nascimento: PERFIL.nascimento || "",
+    email: PERFIL.email || "", whatsapp: PERFIL.whatsapp || "", endereco: { ...t.endereco, ...(PERFIL.endereco || {}) } });
+  renderPessoas(); renderDepsSalvos(); renderResumo1();
+}
+const chaveDep = (p) => R.soDig(p.cpf) || String(p.nome || "").toLowerCase().normalize("NFD").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60);
+function renderDepsSalvos() {
+  const el = $("#depsSalvos");
+  const usados = new Set(S.pessoas.map(chaveDep));
+  const deps = Object.values(PERFIL?.dependentes || {}).filter((d) => d?.nome && !usados.has(chaveDep(d)));
+  el.classList.toggle("hidden", !deps.length);
+  el.innerHTML = deps.length ? `<small>Dependentes salvos na sua conta — toque para incluir:</small><div>${deps.map((d) =>
+    `<button type="button" class="cp-q" data-dep="${esc(chaveDep(d))}"><i class="fa-solid fa-plus"></i> ${esc(d.nome)}</button>`).join("")}</div>` : "";
+  $$("[data-dep]", el).forEach((b) => b.addEventListener("click", () => {
+    const d = Object.values(PERFIL.dependentes).find((x) => chaveDep(x) === b.dataset.dep);
+    if (!d || S.pessoas.length >= R.MAX_PESSOAS) return;
+    const np = novaPessoa(false);
+    Object.assign(np, { nome: d.nome, cpf: R.mascaraCpf(d.cpf), rg: d.rg || "", nascimento: d.nascimento || "", mesmoContato: d.mesmoContato !== false,
+      email: d.email || "", whatsapp: d.whatsapp || "", endereco: { ...np.endereco, ...(d.endereco || {}) } });
+    S.pessoas.push(np);
+    renderPessoas(); renderDepsSalvos(); renderResumo1(); salvar();
+  }));
+}
+/** Depois da compra: atualiza o perfil e guarda os dependentes para a próxima vez */
+async function guardarNaConta() {
+  const deps = { ...(PERFIL?.dependentes || {}) };
+  S.pessoas.slice(1).forEach((p) => {
+    const k = chaveDep(p);
+    if (!k) return;
+    deps[k] = { nome: p.nome.trim(), cpf: R.soDig(p.cpf), rg: p.rg.trim(), nascimento: p.nascimento || "", mesmoContato: !!p.mesmoContato,
+      ...(p.mesmoContato ? {} : { email: p.email.trim(), whatsapp: R.mascaraTel(p.whatsapp), endereco: paraPerfil(p).endereco }) };
+  });
+  const t = paraPerfil(efetiva(S.pessoas[0]));
+  await salvarPerfil({ ...t, cpf: R.soDig(PERFIL.cpf), dependentes: deps });
 }
 
 /* ---------- rascunho (só nesta aba do navegador) ---------- */
@@ -96,10 +165,10 @@ function cardPessoa(p, i) {
   const titulo = p.titular ? `<i class="fa-solid fa-user"></i> Titular da compra` : `<i class="fa-solid fa-user-group"></i> Dependente ${i}`;
   return `<fieldset class="cp-pessoa" data-uid="${p.uid}">
     <legend>${titulo}${p.titular ? "" : `<button type="button" class="cp-rem" data-rem="${p.uid}" title="Remover dependente" aria-label="Remover dependente ${i}"><i class="fa-solid fa-xmark"></i></button>`}</legend>
-    ${p.titular ? `<p class="cp-dica">É quem paga. A cobrança e os avisos do Asaas vão para o e-mail e o WhatsApp do titular.</p>` : ""}
+    ${p.titular ? `<p class="cp-dica">É você, o dono da conta: quem paga e recebe a cobrança e os avisos do Asaas. Alterações aqui atualizam o seu cadastro.</p>` : ""}
     <div class="form-grid">
       ${campo(p, "nome", "Nome completo", 'autocomplete="' + (p.titular ? "name" : "off") + '" maxlength="120"', "span2")}
-      ${campo(p, "cpf", `CPF${p.titular ? "" : ' <small class="cp-opc" data-opc>(opcional para colo)</small>'}`, 'inputmode="numeric" data-mask="cpf" placeholder="000.000.000-00"')}
+      ${campo(p, "cpf", `CPF${p.titular ? "" : ' <small class="cp-opc" data-opc>(opcional para colo)</small>'}`, 'inputmode="numeric" data-mask="cpf" placeholder="000.000.000-00"' + (p.titular && PERFIL?.cpf ? ' readonly title="CPF da sua conta"' : ""))}
       ${campo(p, "rg", `RG${p.titular ? "" : ' <small class="cp-opc" data-opc>(opcional para colo)</small>'}`, 'maxlength="30"')}
       ${campo(p, "nascimento", "Data de nascimento", 'type="date" max="' + EX.hoje + '"')}
       <div class="cp-colo ${podeColo(p) ? "" : "hidden"}" data-colo-wrap>
@@ -134,7 +203,7 @@ function renderPessoas() {
   });
   $$("[data-rem]").forEach((b) => b.addEventListener("click", () => {
     S.pessoas = S.pessoas.filter((p) => p.uid !== b.dataset.rem);
-    renderPessoas(); renderResumo1(); salvar();
+    renderPessoas(); renderDepsSalvos(); renderResumo1(); salvar();
   }));
 }
 
@@ -231,7 +300,9 @@ $("#cCupom").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.pre
 function msg(n, t, tipo = "erro") { const m = $(`#msg${n}`); m.textContent = t; m.className = "login-msg " + tipo; }
 function irEtapa(n, rolar = true) {
   S.etapa = n;
-  [1, 2, 3].forEach((k) => $(`#etapa${k}`).classList.toggle("hidden", k !== n));
+  [0, 1, 2, 3].forEach((k) => $(`#etapa${k}`).classList.toggle("hidden", k !== n));
+  $(".cp-passos").classList.toggle("hidden", n === 0);
+  if (n !== 0) $("#etapa0").innerHTML = "";
   $$(".cp-passos li").forEach((li) => { const k = +li.dataset.passo; li.classList.toggle("ativo", k === n); li.classList.toggle("feito", k < n); });
   if (n === 1) renderResumo1();
   if (n === 2) renderPoltronas();
@@ -397,14 +468,17 @@ $("#btnPagar").addEventListener("click", async () => {
   $("#btnPagar").disabled = true;
   $("#gerando").classList.remove("hidden");
   try {
-    const r = await api("/api/pedido", corpo);
+    const r = await apiConta("/api/pedido", corpo);
     try { sessionStorage.removeItem(CHAVE); } catch { /* ignora */ }
+    await guardarNaConta().catch((err) => console.warn("perfil", err));
     $("#gerando p").innerHTML = `<strong>Pedido #${esc(r.pedido)} criado!</strong><span>Abrindo a página de pagamento do Asaas…</span>`;
     location.href = r.url;
   } catch (e) {
     $("#gerando").classList.add("hidden");
     $("#btnPagar").disabled = false;
     const d = e.dados || {};
+    if (d.login) return msg(3, e.message + " (use o botão Sair e entre de novo)");
+    if (d.preCadastro) { PERFIL = null; return preCadastro(); }
     if (d.poltronasOcupadas) {
       await atualizarOcupacao();
       irEtapa(2);

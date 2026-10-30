@@ -416,6 +416,8 @@ async function iniciarSessao(user) {
     if (!snap.exists()) {
       const bloq = await get(ref(db, `bloqueados/${user.uid}`)).catch(() => null);
       if (bloq?.exists()) { bloquear("Seu acesso foi removido pelo administrador. Fale com a Garbosa Turismo."); return; }
+      const viajante = await get(ref(db, `clientes/${user.uid}`)).catch(() => null);
+      if (viajante?.exists()) { bloquear("Esta é uma conta de viajante. Para ver suas viagens e parcelas, acesse a página Minhas viagens (sistema/minha-conta.html)."); return; }
       mostrarCompletar(user);
       return;
     }
