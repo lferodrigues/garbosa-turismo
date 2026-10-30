@@ -1,0 +1,13 @@
+{
+  "name": "garbosa-turismo",
+  "private": true,
+  "description": "Site da Garbosa Turismo + Garbosa System. As funções em /api rodam na Vercel (venda online com Asaas).",
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "test": "node --test tests/*.test.js"
+  },
+  "dependencies": {
+    "firebase-admin": "^13.0.0"
+  }
+}

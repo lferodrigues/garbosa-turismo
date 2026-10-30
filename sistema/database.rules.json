@@ -109,6 +109,41 @@
           },
           "$campo": {
             ".write": "(auth != null && root.child('excursoes').child($uid).child($excursaoId).child('colaboradores').child(auth.uid).exists())"
+          },
+          "venda": {
+            ".write": "(auth != null && root.child('excursoes').child($uid).child($excursaoId).child('colaboradores').child(auth.uid).exists())",
+            ".validate": "newData.hasChildren(['ativa']) && newData.child('ativa').isBoolean()",
+            "maxParcelas": {
+              ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 6"
+            },
+            "primeiraParcela": {
+              ".validate": "newData.isString() && newData.val().matches(/^\\d{4}-\\d{2}-\\d{2}$/)"
+            },
+            "ativa": {
+              ".validate": "newData.isBoolean()"
+            },
+            "$outro": {
+              ".validate": false
+            }
+          },
+          "descricao": {
+            ".write": "(auth != null && root.child('excursoes').child($uid).child($excursaoId).child('colaboradores').child(auth.uid).exists())",
+            ".validate": "newData.isString() && newData.val().length <= 1500"
+          },
+          "cupons": {
+            ".write": "(auth != null && root.child('excursoes').child($uid).child($excursaoId).child('colaboradores').child(auth.uid).exists())",
+            "$codigo": {
+              ".validate": "$codigo.matches(/^[A-Z0-9_-]{3,30}$/) && newData.hasChildren(['valor', 'porCompra']) && newData.child('valor').isNumber() && newData.child('valor').val() > 0 && newData.child('porCompra').isNumber() && newData.child('porCompra').val() >= 1",
+              "limite": {
+                ".validate": "newData.isNumber() && newData.val() >= 0"
+              },
+              "validade": {
+                ".validate": "newData.isString() && newData.val().matches(/^\\d{4}-\\d{2}-\\d{2}$/)"
+              },
+              "ativo": {
+                ".validate": "newData.isBoolean()"
+              }
+            }
           }
         }
       }
@@ -238,6 +273,19 @@
         "navegador": {
           ".validate": "newData.isString() && newData.val().length <= 200"
         }
+      }
+    },
+    "pedidos": {
+      ".read": "(auth != null && auth.token.email === 'contato@feliperodrigues.net')",
+      "$uid": {
+        "$exId": {
+          ".read": "auth != null && (auth.uid === $uid || root.child('excursoes').child($uid).child($exId).child('colaboradores').child(auth.uid).exists() || (auth != null && auth.token.email === 'contato@feliperodrigues.net'))"
+        }
+      }
+    },
+    "vendasUso": {
+      "$exId": {
+        ".read": "auth != null && (root.child('inscricoes').child($exId).child('owner').val() === auth.uid || root.child('excursoes').child(root.child('inscricoes').child($exId).child('owner').val()).child($exId).child('colaboradores').child(auth.uid).exists() || (auth != null && auth.token.email === 'contato@feliperodrigues.net'))"
       }
     }
   }

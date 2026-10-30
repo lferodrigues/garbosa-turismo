@@ -966,6 +966,7 @@ function viewExcursoes() {
             <button class="ic" title="Viajantes" data-a="via" data-id="${id}"><i class="fa-solid fa-users"></i></button>
             <button class="ic" title="Poltronas" data-a="pol" data-id="${id}"><i class="fa-solid fa-couch"></i></button>
             <button class="ic" title="Financeiro" data-a="fin" data-id="${id}"><i class="fa-solid fa-sack-dollar"></i></button>
+            <button class="ic" title="Venda online (Asaas): link, cupons e pedidos" data-a="venda" data-id="${id}"><i class="fa-solid fa-cart-shopping"></i></button>
             <button class="ic" title="Link de inscrição" data-a="link" data-id="${id}"><i class="fa-solid fa-link"></i></button>
             <button class="ic" title="Editar" data-a="edit" data-id="${id}"><i class="fa-solid fa-pen"></i></button>
             ${souDono(id) ? `<button class="ic danger" title="Excluir" data-a="del" data-id="${id}"><i class="fa-solid fa-trash"></i></button>` : ""}
@@ -981,6 +982,7 @@ function viewExcursoes() {
     if (b.dataset.a === "edit") formExcursao(id);
     if (b.dataset.a === "fin") irPara("financeiro", id);
     if (b.dataset.a === "link") mostrarLink(id, own);
+    if (b.dataset.a === "venda") painelVenda(id, own);
     if (b.dataset.a === "del") confirmar(`Excluir a excursão <strong>${esc(S.excursoes[id].destino)}</strong> com todos os viajantes, pagamentos e o mapa de poltronas? O link de inscrição também deixa de funcionar.`, async () => {
       const upd = { [`excursoes/${own}/${id}`]: null, [`viajantes/${own}/${id}`]: null, [`poltronas/${own}/${id}`]: null, [`inscricoes/${id}`]: null };
       Object.keys(S.excursoes[id].colaboradores || {}).forEach((uid) => { upd[`compartilhadas/${uid}/${id}`] = null; });
@@ -1025,6 +1027,7 @@ function formExcursao(id = null, viagemId = null) {
       <label>Data de retorno<input type="date" name="dataRetorno" value="${esc(e.dataRetorno)}"></label>
       <label>Horário de retorno<input type="time" name="horaRetorno" value="${esc(e.horaRetorno)}"></label>
       <label class="span2">Local de saída<input name="localSaida" required value="${esc(e.localSaida)}" placeholder="Ex.: Rodoviária de São João Nepomuceno"></label>
+      <label class="span2">Descrição para a página de venda (opcional)<textarea name="descricao" rows="3" maxlength="1500" placeholder="O que está incluso, roteiro, observações…">${esc(e.descricao)}</textarea></label>
       <div class="section-label span2"><i class="fa-solid fa-bus"></i> ${id ? "Veículo principal" : "Veículo"}</div>
       <label class="span2">Vincular a um veículo agendado pela transportadora (opcional)<select name="viagemId" id="exViagem">${opcoesViagens(vinc, ownerPadrao)}</select></label>
       <label>Tipo de veículo<select name="tipo" id="exTipo" required>${opcoesVeiculo(v0.tipo || "onibus46")}</select></label>
@@ -1032,6 +1035,11 @@ function formExcursao(id = null, viagemId = null) {
       <label>Ingressos — valor total (R$, 0 se não houver)<input type="number" step="0.01" min="0" name="valorIngressos" id="exIngr" value="${esc(v0.valorIngressos ?? 0)}"></label>
       <label>Valor para criança de colo (R$)<input type="number" step="0.01" min="0" name="valorColo" value="${esc(e.valorColo ?? 0)}"></label>
       <div class="calc-box span2" id="exCalc"></div>
+      <div class="section-label span2"><i class="fa-solid fa-cart-shopping"></i> Venda online (Asaas)</div>
+      <label class="check span2"><input type="checkbox" name="vendaAtiva" id="exVendaAtiva" ${e.venda?.ativa || !id ? "checked" : ""}> Vender pela internet com cartão em até 6x, Pix e boleto parcelado</label>
+      <label>Início do parcelamento (1º vencimento do boleto)<input type="date" name="primeiraParcela" id="exPrimeira" value="${esc(e.venda?.primeiraParcela || "")}"></label>
+      <label>Parcelar em até<select name="maxParcelas">${[1, 2, 3, 4, 5, 6].map((n) => `<option value="${n}" ${n === (parseInt(e.venda?.maxParcelas, 10) || 6) ? "selected" : ""}>${n === 1 ? "1x (à vista)" : n + "x"}</option>`).join("")}</select></label>
+      <small class="muted span2">Cartão: até o número escolhido, cobrado na compra. Boleto: uma parcela por mês a partir da data acima, sempre vencendo antes da saída. Pix: sempre à vista. Cupons e o link de venda ficam em <i class="fa-solid fa-cart-shopping"></i> Venda online.</small>
       <div class="section-label span2"><i class="fa-solid fa-user-group"></i> Colaboradores</div>
       <div class="span2">
         ${gerenciaColab ? `<div class="colab-add">
@@ -1096,8 +1104,11 @@ async function salvarExcursao(id, vk, colabs = {}, colabsAntes = {}) {
   if (!f.reportValidity()) return;
   const d = lerForm(f);
   if (d.dataRetorno && d.dataRetorno < d.dataSaida) return toast("O retorno não pode ser antes da saída.", "erro");
+  if (d.vendaAtiva && !d.primeiraParcela) return toast("Escolha a data de início do parcelamento da venda online.", "erro");
+  if (d.vendaAtiva && d.primeiraParcela >= d.dataSaida) return toast("O início do parcelamento precisa ser antes da data de saída.", "erro");
   const veiculo = { tipo: d.tipo, valorTransporte: num(d.valorTransporte), valorIngressos: num(d.valorIngressos), viagemId: d.viagemId || null };
-  const info = { destino: d.destino, dataSaida: d.dataSaida, horaSaida: d.horaSaida, dataRetorno: d.dataRetorno || d.dataSaida, horaRetorno: d.horaRetorno, localSaida: d.localSaida, valorColo: num(d.valorColo) };
+  const info = { destino: d.destino, dataSaida: d.dataSaida, horaSaida: d.horaSaida, dataRetorno: d.dataRetorno || d.dataSaida, horaRetorno: d.horaRetorno, localSaida: d.localSaida, valorColo: num(d.valorColo),
+    descricao: d.descricao || null, venda: { ativa: !!d.vendaAtiva, primeiraParcela: d.primeiraParcela || null, maxParcelas: Math.min(6, Math.max(1, parseInt(d.maxParcelas, 10) || 1)) } };
   const podeColab = !id || souDono(id);
   try {
     let exId, own;
@@ -1127,7 +1138,7 @@ async function salvarExcursao(id, vk, colabs = {}, colabsAntes = {}) {
     }
     const pub = await publicarInscricao(exId, own);
     fecharModal();
-    if (!id) mostrarLink(exId, own, true, pub);
+    if (!id) { if (info.venda.ativa) painelVenda(exId, own, true, { ...info, _owner: own, veiculos: { v0: { ...veiculo, ordem: 0 } } }); else mostrarLink(exId, own, true, pub); }
   } catch (e) { falha(e); }
 }
 
@@ -1184,6 +1195,152 @@ function mostrarLink(exId, own = dono(exId), recemCriada = false, pub = null) {
     try { await navigator.clipboard.writeText(url); } catch { $("#linkUrl").select(); document.execCommand("copy"); }
     toast("Link copiado");
   };
+}
+
+/* =========================================================
+   VENDA ONLINE (Asaas): link de venda, cupons e pedidos
+========================================================= */
+const STATUS_PEDIDO = {
+  aguardando: { nome: "Aguardando pagamento", cls: "pendente" }, parcial: { nome: "Pagando (parcial)", cls: "parcial" },
+  pago: { nome: "Pago", cls: "pago" }, expirado: { nome: "Expirado", cls: "isento" }, cancelado: { nome: "Cancelado", cls: "isento" }
+};
+const urlVenda = (exId) => `${location.origin}${location.pathname.replace(/[^/]*$/, "")}comprar.html?e=${encodeURIComponent(exId)}`;
+const normCupom = (v) => String(v || "").trim().toUpperCase().replace(/[^A-Z0-9_-]/g, "").slice(0, 30);
+const brlC = (c) => brl((c || 0) / 100);
+
+async function painelVenda(exId, own = dono(exId), recemCriada = false, exDados = null) {
+  const e = S.excursoes[exId] || exDados;
+  if (!e) return;
+  const v = e.venda || {}, ativa = v.ativa === true, url = urlVenda(exId);
+  const v0 = veiculosDe(e)[0]?.[1];
+  const valor = v0 ? Math.round(precoPoltrona(v0) * 100) / 100 : 0;
+  const max = parseInt(v.maxParcelas, 10) || 1;
+  let usos = {}, pedidos = {};
+  try {
+    [usos, pedidos] = await Promise.all([
+      get(ref(db, `vendasUso/${exId}`)).then((x) => x.val() || {}).catch(() => ({})),
+      get(ref(db, `pedidos/${own}/${exId}`)).then((x) => x.val() || {})
+    ]);
+  } catch (err) { console.warn("pedidos", err); }
+  const cupons = Object.entries(e.cupons || {}).sort((a, b) => a[0].localeCompare(b[0]));
+  const lista = Object.entries(pedidos).sort((a, b) => (b[1].criadoEm || 0) - (a[1].criadoEm || 0));
+  const vendidos = lista.filter(([, p]) => ["aguardando", "parcial", "pago"].includes(p.status));
+  const recebido = vendidos.reduce((t, [, p]) => t + (p.recebidoCent || 0), 0);
+  const formas = `💳 Cartão${max > 1 ? ` em até ${max}x` : ""} · Pix à vista · Boleto${max > 1 ? ` em até ${max}x` : ""}`;
+  const texto = `🚌 *${e.destino}*\n📅 Saída: ${fData(e.dataSaida)}${e.horaSaida ? " às " + e.horaSaida : ""}\n📍 ${e.localSaida || "Local a combinar"}\n💰 ${brl(valor)} por pessoa\n${formas}\n\nEscolha sua poltrona e garanta seu lugar: ${url}`;
+
+  abrirModal(recemCriada ? "Excursão cadastrada! Link de venda" : `Venda online — ${e.destino}`, `
+    ${recemCriada ? `<p class="muted" style="margin-bottom:10px">O link de venda foi gerado. Quem abrir preenche os dados, escolhe a poltrona e paga pelo Asaas.</p>` : ""}
+    <div class="dl">
+      ${linha("Situação", ativa ? `<span class="pill pill-green">Vendendo</span>` : `<span class="pill pill-red">Vendas encerradas</span>`)}
+      ${linha("Valor por pessoa", `<span class="money">${brl(valor)}</span>${num(e.valorColo) ? ` · colo ${brl(e.valorColo)}` : ""}`)}
+      ${linha("Parcelamento", `Cartão e boleto em até <strong>${max}x</strong>${v.primeiraParcela ? ` · 1º boleto em ${fData(v.primeiraParcela)}` : ""}`)}
+      ${linha("Vendido online", `${vendidos.length} pedido(s) · ${vendidos.reduce((t, [, p]) => t + Object.keys(p.viajantes || {}).length, 0)} viajante(s) · recebido ${brlC(recebido)}`)}
+    </div>
+    <div class="link-box"><input id="vendaUrl" readonly value="${esc(url)}"><button class="btn btn-primary btn-sm" id="btnCopiarVenda"><i class="fa-solid fa-copy"></i> Copiar</button></div>
+    <div class="link-acoes">
+      <a class="btn btn-wpp btn-sm" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(texto)}"><i class="fa-brands fa-whatsapp"></i> Divulgar no WhatsApp</a>
+      <a class="btn btn-light btn-sm" target="_blank" rel="noopener" href="${esc(url)}"><i class="fa-solid fa-arrow-up-right-from-square"></i> Abrir página de venda</a>
+    </div>
+
+    <h4 class="sub"><i class="fa-solid fa-tags"></i> Promoções e cupons</h4>
+    ${cupons.length ? `<div class="table-wrap"><table class="grid mini"><thead><tr><th>Cupom</th><th>Valor c/ cupom</th><th>Pessoas por compra</th><th>Usado</th><th>Validade</th><th></th></tr></thead><tbody>
+      ${cupons.map(([cod, c]) => `<tr class="${c.ativo === false ? "inativo" : ""}">
+        <td><strong>${esc(cod)}</strong>${c.ativo === false ? ` <span class="pill pill-red">pausado</span>` : ""}</td>
+        <td class="money">${brl(c.valor)}</td>
+        <td>até ${esc(c.porCompra)} <small class="muted">(da ${num(c.porCompra) + 1}ª em diante, valor cheio)</small></td>
+        <td>${num(usos[cod])}${num(c.limite) ? ` / ${esc(c.limite)}` : ""}</td>
+        <td>${c.validade ? fData(c.validade) : "—"}</td>
+        <td class="acoes"><button class="ic" data-cup-ed="${esc(cod)}" title="Editar"><i class="fa-solid fa-pen"></i></button>
+          <button class="ic danger" data-cup-del="${esc(cod)}" title="Excluir"><i class="fa-solid fa-trash"></i></button></td></tr>`).join("")}
+      </tbody></table></div>` : `<p class="vazio">Nenhum cupom. Crie um para dar um valor promocional por pessoa.</p>`}
+    <button class="btn btn-light btn-sm" id="btnNovoCupom" style="margin-top:8px"><i class="fa-solid fa-plus"></i> Novo cupom</button>
+
+    <h4 class="sub"><i class="fa-solid fa-receipt"></i> Pedidos online</h4>
+    ${lista.length ? `<div class="pedidos">${lista.map(([pid, p]) => {
+      const st = STATUS_PEDIDO[p.status] || { nome: p.status, cls: "" };
+      const tel = soDig(p.titular?.whatsapp);
+      const cobrar = `Olá, ${(p.titular?.nome || "").split(" ")[0]}! Segue o link para concluir o pagamento da excursão ${e.destino}: ${p.asaas?.invoiceUrl || ""}`;
+      return `<div class="pedido">
+        <div class="pedido-top"><strong>#${esc(pid.slice(-6).toUpperCase())} · ${esc(p.titular?.nome || "")}</strong><span class="pill st-${st.cls}">${esc(st.nome)}</span></div>
+        <small class="muted">${fDataHora(p.criadoEm)} · ${Object.keys(p.viajantes || {}).length} viajante(s) · ${esc(p.formaTxt || "")}${p.cupom ? ` · cupom ${esc(p.cupom)}` : ""}</small>
+        <div class="pedido-top"><span>Total <strong class="money">${brlC(p.totalCent)}</strong> · recebido ${brlC(p.recebidoCent)}</span>
+          <span class="acoes">
+            ${p.asaas?.invoiceUrl ? `<a class="ic" style="display:inline-grid;place-items:center" target="_blank" rel="noopener" href="${esc(p.asaas.invoiceUrl)}" title="Abrir cobrança no Asaas"><i class="fa-solid fa-file-invoice-dollar"></i></a>` : ""}
+            ${tel.length >= 10 && p.asaas?.invoiceUrl && ["aguardando", "parcial"].includes(p.status) ? `<a class="ic" style="display:inline-grid;place-items:center;color:#1d9a55" target="_blank" rel="noopener" href="https://wa.me/55${tel}?text=${encodeURIComponent(cobrar)}" title="Enviar link de pagamento no WhatsApp"><i class="fa-brands fa-whatsapp"></i></a>` : ""}
+            ${p.status === "aguardando" ? `<button class="ic danger" data-ped-cancel="${esc(pid)}" title="Cancelar pedido e liberar poltronas"><i class="fa-solid fa-ban"></i></button>` : ""}
+          </span></div>
+        ${p.motivo ? `<small class="muted">${esc(p.motivo)}</small>` : ""}
+      </div>`;
+    }).join("")}</div>` : `<p class="vazio">Nenhuma compra pelo link ainda.</p>`}`, [
+    { html: ativa ? `<i class="fa-solid fa-lock"></i> Encerrar vendas` : `<i class="fa-solid fa-lock-open"></i> Abrir vendas`, acao: async () => {
+      if (!ativa && (!v.primeiraParcela || !v.maxParcelas)) { toast("Defina o início e o número de parcelas da venda online.", "erro"); return formExcursao(exId); }
+      try { await update(ref(db, `excursoes/${own}/${exId}/venda`), { ativa: !ativa }); await publicarInscricao(exId, own); toast(ativa ? "Vendas encerradas" : "Vendas abertas"); painelVenda(exId, own); } catch (err) { falha(err); }
+    } },
+    { html: `<i class="fa-solid fa-pen"></i> Parcelamento`, acao: () => formExcursao(exId) },
+    { html: "Fechar", classe: "btn-primary", acao: fecharModal }
+  ], true);
+  $("#btnCopiarVenda").onclick = async () => {
+    try { await navigator.clipboard.writeText(url); } catch { $("#vendaUrl").select(); document.execCommand("copy"); }
+    toast("Link de venda copiado");
+  };
+  $("#btnNovoCupom").onclick = () => formCupom(exId, own);
+  $$("[data-cup-ed]").forEach((b) => b.addEventListener("click", () => formCupom(exId, own, b.dataset.cupEd)));
+  $$("[data-cup-del]").forEach((b) => b.addEventListener("click", () => confirmar(`Excluir o cupom <strong>${esc(b.dataset.cupDel)}</strong>? Quem já comprou com ele não é afetado.`, async () => {
+    await remove(ref(db, `excursoes/${own}/${exId}/cupons/${b.dataset.cupDel}`)); toast("Cupom excluído"); painelVenda(exId, own);
+  })));
+  $$("[data-ped-cancel]").forEach((b) => b.addEventListener("click", () => confirmar(
+    "Cancelar este pedido? A cobrança no Asaas é cancelada, as poltronas são liberadas e os viajantes saem da lista.", async () => {
+      const r = await fetch("/api/pedido-cancelar", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${await auth.currentUser.getIdToken()}` }, body: JSON.stringify({ pedido: b.dataset.pedCancel }) });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) return toast(d.erro || "Não foi possível cancelar.", "erro");
+      toast("Pedido cancelado e poltronas liberadas");
+      painelVenda(exId, own);
+    }, "Cancelar pedido")));
+}
+
+function formCupom(exId, own, codigo = null) {
+  const e = S.excursoes[exId] || {};
+  const c = codigo ? e.cupons?.[codigo] || {} : { porCompra: 5, ativo: true };
+  const v0 = veiculosDe(e)[0]?.[1];
+  const cheio = v0 ? Math.round(precoPoltrona(v0) * 100) / 100 : 0;
+  abrirModal(codigo ? `Editar cupom ${codigo}` : "Novo cupom de promoção", `
+    <form id="fCupom" class="form-grid">
+      <label>Código do cupom<input name="codigo" required maxlength="30" value="${esc(codigo || "")}" ${codigo ? "readonly" : ""} placeholder="Ex.: AMIGOS10" style="text-transform:uppercase"></label>
+      <label>Valor por pessoa com o cupom (R$)<input type="number" step="0.01" min="0.01" name="valor" required value="${esc(c.valor ?? "")}"></label>
+      <label>Vale para quantas pessoas por compra<input type="number" min="1" max="20" step="1" name="porCompra" required value="${esc(c.porCompra ?? 5)}"></label>
+      <label>Limite total de pessoas (0 = sem limite)<input type="number" min="0" step="1" name="limite" value="${esc(c.limite ?? 0)}"></label>
+      <label>Válido até (opcional)<input type="date" name="validade" value="${esc(c.validade || "")}"></label>
+      <label class="check" style="align-self:end"><input type="checkbox" name="ativo" ${c.ativo !== false ? "checked" : ""}> Cupom ativo</label>
+      <div class="calc-box span2" id="cupCalc"></div>
+    </form>`, [
+    { html: "Voltar", acao: () => painelVenda(exId, own) },
+    { html: `<i class="fa-solid fa-floppy-disk"></i> Salvar cupom`, classe: "btn-primary", acao: async () => {
+      const f = $("#fCupom");
+      if (!f.reportValidity()) return;
+      const d = lerForm(f), cod = normCupom(d.codigo);
+      if (cod.length < 3) return toast("O código precisa de pelo menos 3 letras ou números.", "erro");
+      if (!codigo && e.cupons?.[cod]) return toast(`Já existe o cupom ${cod} nesta excursão.`, "erro");
+      if (num(d.valor) <= 0) return toast("Informe o valor por pessoa com o cupom.", "erro");
+      if (cheio && num(d.valor) >= cheio) return toast(`O valor com cupom precisa ser menor que o valor cheio (${brl(cheio)}).`, "erro");
+      try {
+        await set(ref(db, `excursoes/${own}/${exId}/cupons/${cod}`), {
+          valor: Math.round(num(d.valor) * 100) / 100, porCompra: Math.max(1, parseInt(d.porCompra, 10) || 1), limite: Math.max(0, parseInt(d.limite, 10) || 0),
+          validade: d.validade || null, ativo: !!d.ativo, criadoEm: c.criadoEm || Date.now()
+        });
+        toast(codigo ? "Cupom atualizado" : `Cupom ${cod} criado`);
+        painelVenda(exId, own);
+      } catch (err) { falha(err); }
+    } }
+  ]);
+  const f = $("#fCupom");
+  const calc = () => {
+    const d = lerForm(f), n = Math.max(1, parseInt(d.porCompra, 10) || 1);
+    $("#cupCalc").innerHTML = `${linha("Valor cheio por pessoa", brl(cheio))}${linha("Com o cupom", brl(num(d.valor)))}
+      <small class="muted">Na mesma compra, as ${n} primeiras pessoas pagam ${brl(num(d.valor))}; da ${n + 1}ª em diante, ${brl(cheio)}.${num(d.limite) ? ` O cupom acaba depois de ${num(d.limite)} pessoas no total.` : ""}</small>`;
+  };
+  f.addEventListener("input", calc); calc();
+  f.addEventListener("submit", (ev) => ev.preventDefault());
 }
 
 function formVeiculoExtra(exId) {
@@ -1254,7 +1411,7 @@ function viewViajantes() {
   <section class="panel">
     ${toolbar("Cadastro de viajantes", "fa-users",
       tbBtn("btnNovoPass", "fa-user-plus", "Cadastrar viajante", "tool-accent") + tbBtn("btnImportar", "fa-file-arrow-up", "Importar planilha") +
-      tbBtn("btnLinkInsc", "fa-link", "Link de inscrição") + tbBtn("btnVeicExtra", "fa-bus", "Inserir veículo") + tbBtn("btnIrPolt", "fa-couch", "Poltronas"))}
+      tbBtn("btnVendaOn", "fa-cart-shopping", "Venda online") + tbBtn("btnLinkInsc", "fa-link", "Link de inscrição") + tbBtn("btnVeicExtra", "fa-bus", "Inserir veículo") + tbBtn("btnIrPolt", "fa-couch", "Poltronas"))}
     <div class="subbar">${sel}
       <div class="lotacao"><div class="lot-txt"><strong>${occ}</strong> de <strong>${cap}</strong> poltronas · ${lista.length - occ} de colo</div>
       <div class="bar"><span style="width:${pct}%" class="${occ > cap ? "red" : occ === cap ? "yellow" : ""}"></span></div></div>
@@ -1267,7 +1424,7 @@ function viewViajantes() {
       <thead><tr><th>#</th><th>Nome completo</th><th>Documento</th><th>Telefone</th><th>Idade</th><th>Pagamento</th><th>Poltrona</th><th></th></tr></thead>
       <tbody>${lista.map(([pid, p], i) => `<tr>
         <td>${i + 1}</td>
-        <td><strong>${esc(p.nome)}</strong>${p.colo ? ` <span class="pill pill-yellow">colo</span>` : ""}${p.origem === "link" ? ` <span class="pill pill-link" title="Cadastrado pelo link">link</span>` : ""}${p.origem === "planilha" ? ` <span class="pill" title="Importado de planilha">planilha</span>` : ""}${p.obs ? `<br><small class="muted">${esc(p.obs)}</small>` : ""}</td>
+        <td><strong>${esc(p.nome)}</strong>${p.colo ? ` <span class="pill pill-yellow">colo</span>` : ""}${p.origem === "link" ? ` <span class="pill pill-link" title="Cadastrado pelo link">link</span>` : ""}${p.origem === "planilha" ? ` <span class="pill" title="Importado de planilha">planilha</span>` : ""}${p.origem === "venda" ? ` <span class="pill pill-online st-${STATUS_PEDIDO[p.statusVenda]?.cls || "pendente"}" title="Compra online (Asaas) — ${esc(STATUS_PEDIDO[p.statusVenda]?.nome || "")}"><i class="fa-solid fa-cart-shopping"></i> online</span>` : ""}${p.obs ? `<br><small class="muted">${esc(p.obs)}</small>` : ""}</td>
         <td><small class="muted">${esc(DOCS[p.docTipo] || p.docTipo)}</small><br>${esc(p.docNumero)}</td>
         <td>${esc(p.telefone)}</td>
         <td>${esc(p.idade ?? "—")}</td>
@@ -1286,6 +1443,7 @@ function viewViajantes() {
   $("#btnIrPolt").onclick = () => irPara("poltronas", exId);
   $("#btnImportar").onclick = () => importarPlanilha(exId);
   $("#btnLinkInsc").onclick = () => mostrarLink(exId, own);
+  $("#btnVendaOn").onclick = () => painelVenda(exId, own);
   $$("[data-a]").forEach((b) => b.addEventListener("click", () => {
     const pid = b.dataset.id, p = S.viajantes[exId][pid];
     if (b.dataset.a === "edit") formViajante(exId, pid);
@@ -1857,7 +2015,7 @@ const pillStatus = (p) => { const st = statusPag(p); return `<span class="pill s
 /* =========================================================
    NOTIFICAÇÕES (sininho)
 ========================================================= */
-const ICONE_NOTIF = { inscricao: "fa-user-plus", viagem: "fa-bus", colaboracao: "fa-user-group", pagamento: "fa-sack-dollar" };
+const ICONE_NOTIF = { inscricao: "fa-user-plus", viagem: "fa-bus", colaboracao: "fa-user-group", pagamento: "fa-sack-dollar", venda: "fa-cart-shopping" };
 
 function notificar(uids, n) {
   const destinos = [...new Set(uids)].filter((u) => u && u !== U?.uid);
@@ -1948,7 +2106,7 @@ function viewFinanceiro() {
 
   $("#workspace").innerHTML = `
   <section class="panel">
-    ${toolbar("Financeiro da excursão", "fa-sack-dollar", tbBtn("btnIrVia", "fa-users", "Viajantes") + tbBtn("btnLinkFin", "fa-link", "Link de inscrição"))}
+    ${toolbar("Financeiro da excursão", "fa-sack-dollar", tbBtn("btnIrVia", "fa-users", "Viajantes") + tbBtn("btnVendaFin", "fa-cart-shopping", "Venda online") + tbBtn("btnLinkFin", "fa-link", "Link de inscrição"))}
     <div class="subbar">${sel}
       <input type="search" id="finBusca" class="search" placeholder="Buscar viajante..." value="${esc(S.finBusca)}">
       <select id="finFiltro" class="search" style="flex:0 0 170px">
@@ -1987,6 +2145,7 @@ function viewFinanceiro() {
   ligarSeletor();
   $("#btnIrVia").onclick = () => irPara("viajantes", exId);
   $("#btnLinkFin").onclick = () => mostrarLink(exId);
+  $("#btnVendaFin").onclick = () => painelVenda(exId);
   $("#finFiltro").onchange = (e) => { S.finFiltro = e.target.value; render(); };
   $("#finBusca").addEventListener("input", (e) => {
     S.finBusca = e.target.value; const pos = e.target.selectionStart; render();
