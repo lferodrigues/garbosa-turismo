@@ -42,7 +42,8 @@ const ROTAS = {
   financeiro: { nome: "Financeiro",           icone: "fa-sack-dollar",   cor: "c3", tipos: ["agencia", "admin"], compart: true },
   viagens:    { nome: "Viagens / Orçamentos", icone: "fa-bus",           cor: "c2", tipos: ["transportadora", "admin"] },
   usuarios:   { nome: "Usuários",             icone: "fa-user-gear",     cor: "c5", tipos: ["admin"] },
-  logs:       { nome: "Logs de acesso",       icone: "fa-clipboard-list", cor: "c5", tipos: ["admin"] }
+  logs:       { nome: "Logs de acesso",       icone: "fa-clipboard-list", cor: "c5", tipos: ["admin"] },
+  site:       { nome: "Administrar site",     icone: "fa-globe",         cor: "c2", tipos: ["admin"] }
 };
 
 /* =========================================================
@@ -162,7 +163,7 @@ function esconderLoading() {
 }
 const S = {
   view: "calendario", param: null,
-  viagens: {}, excursoes: {}, viajantes: {}, poltronas: {}, agencias: {}, usuarios: {}, logs: null,
+  viagens: {}, excursoes: {}, viajantes: {}, poltronas: {}, agencias: {}, usuarios: {}, logs: null, site: {},
   mes: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
   exSel: null, veicSel: null, passSel: null, busca: "",
   filtroLogs: { de: "", ate: "", uid: "", acao: "" }, buscaUsuarios: "",
@@ -529,6 +530,7 @@ function assinar() {
     });
     ouvir(ref(db, "viajantes"), (v) => { S.viajantes = {}; Object.values(v).forEach((porEx) => Object.assign(S.viajantes, porEx)); });
     ouvir(ref(db, "poltronas"), (v) => { S.poltronas = {}; Object.values(v).forEach((porEx) => Object.assign(S.poltronas, porEx)); });
+    ouvir(ref(db, "site/excursoes"), (v) => { S.site = v; });
   } else {
     const campo = ehAgencia() ? "agenciaUid" : "transportadoraUid";
     ouvir(query(ref(db, "viagens"), orderByChild(campo), equalTo(U.uid)), (v) => { S.viagens = v; });
@@ -550,7 +552,7 @@ function assinar() {
 const GRUPOS_MENU = [
   { id: "operacional", nome: "Operacional", icone: "fa-briefcase", itens: ["calendario", "excursoes", "viajantes", "poltronas", "financeiro"] },
   { id: "transporte", nome: "Transporte", icone: "fa-bus", itens: ["viagens"] },
-  { id: "admin", nome: "Administração", icone: "fa-shield-halved", itens: ["usuarios", "logs"] }
+  { id: "admin", nome: "Administração", icone: "fa-shield-halved", itens: ["site", "usuarios", "logs"] }
 ];
 let gruposAbertos = {};
 try { gruposAbertos = JSON.parse(localStorage.getItem("garbosa.gruposMenu") || "{}") || {}; } catch { gruposAbertos = {}; }
@@ -748,6 +750,7 @@ function viewInicio() {
       </div>
     </div>
     <p class="home-dica">Use o <strong>Painel de Controle</strong> ao lado para abrir uma tela.</p>
+    ${ehAdmin() ? `<a class="btn btn-primary" href="#/site" style="margin-top:14px"><i class="fa-solid fa-globe"></i> Administrar site</a>` : ""}
   </section>`;
 }
 
@@ -759,7 +762,7 @@ function render() {
   document.title = `${ROTAS[S.view]?.nome || "Início"} | Garbosa System`;
   S.exportar = null;
   $("#workspace").classList.toggle("em-inicio", S.view === "inicio");
-  const views = { inicio: viewInicio, calendario: viewCalendario, excursoes: viewExcursoes, viajantes: viewViajantes, poltronas: viewPoltronas, financeiro: viewFinanceiro, viagens: viewViagens, usuarios: viewUsuarios, logs: viewLogs };
+  const views = { site: viewSite, inicio: viewInicio, calendario: viewCalendario, excursoes: viewExcursoes, viajantes: viewViajantes, poltronas: viewPoltronas, financeiro: viewFinanceiro, viagens: viewViagens, usuarios: viewUsuarios, logs: viewLogs };
   (views[S.view] || viewCalendario)();
   const bx = $("#btnXlsx"), bp = $("#btnPdf");
   if (bx) bx.onclick = () => exportar("xlsx", bx);
@@ -988,6 +991,7 @@ function viewExcursoes() {
     if (b.dataset.a === "del") confirmar(`Excluir a excursão <strong>${esc(S.excursoes[id].destino)}</strong> com todos os viajantes, pagamentos e o mapa de poltronas? O link de inscrição também deixa de funcionar.`, async () => {
       const upd = { [`excursoes/${own}/${id}`]: null, [`viajantes/${own}/${id}`]: null, [`poltronas/${own}/${id}`]: null, [`inscricoes/${id}`]: null };
       Object.keys(S.excursoes[id].colaboradores || {}).forEach((uid) => { upd[`compartilhadas/${uid}/${id}`] = null; });
+      if ((await get(ref(db, `site/excursoes/${id}`)).catch(() => null))?.exists()) upd[`site/excursoes/${id}`] = null;
       await update(ref(db), upd);
       if (S.exSel === id) S.exSel = null;
       toast("Excursão excluída");
@@ -1020,6 +1024,7 @@ function formExcursao(id = null, viagemId = null) {
   const ownerPadrao = id ? e._owner : (vgPre?.agenciaUid && S.agencias[vgPre.agenciaUid] ? vgPre.agenciaUid : U.uid);
   const gerenciaColab = !id || souDono(id);
   const colabs = { ...(e.colaboradores || {}) };
+  FOLDER_FORM = e.folder?.caminho ? { ...e.folder } : null;
   abrirModal(id ? "Editar excursão" : "Cadastrar excursão", `
     <form id="fEx" class="form-grid">
       ${ehAdmin() ? `<label class="span2">Agência responsável<select name="owner" id="exOwner" ${id ? "disabled" : ""}>${opcoesAgenciaDona(ownerPadrao)}</select></label>` : ""}
@@ -1041,6 +1046,9 @@ function formExcursao(id = null, viagemId = null) {
       <label class="check span2"><input type="checkbox" name="vendaAtiva" id="exVendaAtiva" ${e.venda?.ativa || !id ? "checked" : ""}> Vender pela internet com cartão em até 6x, Pix e boleto parcelado</label>
       <label>Início do parcelamento (1º vencimento do boleto)<input type="date" name="primeiraParcela" id="exPrimeira" value="${esc(e.venda?.primeiraParcela || "")}"></label>
       <label>Parcelar em até<select name="maxParcelas">${[1, 2, 3, 4, 5, 6].map((n) => `<option value="${n}" ${n === (parseInt(e.venda?.maxParcelas, 10) || 6) ? "selected" : ""}>${n === 1 ? "1x (à vista)" : n + "x"}</option>`).join("")}</select></label>
+      <div class="section-label span2"><i class="fa-regular fa-image"></i> Folder da excursão</div>
+      <div class="span2 folder-box" id="exFolderBox"></div>
+      <label class="check span2"><input type="checkbox" name="publicarSite" id="exPublicar" ${e.publicarSite ? "checked" : ""}> Mostrar no catálogo do site (excursoes.html) com o folder e o link de compra</label>
       <small class="muted span2">Cartão: até o número escolhido, cobrado na compra. Boleto: uma parcela por mês a partir da data acima, sempre vencendo antes da saída. Pix: sempre à vista. Cupons e o link de venda ficam em <i class="fa-solid fa-cart-shopping"></i> Venda online.</small>
       <div class="section-label span2"><i class="fa-solid fa-user-group"></i> Colaboradores</div>
       <div class="span2">
@@ -1098,6 +1106,7 @@ function formExcursao(id = null, viagemId = null) {
   }
   if (viagemId) aplicarViagem();
   calc(); chips();
+  caixaFolder($("#exFolderBox"), () => FOLDER_FORM, (f) => { FOLDER_FORM = f; if (f && !$("#exPublicar").checked) $("#exPublicar").checked = true; }, () => f.elements.destino.value);
   f.addEventListener("submit", (ev) => { ev.preventDefault(); salvarExcursao(id, vk, colabs, e.colaboradores || {}); });
 }
 
@@ -1108,9 +1117,10 @@ async function salvarExcursao(id, vk, colabs = {}, colabsAntes = {}) {
   if (d.dataRetorno && d.dataRetorno < d.dataSaida) return toast("O retorno não pode ser antes da saída.", "erro");
   if (d.vendaAtiva && !d.primeiraParcela) return toast("Escolha a data de início do parcelamento da venda online.", "erro");
   if (d.vendaAtiva && d.primeiraParcela >= d.dataSaida) return toast("O início do parcelamento precisa ser antes da data de saída.", "erro");
+  if (d.publicarSite && !FOLDER_FORM) return toast("Adicione o folder para mostrar a excursão no catálogo do site.", "erro");
   const veiculo = { tipo: d.tipo, valorTransporte: num(d.valorTransporte), valorIngressos: num(d.valorIngressos), viagemId: d.viagemId || null };
   const info = { destino: d.destino, dataSaida: d.dataSaida, horaSaida: d.horaSaida, dataRetorno: d.dataRetorno || d.dataSaida, horaRetorno: d.horaRetorno, localSaida: d.localSaida, valorColo: num(d.valorColo),
-    descricao: d.descricao || null, venda: { ativa: !!d.vendaAtiva, primeiraParcela: d.primeiraParcela || null, maxParcelas: Math.min(6, Math.max(1, parseInt(d.maxParcelas, 10) || 1)) } };
+    descricao: d.descricao || null, folder: FOLDER_FORM || null, publicarSite: !!d.publicarSite, venda: { ativa: !!d.vendaAtiva, primeiraParcela: d.primeiraParcela || null, maxParcelas: Math.min(6, Math.max(1, parseInt(d.maxParcelas, 10) || 1)) } };
   const podeColab = !id || souDono(id);
   try {
     let exId, own;
@@ -1139,6 +1149,7 @@ async function salvarExcursao(id, vk, colabs = {}, colabsAntes = {}) {
       notificar(novos, { tipo: "colaboracao", titulo: "Você foi adicionado como colaborador", texto: `${P.empresa} compartilhou a excursão ${info.destino} (${fData(info.dataSaida)}) com você.`, link: `#/viajantes/${exId}`, exId });
     }
     const pub = await publicarInscricao(exId, own);
+    await sincronizarSite(exId, own, { ...info, colaboradores: colabs }).catch((err) => { console.warn("site", err); toast("Excursão salva, mas não foi possível atualizar o catálogo do site.", "erro"); });
     fecharModal();
     if (!id) { if (info.venda.ativa) painelVenda(exId, own, true, { ...info, _owner: own, veiculos: { v0: { ...veiculo, ordem: 0 } } }); else mostrarLink(exId, own, true, pub); }
   } catch (e) { falha(e); }
@@ -1245,6 +1256,10 @@ async function painelVenda(exId, own = dono(exId), recemCriada = false, exDados 
       <a class="btn btn-light btn-sm" target="_blank" rel="noopener" href="${esc(url)}"><i class="fa-solid fa-arrow-up-right-from-square"></i> Abrir página de venda</a>
     </div>
 
+    <h4 class="sub"><i class="fa-regular fa-image"></i> Folder e catálogo do site</h4>
+    <div class="folder-box" id="pvFolder"></div>
+    <label class="check" style="margin-top:8px"><input type="checkbox" id="pvPublicar" ${e.publicarSite ? "checked" : ""}> Mostrar também no catálogo do site (excursoes.html), com o folder e o botão de compra</label>
+
     <h4 class="sub"><i class="fa-solid fa-tags"></i> Promoções e cupons</h4>
     ${cupons.length ? `<div class="table-wrap"><table class="grid mini"><thead><tr><th>Cupom</th><th>Valor c/ cupom</th><th>Pessoas por compra</th><th>Usado</th><th>Validade</th><th></th></tr></thead><tbody>
       ${cupons.map(([cod, c]) => `<tr class="${c.ativo === false ? "inativo" : ""}">
@@ -1277,7 +1292,11 @@ async function painelVenda(exId, own = dono(exId), recemCriada = false, exDados 
     }).join("")}</div>` : `<p class="vazio">Nenhuma compra pelo link ainda.</p>`}`, [
     { html: ativa ? `<i class="fa-solid fa-lock"></i> Encerrar vendas` : `<i class="fa-solid fa-lock-open"></i> Abrir vendas`, acao: async () => {
       if (!ativa && (!v.primeiraParcela || !v.maxParcelas)) { toast("Defina o início e o número de parcelas da venda online.", "erro"); return formExcursao(exId); }
-      try { await update(ref(db, `excursoes/${own}/${exId}/venda`), { ativa: !ativa }); await publicarInscricao(exId, own); toast(ativa ? "Vendas encerradas" : "Vendas abertas"); painelVenda(exId, own); } catch (err) { falha(err); }
+      try {
+        await update(ref(db, `excursoes/${own}/${exId}/venda`), { ativa: !ativa }); await publicarInscricao(exId, own);
+        await sincronizarSite(exId, own, { ...e, venda: { ...v, ativa: !ativa } }).catch(() => {});
+        toast(ativa ? "Vendas encerradas" : "Vendas abertas"); painelVenda(exId, own);
+      } catch (err) { falha(err); }
     } },
     { html: `<i class="fa-solid fa-pen"></i> Parcelamento`, acao: () => formExcursao(exId) },
     { html: "Fechar", classe: "btn-primary", acao: fecharModal }
@@ -1287,6 +1306,24 @@ async function painelVenda(exId, own = dono(exId), recemCriada = false, exDados 
     toast("Link de venda copiado");
   };
   $("#btnNovoCupom").onclick = () => formCupom(exId, own);
+  caixaFolder($("#pvFolder"), () => e.folder, async (f) => {
+    try {
+      await update(ref(db, `excursoes/${own}/${exId}`), { folder: f || null, ...(f ? {} : { publicarSite: false }) });
+      e.folder = f; if (!f) { e.publicarSite = false; $("#pvPublicar").checked = false; }
+      await sincronizarSite(exId, own, e);
+      if (!f) toast("Folder removido");
+    } catch (err) { falha(err); }
+  }, () => e.destino);
+  $("#pvPublicar").onchange = async (ev) => {
+    const marcar = ev.target.checked;
+    if (marcar && !e.folder?.caminho) { ev.target.checked = false; return toast("Adicione o folder primeiro.", "erro"); }
+    try {
+      await update(ref(db, `excursoes/${own}/${exId}`), { publicarSite: marcar });
+      e.publicarSite = marcar;
+      await sincronizarSite(exId, own, e);
+      toast(marcar ? "Excursão publicada no catálogo do site" : "Excursão retirada do catálogo do site");
+    } catch (err) { ev.target.checked = !marcar; falha(err); }
+  };
   $$("[data-cup-ed]").forEach((b) => b.addEventListener("click", () => formCupom(exId, own, b.dataset.cupEd)));
   $$("[data-cup-del]").forEach((b) => b.addEventListener("click", () => confirmar(`Excluir o cupom <strong>${esc(b.dataset.cupDel)}</strong>? Quem já comprou com ele não é afetado.`, async () => {
     await remove(ref(db, `excursoes/${own}/${exId}/cupons/${b.dataset.cupDel}`)); toast("Cupom excluído"); painelVenda(exId, own);
@@ -1343,6 +1380,211 @@ function formCupom(exId, own, codigo = null) {
   };
   f.addEventListener("input", calc); calc();
   f.addEventListener("submit", (ev) => ev.preventDefault());
+}
+
+/* =========================================================
+   FOLDER (imagem enviada ao GitHub) E CATÁLOGO DO SITE
+========================================================= */
+let FOLDER_FORM = null;
+const srcImg = (o) => (o?.caminho || o?.imagem ? `../${o.caminho || o.imagem}` : "");
+const rawImg = (o) => o?.raw || o?.imagemRaw || "";
+const imgTag = (o, cls = "") => `<img class="${cls}" src="${esc(srcImg(o))}" alt="" loading="lazy" onerror="if(this.dataset.r!=='1'&&'${esc(rawImg(o))}'){this.dataset.r='1';this.src='${esc(rawImg(o))}'}">`;
+
+/** Reduz a foto no navegador (até 1600 px, JPEG) antes de enviar */
+function comprimirImagem(arquivo, max = 1600, qualidade = 0.85) {
+  return new Promise((ok, erro) => {
+    const img = new Image(), url = URL.createObjectURL(arquivo);
+    img.onload = () => {
+      const k = Math.min(1, max / Math.max(img.width, img.height));
+      const c = document.createElement("canvas");
+      c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+      const g = c.getContext("2d"); g.fillStyle = "#fff"; g.fillRect(0, 0, c.width, c.height); g.drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(url);
+      ok(c.toDataURL("image/jpeg", qualidade).split(",")[1]);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); erro(new Error("Não foi possível ler a imagem.")); };
+    img.src = url;
+  });
+}
+async function enviarImagem(arquivo, nome) {
+  if (!/^image\//.test(arquivo.type)) throw new Error("Escolha um arquivo de imagem (JPG, PNG ou WEBP).");
+  const base64 = await comprimirImagem(arquivo);
+  const r = await fetch("/api/site-imagem", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${await auth.currentUser.getIdToken()}` },
+    body: JSON.stringify({ nome, tipo: "image/jpeg", base64 }) });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(d.erro || "Não foi possível enviar a imagem.");
+  return { caminho: d.caminho, raw: d.raw };
+}
+
+/** Caixa com prévia do folder + botões Adicionar/Trocar/Remover. aoMudar(folder|null) */
+function caixaFolder(el, atual, aoMudar, nomeBase = () => "folder") {
+  const desenhar = () => {
+    const f = atual();
+    el.innerHTML = `${f?.caminho ? imgTag(f, "folder-prev") : `<div class="folder-vazio"><i class="fa-regular fa-image"></i><span>Sem folder</span></div>`}
+      <div class="folder-acoes">
+        <label class="btn btn-light btn-sm"><i class="fa-solid fa-upload"></i> ${f?.caminho ? "Trocar folder" : "Adicionar folder"}<input type="file" accept="image/jpeg,image/png,image/webp" hidden></label>
+        ${f?.caminho ? `<button type="button" class="btn btn-light btn-sm" data-rm-folder><i class="fa-solid fa-trash"></i> Remover</button>` : ""}
+        <small class="muted">A imagem é salva no GitHub do site e aparece no ar em cerca de 1 minuto.</small>
+      </div>`;
+    $("input[type=file]", el).onchange = async (ev) => {
+      const arq = ev.target.files[0];
+      if (!arq) return;
+      el.classList.add("enviando");
+      $(".folder-acoes small", el).textContent = "Enviando para o GitHub…";
+      try { const novo = await enviarImagem(arq, nomeBase() || "folder"); await aoMudar(novo); atualSet(novo); toast("Folder enviado"); }
+      catch (err) { toast(err.message, "erro"); }
+      el.classList.remove("enviando");
+      desenhar();
+    };
+    const rm = $("[data-rm-folder]", el);
+    if (rm) rm.onclick = async () => { await aoMudar(null); atualSet(null); desenhar(); };
+  };
+  let local; const atualSet = (v) => { local = v; };
+  const atual0 = atual; atual = () => (local !== undefined ? local : atual0());
+  desenhar();
+}
+
+/** Mantém o cartão da excursão no catálogo do site (site/excursoes/{exId}) de acordo com a excursão */
+async function sincronizarSite(exId, own, e) {
+  const caminho = `site/excursoes/${exId}`;
+  const atual = (await get(ref(db, caminho)).catch(() => null))?.val() || null;
+  if (!e.publicarSite || !e.folder?.caminho) {
+    if (atual && atual.origem === "sistema") await remove(ref(db, caminho));
+    return;
+  }
+  const vende = e.venda?.ativa === true;
+  await set(ref(db, caminho), {
+    titulo: String(e.destino || "Excursão").slice(0, 120), descricao: String(e.descricao || "").slice(0, 600),
+    imagem: e.folder.caminho, imagemRaw: e.folder.raw || "",
+    link: `sistema/${vende ? "comprar" : "inscricao"}.html?e=${encodeURIComponent(exId)}`, botao: vende ? "Comprar" : "Inscrever-se",
+    data: fData(e.dataSaida), local: String(e.localSaida || "").slice(0, 80), categoria: atual?.categoria || "Excursão",
+    owner: own, exId, origem: "sistema", ativo: atual?.ativo !== false, destaque: !!atual?.destaque,
+    ordem: atual?.ordem ?? Date.now(), criadoEm: atual?.criadoEm || Date.now(), atualizadoEm: Date.now()
+  });
+}
+
+/* ---------- Administrar site (só o administrador) ---------- */
+const SITE_INICIAL = [
+  { titulo: "Aldeia das Águas", categoria: "Parque aquático", local: "Barra do Piraí · RJ", imagem: "Assets/img/excursoes/aldeia-das-aguas.jpg", link: "aldeia-das-aguas.html", descricao: "Aventura no maior parque aquático do estado do Rio de Janeiro, com o maior toboágua do mundo." },
+  { titulo: "Praia da Barra", categoria: "Praia", local: "Rio de Janeiro · RJ", imagem: "Assets/img/excursoes/barra.jpeg", link: "barra.html", descricao: "Um dia de sol, mar e muita diversão na Barra da Tijuca." },
+  { titulo: "Praia de Ipanema", categoria: "Praia", local: "Rio de Janeiro · RJ", imagem: "Assets/img/excursoes/ipanema.png", link: "Ipanema.html", descricao: "Bate e volta para uma das praias mais famosas do Brasil." },
+  { titulo: "Guanabara + Zoo BH", categoria: "Parque + Zoológico", local: "Belo Horizonte · MG", imagem: "Assets/img/excursoes/bh.png", link: "bh.html", descricao: "Parque Guanabara e Zoológico de BH em uma aventura para toda a família." },
+  { titulo: "Hopi Hari + Wet'n Wild", categoria: "Parques", local: "Vinhedo · SP", imagem: "Assets/img/excursoes/hopi.jpeg", link: "hopihari.html", descricao: "Hotel, transporte e ingressos para os parques." },
+  { titulo: "Show do Frei Gilson", categoria: "Evento", local: "Juiz de Fora · MG", imagem: "Assets/img/excursoes/frei.png", link: "evento-frei-gilson.html", descricao: "Uma noite repleta do Espírito Santo." },
+  { titulo: "PHN 2026", categoria: "Religioso", local: "Aparecida + Canção Nova · SP", imagem: "Assets/img/excursoes/phn.webp", link: "phn.html", descricao: "Aparecida e Canção Nova no PHN 2026." }
+];
+const listaSite = () => Object.entries(S.site || {}).sort((a, b) => (a[1].ordem || 0) - (b[1].ordem || 0));
+
+function viewSite() {
+  const lista = listaSite();
+  $("#workspace").innerHTML = `
+  <section class="panel">
+    ${toolbar("Administrar site", "fa-globe", tbBtn("btnSiteNova", "fa-plus", "Adicionar excursão", "tool-accent") + tbBtn("btnSiteVer", "fa-arrow-up-right-from-square", "Ver site"), false)}
+    <div class="regra"><i class="fa-solid fa-circle-info"></i> Estas excursões aparecem no <strong>catálogo (excursoes.html)</strong>. As marcadas com ⭐ também aparecem em <strong>Destinos em destaque</strong> na página inicial. As fotos são salvas no GitHub do site.</div>
+    ${lista.length ? `<div class="site-grid">${lista.map(([id, x], i) => `
+      <article class="site-card ${x.ativo === false ? "inativo" : ""}">
+        <div class="site-img">${imgTag(x)}${x.destaque ? `<span class="site-estrela" title="Destaque na página inicial">⭐</span>` : ""}</div>
+        <div class="site-txt">
+          <strong>${esc(x.titulo)}</strong>
+          <small>${esc([x.categoria, x.local, x.data].filter(Boolean).join(" · "))}</small>
+          <small class="muted">${x.origem === "sistema" ? `<i class="fa-solid fa-gear"></i> Vem de uma excursão do sistema${x.owner && x.owner !== U.uid ? ` (${esc(nomeAgencia(x.owner))})` : ""}` : `<i class="fa-solid fa-link"></i> ${esc(x.link)}`}</small>
+          ${x.ativo === false ? `<span class="pill pill-red">oculta</span>` : `<span class="pill pill-green">no site</span>`}
+        </div>
+        <div class="site-acoes">
+          <button class="ic" data-s="up" data-id="${id}" title="Subir" ${i === 0 ? "disabled" : ""}><i class="fa-solid fa-arrow-up"></i></button>
+          <button class="ic" data-s="down" data-id="${id}" title="Descer" ${i === lista.length - 1 ? "disabled" : ""}><i class="fa-solid fa-arrow-down"></i></button>
+          <button class="ic" data-s="edit" data-id="${id}" title="Editar"><i class="fa-solid fa-pen"></i></button>
+          <button class="ic" data-s="vis" data-id="${id}" title="${x.ativo === false ? "Mostrar no site" : "Ocultar do site"}"><i class="fa-solid ${x.ativo === false ? "fa-eye" : "fa-eye-slash"}"></i></button>
+          <button class="ic danger" data-s="del" data-id="${id}" title="Remover do site"><i class="fa-solid fa-trash"></i></button>
+        </div>
+      </article>`).join("")}</div>`
+    : `<div class="empty"><i class="fa-solid fa-globe"></i><p>O catálogo do site ainda está com a lista fixa antiga.<br>Importe as excursões atuais para poder editar, ou adicione uma nova.</p>
+        <button class="btn btn-primary" id="btnSiteImportar"><i class="fa-solid fa-file-import"></i> Importar as excursões que já estão no site</button></div>`}
+  </section>`;
+  $("#btnSiteNova").onclick = () => formSite();
+  $("#btnSiteVer").onclick = () => window.open("../excursoes.html", "_blank", "noopener");
+  if ($("#btnSiteImportar")) $("#btnSiteImportar").onclick = async () => {
+    const upd = {};
+    SITE_INICIAL.forEach((x, i) => { const k = push(ref(db, "site/excursoes")).key; upd[`site/excursoes/${k}`] = { ...x, botao: "Saiba mais", ativo: true, destaque: true, ordem: i + 1, origem: "site", owner: U.uid, criadoEm: Date.now() }; });
+    try { await update(ref(db), upd); toast("Excursões importadas"); } catch (e) { falha(e); }
+  };
+  $$("[data-s]", $("#workspace")).forEach((b) => b.addEventListener("click", async () => {
+    const id = b.dataset.id, x = S.site[id], idx = lista.findIndex(([k]) => k === id);
+    try {
+      if (b.dataset.s === "edit") return formSite(id);
+      if (b.dataset.s === "vis") return update(ref(db, `site/excursoes/${id}`), { ativo: x.ativo === false, atualizadoEm: Date.now() });
+      if (b.dataset.s === "del") return confirmar(`Remover <strong>${esc(x.titulo)}</strong> do site? A foto continua guardada no GitHub.${x.origem === "sistema" ? "<br><small>A excursão do sistema continua existindo; só sai do catálogo.</small>" : ""}`, async () => {
+        const upd = { [`site/excursoes/${id}`]: null };
+        if (x.origem === "sistema" && x.owner && x.exId && S.excursoes[x.exId]) upd[`excursoes/${x.owner}/${x.exId}/publicarSite`] = false;
+        await update(ref(db), upd); toast("Removida do site");
+      }, "Remover");
+      const viz = lista[idx + (b.dataset.s === "up" ? -1 : 1)];
+      if (!viz) return;
+      const ordens = lista.map(([, y], i) => y.ordem ?? i);
+      const a1 = ordens[idx], a2 = ordens[lista.indexOf(viz)];
+      await update(ref(db), { [`site/excursoes/${id}/ordem`]: a2 === a1 ? a1 + (b.dataset.s === "up" ? -1 : 1) : a2, [`site/excursoes/${viz[0]}/ordem`]: a1 });
+    } catch (e) { falha(e); }
+  }));
+}
+
+function formSite(id = null) {
+  const x = id ? { ...S.site[id] } : { ativo: true, destaque: false, botao: "Saiba mais", categoria: "Excursão" };
+  let foto = x.imagem ? { caminho: x.imagem, raw: x.imagemRaw || "" } : null;
+  const vendas = ordenar(S.excursoes, "dataSaida").filter(([, e]) => e.venda?.ativa || e.linkAtivo !== false);
+  const linkSistema = (x.link || "").match(/^sistema\/(comprar|inscricao)\.html\?e=([\w-]+)/);
+  abrirModal(id ? "Editar excursão do site" : "Adicionar excursão ao site", `
+    <form id="fSite" class="form-grid">
+      <label class="span2">Título<input name="titulo" required maxlength="120" value="${esc(x.titulo)}" placeholder="Ex.: Aldeia das Águas"></label>
+      <label>Categoria (etiqueta)<input name="categoria" maxlength="40" value="${esc(x.categoria)}" placeholder="Praia, Parque, Evento…"></label>
+      <label>Local<input name="local" maxlength="80" value="${esc(x.local)}" placeholder="Rio de Janeiro · RJ"></label>
+      <label>Data (texto livre)<input name="data" maxlength="40" value="${esc(x.data)}" placeholder="26/07/2027"></label>
+      <label>Texto do botão<input name="botao" maxlength="40" value="${esc(x.botao || "Saiba mais")}"></label>
+      <label class="span2">Descrição<textarea name="descricao" rows="3" maxlength="600">${esc(x.descricao)}</textarea></label>
+      <div class="section-label span2"><i class="fa-solid fa-link"></i> Para onde o botão leva</div>
+      <label class="span2">Excursão do sistema (abre a página de compra ou de inscrição)<select name="exLink" id="sExLink">
+        <option value="">— Usar um endereço próprio —</option>
+        ${vendas.map(([eid, e]) => `<option value="${eid}" ${linkSistema?.[2] === eid ? "selected" : ""}>${fData(e.dataSaida)} — ${esc(e.destino)}${e.venda?.ativa ? " (venda online)" : " (inscrição)"}</option>`).join("")}
+      </select></label>
+      <label class="span2" id="sLinkWrap">Endereço<input name="link" maxlength="400" value="${esc(linkSistema ? "" : x.link)}" placeholder="Ex.: barra.html ou https://…"></label>
+      <div class="section-label span2"><i class="fa-regular fa-image"></i> Foto / folder</div>
+      <div class="span2 folder-box" id="sFoto"></div>
+      <label class="check"><input type="checkbox" name="ativo" ${x.ativo !== false ? "checked" : ""}> Mostrar no site</label>
+      <label class="check"><input type="checkbox" name="destaque" ${x.destaque ? "checked" : ""}> ⭐ Destaque na página inicial</label>
+    </form>`, [
+    { html: "Cancelar", acao: fecharModal },
+    { html: `<i class="fa-solid fa-floppy-disk"></i> Salvar`, classe: "btn-primary", acao: async () => {
+      const f = $("#fSite");
+      if (!f.reportValidity()) return;
+      const d = lerForm(f);
+      if (!foto?.caminho) return toast("Adicione a foto ou o folder.", "erro");
+      const ex = d.exLink ? S.excursoes[d.exLink] : null;
+      const link = ex ? `sistema/${ex.venda?.ativa ? "comprar" : "inscricao"}.html?e=${encodeURIComponent(d.exLink)}` : d.link.trim();
+      if (!link) return toast("Escolha uma excursão do sistema ou informe o endereço do botão.", "erro");
+      const dados = { titulo: d.titulo, categoria: d.categoria, local: d.local, data: d.data, botao: d.botao || "Saiba mais", descricao: d.descricao,
+        imagem: foto.caminho, imagemRaw: foto.raw || "", link, ativo: !!d.ativo, destaque: !!d.destaque, atualizadoEm: Date.now(),
+        origem: x.origem || "site", owner: x.owner || U.uid, ordem: x.ordem ?? Date.now(), criadoEm: x.criadoEm || Date.now(), ...(x.exId ? { exId: x.exId } : {}) };
+      try {
+        await set(id ? ref(db, `site/excursoes/${id}`) : push(ref(db, "site/excursoes")), dados);
+        toast(id ? "Excursão do site atualizada" : "Excursão adicionada ao site"); fecharModal();
+      } catch (e) { falha(e); }
+    } }
+  ], true);
+  const alternar = () => $("#sLinkWrap").classList.toggle("hidden", !!$("#sExLink").value);
+  $("#sExLink").onchange = () => {
+    alternar();
+    const e = S.excursoes[$("#sExLink").value];
+    if (e) {
+      const t = $("#fSite").elements;
+      if (!t.titulo.value) t.titulo.value = e.destino || "";
+      if (!t.data.value) t.data.value = fData(e.dataSaida);
+      if (!t.local.value) t.local.value = e.localSaida || "";
+      if (!t.descricao.value) t.descricao.value = e.descricao || "";
+      if (!foto && e.folder?.caminho) { foto = { ...e.folder }; caixaFolder($("#sFoto"), () => foto, (v) => { foto = v; }, () => $("#fSite").elements.titulo.value); }
+      if (e.venda?.ativa && (!t.botao.value || t.botao.value === "Saiba mais")) t.botao.value = "Comprar";
+    }
+  };
+  alternar();
+  caixaFolder($("#sFoto"), () => foto, (v) => { foto = v; }, () => $("#fSite").elements.titulo.value);
 }
 
 function formVeiculoExtra(exId) {

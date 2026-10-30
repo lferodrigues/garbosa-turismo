@@ -139,3 +139,16 @@ asaasEventos/{id}                      eventos do webhook já processados (só s
 - A conta do viajante usa uma sessão separada da agência; se um viajante tentar entrar no sistema da agência, é avisado e desconectado.
 - Banco: `clientes/{uid}` (perfil + dependentes, o próprio viajante lê e grava) e `clientesPedidos/{uid}/{pedidoId}` (só servidor).
 - API: `GET /api/minhas-viagens` e `GET /api/minhas-viagens?pedido=ID` (com o token da conta).
+
+## Administrar site (só contato@feliperodrigues.net)
+- Menu **Administração → Administrar site** (e botão na tela inicial do sistema).
+- Adicionar, editar, ocultar, reordenar e remover as excursões do **catálogo (excursoes.html)**;
+  ⭐ marca as que aparecem em **Destinos em destaque** no index.
+- Fotos/folders são enviados para o GitHub (`Assets/img/excursoes/`) pela função `/api/site-imagem`;
+  a Vercel publica de novo sozinha (≈1 min). Enquanto isso o site usa o link direto do GitHub.
+- "Importar as excursões que já estão no site" cria a lista inicial a partir das excursões fixas.
+- No cadastro da excursão: **Adicionar folder** e a caixa **Mostrar no catálogo do site**; no painel 🛒 Venda online
+  há a mesma caixa. Marcada, a excursão entra no catálogo com o folder e o botão **Comprar** (link de venda).
+- Se o banco não responder ou a lista estiver vazia, excursoes.html e o index mostram as excursões fixas.
+- Banco: `site/excursoes/{id}` (leitura pública; escrita do admin ou da agência dona).
+- Vercel: variável **`GITHUB_TOKEN`** (token do GitHub com permissão *Contents: Read and write* no repositório).

@@ -985,3 +985,25 @@ input:-webkit-autofill{-webkit-text-fill-color:#fff;-webkit-box-shadow:0 0 0 40p
   .mc-abas .cv-aba{flex-direction:column;gap:3px;font-size:.7rem;padding:8px 2px}
   .mc-abas .cv-aba i{font-size:1rem}
 }
+/* folder da excursão e Administrar site */
+.folder-box{display:flex;gap:14px;align-items:center;flex-wrap:wrap;background:#f6f5ff;border:1.5px dashed #cfc9ff;border-radius:12px;padding:10px}
+.folder-box.enviando{opacity:.6;pointer-events:none}
+.folder-prev{width:90px;height:120px;object-fit:cover;object-position:top;border-radius:10px;box-shadow:0 6px 16px rgba(21,21,59,.15);background:#fff}
+.folder-vazio{width:90px;height:120px;border-radius:10px;border:1.5px dashed #bbb;display:grid;place-items:center;align-content:center;gap:4px;color:#999;font-size:.75rem;background:#fff}
+.folder-vazio i{font-size:1.5rem}
+.folder-acoes{display:flex;flex-direction:column;gap:6px;align-items:flex-start;flex:1;min-width:180px}
+.folder-acoes .btn{cursor:pointer}
+.folder-acoes small{font-size:.75rem}
+.site-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px;padding:16px 18px 20px}
+.site-card{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:#fff;display:flex;flex-direction:column}
+.site-card.inativo{opacity:.55}
+.site-img{position:relative;aspect-ratio:4/3;background:#eee;overflow:hidden}
+.site-img img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:top}
+.site-estrela{position:absolute;top:8px;left:8px;background:#fff;border-radius:20px;padding:2px 8px;font-size:.8rem}
+.site-txt{padding:10px 12px;display:grid;gap:3px}
+.site-txt small{font-size:.75rem;color:#555;overflow-wrap:anywhere}
+.site-txt .pill{justify-self:start}
+.site-acoes{display:flex;gap:4px;padding:0 10px 12px;margin-top:auto}
+.site-acoes .ic{margin:0}
+.site-acoes .ic:disabled{opacity:.35;cursor:default}
+.cp-folder{width:100%;max-width:360px;border-radius:16px;box-shadow:0 18px 40px rgba(0,0,0,.35);margin:0 0 16px;border:4px solid rgba(255,255,255,.9)}

@@ -51,6 +51,29 @@
     [...trilho.children].forEach((c) => { const k = c.cloneNode(true); k.setAttribute("aria-hidden", "true"); k.tabIndex = -1; trilho.appendChild(k); });
   }
 
+  /* destinos em destaque: vêm do Garbosa System → Administrar site (⭐). Sem dados, ficam os cartões do HTML. */
+  const grade = $(".gt-destinos");
+  if (grade) {
+    const esc = (t) => String(t == null ? "" : t).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    const linkSeguro = (l) => (/^(https?:\/\/|[\w./?=&%-]+$)/.test(l || "") && !/^javascript:/i.test(l) ? l : "#");
+    fetch("https://bus-virtual-dd0f7-default-rtdb.firebaseio.com/site/excursoes.json")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((dados) => {
+        const lista = Object.values(dados || {}).filter((x) => x && x.ativo !== false && x.destaque && x.titulo && x.imagem)
+          .sort((a, b) => (a.ordem || 0) - (b.ordem || 0)).slice(0, 7);
+        if (!lista.length) return;
+        const todas = grade.querySelector(".gt-dest-todas").outerHTML;
+        grade.innerHTML = lista.map((x) => `
+          <article class="gt-dest">
+            <a href="${esc(linkSeguro(x.link))}" class="gt-dest-img"><img loading="lazy" src="${esc(x.imagem)}" data-raw="${esc(x.imagemRaw || "")}" alt="">${x.categoria ? `<span class="gt-tag">${esc(x.categoria)}</span>` : ""}</a>
+            <h3>${esc(x.titulo)}</h3><p>${esc([x.local, x.data].filter(Boolean).join(" · "))}</p>
+            <a class="gt-btn gt-btn-roxo gt-btn-p" href="${esc(linkSeguro(x.link))}">${esc(x.botao && x.botao !== "Saiba mais" ? x.botao : "Mais sobre " + x.titulo)}</a>
+          </article>`).join("") + todas;
+        grade.querySelectorAll("img[data-raw]").forEach((img) => img.addEventListener("error", () => { if (img.dataset.raw && img.src !== img.dataset.raw) img.src = img.dataset.raw; }, { once: true }));
+      })
+      .catch(() => { /* mantém os cartões do HTML */ });
+  }
+
   /* ano do rodapé */
   const ano = $("#currentYear");
   if (ano) ano.textContent = new Date().getFullYear();

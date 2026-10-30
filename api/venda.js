@@ -10,7 +10,8 @@ export default async function handler(req, res) {
     const base = {
       destino: ex.destino, agencia, descricao: ex.descricao || "",
       dataSaida: ex.dataSaida, horaSaida: ex.horaSaida || "", dataRetorno: ex.dataRetorno || ex.dataSaida,
-      horaRetorno: ex.horaRetorno || "", localSaida: ex.localSaida || ""
+      horaRetorno: ex.horaRetorno || "", localSaida: ex.localSaida || "",
+      folder: ex.folder?.caminho ? { caminho: ex.folder.caminho, raw: ex.folder.raw || "" } : null
     };
     if (!sit.ativa) return enviar(res, 200, { ...base, ativa: false, motivo: sit.motivo });
     enviar(res, 200, {
