@@ -152,3 +152,11 @@ asaasEventos/{id}                      eventos do webhook já processados (só s
 - Se o banco não responder ou a lista estiver vazia, excursoes.html e o index mostram as excursões fixas.
 - Banco: `site/excursoes/{id}` (leitura pública; escrita do admin ou da agência dona).
 - Vercel: variável **`GITHUB_TOKEN`** (token do GitHub com permissão *Contents: Read and write* no repositório).
+
+## Escolha de poltrona sem pagamento (sem login)
+Os dois links ficam em **Link de inscrição** de cada excursão e funcionam enquanto as inscrições estiverem abertas.
+- `sistema/poltrona.html?e={id}` — **escolha rápida**: nome completo + RG (ou certidão de nascimento, com botão para enviar
+  pelo WhatsApp (32) 9 9977-5281) e a poltrona no mapa. API `/api/poltrona-livre`. Viajantes com selo "poltrona".
+- `sistema/reservar.html?e={id}` — **reserva completa**: mesmos dados da compra (CPF, nascimento, contato, endereço, colo), sem pagamento.
+  API `/api/reserva`. Viajantes com selo "reserva" e pagamento "A combinar".
+- As duas reservam a poltrona em transação (sem duplicar lugar), avisam a agência no sino e não precisam de regras novas no banco.

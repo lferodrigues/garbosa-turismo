@@ -1156,6 +1156,8 @@ async function salvarExcursao(id, vk, colabs = {}, colabsAntes = {}) {
 }
 
 /* ---------- link público de inscrição ---------- */
+const urlPoltrona = (exId) => `${location.origin}${location.pathname.replace(/[^/]*$/, "")}poltrona.html?e=${encodeURIComponent(exId)}`;
+const urlReserva = (exId) => `${location.origin}${location.pathname.replace(/[^/]*$/, "")}reservar.html?e=${encodeURIComponent(exId)}`;
 const urlInscricao = (exId) => `${location.origin}${location.pathname.replace(/[^/]*$/, "")}inscricao.html?e=${encodeURIComponent(exId)}`;
 
 async function publicarInscricao(exId, own = dono(exId)) {
@@ -1184,7 +1186,7 @@ function mostrarLink(exId, own = dono(exId), recemCriada = false, pub = null) {
   const valor = v0 ? precoPoltrona(v0) : num(pub?.valor);
   const ativo = doEstado ? doEstado.linkAtivo !== false : pub?.ativa !== false;
   const texto = `Inscrição para a excursão *${e.destino || ""}*\n📅 Saída: ${fData(e.dataSaida)}${e.horaSaida ? " às " + e.horaSaida : ""}\n📍 Local: ${e.localSaida || "a combinar"}\n💰 Valor: ${brl(valor)}\n\nFaça seu cadastro: ${url}`;
-  abrirModal(recemCriada ? "Excursão cadastrada! Link de inscrição" : "Link de inscrição dos viajantes", `
+  abrirModal(recemCriada ? "Excursão cadastrada! Links para os viajantes" : "Links de inscrição e reserva", `
     ${recemCriada ? `<p class="muted" style="margin-bottom:10px">O link abaixo foi gerado automaticamente. Envie para os viajantes se cadastrarem sozinhos.</p>` : ""}
     <div class="dl">
       ${linha("Excursão", esc(e.destino || ""))}
@@ -1198,12 +1200,34 @@ function mostrarLink(exId, own = dono(exId), recemCriada = false, pub = null) {
     <div class="link-acoes">
       <a class="btn btn-wpp btn-sm" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(texto)}"><i class="fa-brands fa-whatsapp"></i> Enviar no WhatsApp</a>
       <a class="btn btn-light btn-sm" target="_blank" rel="noopener" href="${esc(url)}"><i class="fa-solid fa-arrow-up-right-from-square"></i> Abrir formulário</a>
+    </div>
+    <h4 class="sub"><i class="fa-solid fa-couch"></i> Reserva com escolha de poltrona (sem pagamento)</h4>
+    <p class="muted" style="font-size:.85rem;margin-bottom:6px">O cliente preenche os dados, escolhe a poltrona no mapa e a reserva já entra em Viajantes e Poltronas. O pagamento fica "a combinar".</p>
+    <div class="link-box"><input id="reservaUrl" readonly value="${esc(urlReserva(exId))}"><button class="btn btn-primary btn-sm" id="btnCopiarReserva"><i class="fa-solid fa-copy"></i> Copiar</button></div>
+    <div class="link-acoes">
+      <a class="btn btn-wpp btn-sm" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(`Reserve sua poltrona na excursão *${e.destino || ""}*\n📅 Saída: ${fData(e.dataSaida)}${e.horaSaida ? " às " + e.horaSaida : ""}\n📍 Local: ${e.localSaida || "a combinar"}\n💰 Valor: ${brl(valor)}\n\nEscolha seu lugar no ônibus: ${urlReserva(exId)}`)}"><i class="fa-brands fa-whatsapp"></i> Enviar no WhatsApp</a>
+      <a class="btn btn-light btn-sm" target="_blank" rel="noopener" href="${esc(urlReserva(exId))}"><i class="fa-solid fa-arrow-up-right-from-square"></i> Abrir reserva</a>
+    </div>
+    <h4 class="sub"><i class="fa-solid fa-chair"></i> Escolha rápida de poltrona (só nome e RG)</h4>
+    <p class="muted" style="font-size:.85rem;margin-bottom:6px">Sem pagamento e sem login: a pessoa informa nome completo e RG (ou marca certidão de nascimento, enviada pelo WhatsApp (32) 9 9977-5281) e escolhe a poltrona. Fica salvo em Viajantes e Poltronas.</p>
+    <div class="link-box"><input id="linkPolt" readonly value="${esc(urlPoltrona(exId))}"><button class="btn btn-primary btn-sm" id="btnCopiarPolt"><i class="fa-solid fa-copy"></i> Copiar</button></div>
+    <div class="link-acoes">
+      <a class="btn btn-wpp btn-sm" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(`Escolha sua poltrona para a excursão *${e.destino || ""}* (${fData(e.dataSaida)}):\n${urlPoltrona(exId)}`)}"><i class="fa-brands fa-whatsapp"></i> Enviar no WhatsApp</a>
+      <a class="btn btn-light btn-sm" target="_blank" rel="noopener" href="${esc(urlPoltrona(exId))}"><i class="fa-solid fa-arrow-up-right-from-square"></i> Abrir página</a>
     </div>`, [
     { html: ativo ? `<i class="fa-solid fa-lock"></i> Encerrar inscrições` : `<i class="fa-solid fa-lock-open"></i> Reabrir inscrições`, acao: async () => {
       try { await update(ref(db, `excursoes/${own}/${exId}`), { linkAtivo: !ativo }); await publicarInscricao(exId, own); toast(ativo ? "Inscrições encerradas" : "Inscrições reabertas"); fecharModal(); } catch (err) { falha(err); }
     } },
     { html: "Fechar", classe: "btn-primary", acao: fecharModal }
   ]);
+  $("#btnCopiarPolt").onclick = async () => {
+    try { await navigator.clipboard.writeText(urlPoltrona(exId)); } catch { $("#linkPolt").select(); document.execCommand("copy"); }
+    toast("Link da escolha de poltrona copiado");
+  };
+  $("#btnCopiarReserva").onclick = async () => {
+    try { await navigator.clipboard.writeText(urlReserva(exId)); } catch { $("#reservaUrl").select(); document.execCommand("copy"); }
+    toast("Link de reserva copiado");
+  };
   $("#btnCopiar").onclick = async () => {
     try { await navigator.clipboard.writeText(url); } catch { $("#linkUrl").select(); document.execCommand("copy"); }
     toast("Link copiado");
@@ -1668,7 +1692,7 @@ function viewViajantes() {
       <thead><tr><th>#</th><th>Nome completo</th><th>Documento</th><th>Telefone</th><th>Idade</th><th>Pagamento</th><th>Poltrona</th><th></th></tr></thead>
       <tbody>${lista.map(([pid, p], i) => `<tr>
         <td>${i + 1}</td>
-        <td><strong>${esc(p.nome)}</strong>${p.colo ? ` <span class="pill pill-yellow">colo</span>` : ""}${p.origem === "link" ? ` <span class="pill pill-link" title="Cadastrado pelo link">link</span>` : ""}${p.origem === "planilha" ? ` <span class="pill" title="Importado de planilha">planilha</span>` : ""}${p.origem === "venda" ? ` <span class="pill pill-online st-${STATUS_PEDIDO[p.statusVenda]?.cls || "pendente"}" title="Compra online (Asaas) — ${esc(STATUS_PEDIDO[p.statusVenda]?.nome || "")}"><i class="fa-solid fa-cart-shopping"></i> online</span>` : ""}${p.obs ? `<br><small class="muted">${esc(p.obs)}</small>` : ""}</td>
+        <td><strong>${esc(p.nome)}</strong>${p.colo ? ` <span class="pill pill-yellow">colo</span>` : ""}${p.origem === "link" ? ` <span class="pill pill-link" title="Cadastrado pelo link">link</span>` : ""}${p.origem === "planilha" ? ` <span class="pill" title="Importado de planilha">planilha</span>` : ""}${p.origem === "poltrona" ? ` <span class="pill pill-link" title="Escolheu a poltrona pelo link rápido (nome e RG)"><i class="fa-solid fa-chair"></i> poltrona</span>` : ""}${p.origem === "reserva" ? ` <span class="pill pill-link" title="Reservou a poltrona pelo link (pagamento a combinar)"><i class="fa-solid fa-couch"></i> reserva</span>` : ""}${p.origem === "venda" ? ` <span class="pill pill-online st-${STATUS_PEDIDO[p.statusVenda]?.cls || "pendente"}" title="Compra online (Asaas) — ${esc(STATUS_PEDIDO[p.statusVenda]?.nome || "")}"><i class="fa-solid fa-cart-shopping"></i> online</span>` : ""}${p.obs ? `<br><small class="muted">${esc(p.obs)}</small>` : ""}</td>
         <td><small class="muted">${esc(DOCS[p.docTipo] || p.docTipo)}</small><br>${esc(p.docNumero)}</td>
         <td>${esc(p.telefone)}</td>
         <td>${esc(p.idade ?? "—")}</td>

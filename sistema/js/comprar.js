@@ -7,7 +7,10 @@ const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const primeiro = (n) => String(n || "").trim().split(/\s+/)[0] || "";
 const exId = new URLSearchParams(location.search).get("e") || "";
-const CHAVE = `garbosa.compra.${exId}`;
+// a mesma página serve para a reserva sem pagamento (reservar.html → <body data-modo="reserva">)
+const RESERVA = document.body.dataset.modo === "reserva";
+const API_INFO = RESERVA ? "/api/reserva" : "/api/venda";
+const CHAVE = `garbosa.${RESERVA ? "reserva" : "compra"}.${exId}`;
 
 let EX = null, PERFIL = null, CONTA = null;
 const S = { pessoas: [], cupom: null, etapa: 1, veic: null, ativo: 0, forma: "", parcelas: { CREDIT_CARD: 1, BOLETO: 1 } };
@@ -29,10 +32,10 @@ async function api(caminho, corpo) {
 
 async function carregar() {
   if (!/^[\w-]{6,40}$/.test(exId)) return fechada("Link inválido", "Confira o link enviado pela agência.");
-  try { EX = await api(`/api/venda?e=${encodeURIComponent(exId)}`); }
+  try { EX = await api(`${API_INFO}?e=${encodeURIComponent(exId)}`); }
   catch (e) { return fechada(e.status === 404 ? "Excursão não encontrada" : "Não foi possível carregar", e.message); }
   document.title = `${EX.destino} | ${EX.agencia || "Garbosa Turismo"}`;
-  if (!EX.ativa) return fechada("Vendas encerradas", EX.motivo || "Fale com a agência.");
+  if (!EX.ativa) return fechada(RESERVA ? "Reservas encerradas" : "Vendas encerradas", EX.motivo || "Fale com a agência.");
   $("#cAgencia").textContent = EX.agencia || "Excursão";
   $("#cDestino").textContent = EX.destino;
   if (EX.descricao) { $("#cDesc").textContent = EX.descricao; $("#cDesc").classList.remove("hidden"); }
@@ -47,9 +50,13 @@ async function carregar() {
   $("#cLocal").textContent = EX.localSaida || "A combinar";
   $("#cValor").textContent = R.brl(EX.valorCent);
   $("#cColo").textContent = EX.valorColoCent > 0 ? `Criança de colo (até ${R.IDADE_COLO} anos): ${R.brl(EX.valorColoCent)}` : `Criança de colo (até ${R.IDADE_COLO} anos) não paga`;
-  const op = R.opcoesPagamento(EX.venda, EX.dataSaida, EX.valorCent, EX.hoje);
-  const cartao = EX.venda.maxParcelas, boleto = R.opcoesPagamento(EX.venda, EX.dataSaida, 1e9, EX.hoje).BOLETO;
-  $("#cFormas").innerHTML = [
+  if (RESERVA) {
+    $("#cFormas").innerHTML = `<li><i class="fa-solid fa-couch"></i><span><strong>Escolha sua poltrona agora</strong>sem pagar nada pelo site</span></li>
+      <li><i class="fa-brands fa-whatsapp"></i><span><strong>Pagamento combinado</strong>direto com a agência</span></li>`;
+  }
+  const op = RESERVA ? null : R.opcoesPagamento(EX.venda, EX.dataSaida, EX.valorCent, EX.hoje);
+  const cartao = RESERVA ? 0 : EX.venda.maxParcelas, boleto = RESERVA ? 0 : R.opcoesPagamento(EX.venda, EX.dataSaida, 1e9, EX.hoje).BOLETO;
+  if (!RESERVA) $("#cFormas").innerHTML = [
     `<li><i class="fa-regular fa-credit-card"></i><span><strong>Cartão de crédito</strong>${cartao > 1 ? `em até ${cartao}x` : "à vista"}</span></li>`,
     `<li><i class="fa-brands fa-pix"></i><span><strong>Pix</strong>pagamento integral</span></li>`,
     boleto ? `<li><i class="fa-solid fa-barcode"></i><span><strong>Boleto${boleto > 1 ? " parcelado" : ""}</strong>${boleto > 1 ? `em até ${boleto}x · 1ª parcela em ${R.fData(op.primeiroVencimento).slice(0, 5)}` : `vence em ${R.fData(op.primeiroVencimento)}`}</span></li>` : ""
@@ -58,6 +65,7 @@ async function carregar() {
   S.veic = EX.veiculos[0]?.id || null;
   restaurar();
   if (!S.pessoas.length) S.pessoas = [novaPessoa(true)];
+  if (RESERVA) { renderPessoas(); irEtapa(1, false); return mostrar("#compra"); }
   aoMudarSessao(entrouOuSaiu);
 }
 
@@ -168,10 +176,10 @@ const campo = (p, chave, rotulo, attrs = "", cls = "") => {
 };
 
 function cardPessoa(p, i) {
-  const titulo = p.titular ? `<i class="fa-solid fa-user"></i> Titular da compra` : `<i class="fa-solid fa-user-group"></i> Dependente ${i}`;
+  const titulo = p.titular ? `<i class="fa-solid fa-user"></i> ${RESERVA ? "Responsável pela reserva" : "Titular da compra"}` : `<i class="fa-solid fa-user-group"></i> ${RESERVA ? "Acompanhante" : "Dependente"} ${i}`;
   return `<fieldset class="cp-pessoa" data-uid="${p.uid}">
     <legend>${titulo}${p.titular ? "" : `<button type="button" class="cp-rem" data-rem="${p.uid}" title="Remover dependente" aria-label="Remover dependente ${i}"><i class="fa-solid fa-xmark"></i></button>`}</legend>
-    ${p.titular ? `<p class="cp-dica">É você, o dono da conta: quem paga e recebe a cobrança e os avisos do Asaas. Alterações aqui atualizam o seu cadastro.</p>` : ""}
+    ${p.titular ? `<p class="cp-dica">${RESERVA ? "A agência vai falar com você por este WhatsApp para combinar o pagamento." : "É você, o dono da conta: quem paga e recebe a cobrança e os avisos do Asaas. Alterações aqui atualizam o seu cadastro."}</p>` : ""}
     <div class="form-grid">
       ${campo(p, "nome", "Nome completo", 'autocomplete="' + (p.titular ? "name" : "off") + '" maxlength="120"', "span2")}
       ${campo(p, "cpf", `CPF${p.titular ? "" : ' <small class="cp-opc" data-opc>(opcional para colo)</small>'}`, 'inputmode="numeric" data-mask="cpf" placeholder="000.000.000-00"' + (p.titular && PERFIL?.cpf ? ' readonly title="CPF da sua conta"' : ""))}
@@ -180,7 +188,7 @@ function cardPessoa(p, i) {
       <div class="cp-colo ${podeColo(p) ? "" : "hidden"}" data-colo-wrap>
         <label class="check"><input type="checkbox" data-c="colo" ${p.colo ? "checked" : ""}> Vai no colo (não ocupa poltrona)</label>
       </div>
-      ${p.titular ? "" : `<label class="check span2"><input type="checkbox" data-c="mesmoContato" ${p.mesmoContato ? "checked" : ""}> Usar e-mail, WhatsApp e endereço do titular</label>`}
+      ${p.titular ? "" : `<label class="check span2"><input type="checkbox" data-c="mesmoContato" ${p.mesmoContato ? "checked" : ""}> Usar e-mail, WhatsApp e endereço ${RESERVA ? "do responsável" : "do titular"}</label>`}
       <div class="span2 form-grid cp-contato ${!p.titular && p.mesmoContato ? "hidden" : ""}" data-contato>
         ${campo(p, "email", "E-mail", 'type="email" autocomplete="' + (p.titular ? "email" : "off") + '"')}
         ${campo(p, "whatsapp", "WhatsApp", 'type="tel" inputmode="tel" data-mask="tel" placeholder="(32) 99999-9999"')}
@@ -276,7 +284,7 @@ function tabelaResumo(comPoltrona) {
   }).join("");
   const desc = c.descontoCent > 0
     ? `<div class="cp-linha desconto"><span><i class="fa-solid fa-tag"></i> Cupom ${esc(S.cupom.codigo)} (${c.comCupom} pessoa${c.comCupom > 1 ? "s" : ""})</span><strong>− ${R.brl(c.descontoCent)}</strong></div>` : "";
-  return `${linhas}${desc}<div class="cp-total"><span>Valor final</span><strong>${R.brl(c.totalCent)}</strong></div>`;
+  return `${linhas}${desc}<div class="cp-total"><span>${RESERVA ? "Valor total <small>(pagamento combinado com a agência)</small>" : "Valor final"}</span><strong>${R.brl(c.totalCent)}</strong></div>`;
 }
 function renderResumo1() { $("#resumo1").innerHTML = tabelaResumo(false); }
 
@@ -312,7 +320,7 @@ function irEtapa(n, rolar = true) {
   $$(".cp-passos li").forEach((li) => { const k = +li.dataset.passo; li.classList.toggle("ativo", k === n); li.classList.toggle("feito", k < n); });
   if (n === 1) renderResumo1();
   if (n === 2) renderPoltronas();
-  if (n === 3) renderPagamento();
+  if (n === 3) (RESERVA ? renderConfirmacao : renderPagamento)();
   if (rolar) $(".cp-card").scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
@@ -331,7 +339,7 @@ $("#btnIr2").addEventListener("click", async () => {
   }
   const cpfs = S.pessoas.map((p) => R.soDig(p.cpf)).filter(Boolean);
   if (new Set(cpfs).size !== cpfs.length) return msg(1, "Há CPFs repetidos. Confira os dados.");
-  if (conta().totalCent < R.MIN_PARCELA * 100) return msg(1, "O valor da compra é menor que o mínimo para pagamento online.");
+  if (!RESERVA && conta().totalCent < R.MIN_PARCELA * 100) return msg(1, "O valor da compra é menor que o mínimo para pagamento online.");
   const b = $("#btnIr2");
   b.disabled = true;
   await atualizarOcupacao();
@@ -345,7 +353,7 @@ $("#btnVolta2").addEventListener("click", () => irEtapa(2));
 /* ---------- poltronas ---------- */
 async function atualizarOcupacao() {
   try {
-    const novo = await api(`/api/venda?e=${encodeURIComponent(exId)}`);
+    const novo = await api(`${API_INFO}?e=${encodeURIComponent(exId)}`);
     if (novo.ativa) { EX.veiculos = novo.veiculos; EX.valorCent = novo.valorCent; }
   } catch { /* mantém o que já tinha */ }
   // escolhas que ficaram ocupadas ou de pessoas que agora vão no colo voltam a ficar em aberto
@@ -463,7 +471,39 @@ function renderPagamento() {
   if (d) d.textContent = datas(S.parcelas.BOLETO || 1);
 }
 
+/* ---------- reserva sem pagamento ---------- */
+function renderConfirmacao() {
+  $("#resumo3").innerHTML = `<h3 class="cp-sub">Confira a reserva</h3>${tabelaResumo(true)}`;
+}
+async function reservar() {
+  msg(3, "");
+  if (!$("#cAceite").checked) return msg(3, "Marque a confirmação dos dados para continuar.");
+  const corpo = { e: exId, aceite: true, pessoas: S.pessoas.map((p) => { const x = efetiva(p); return { ...x, assento: x.colo || !ocupaPoltrona(p) ? null : x.assento }; }) };
+  $("#btnPagar").disabled = true;
+  $("#gerando p").innerHTML = `<strong>Reservando suas poltronas…</strong>`;
+  $("#gerando").classList.remove("hidden");
+  try {
+    const r = await api("/api/reserva", corpo);
+    try { sessionStorage.removeItem(CHAVE); } catch { /* ignora */ }
+    $("#gerando").classList.add("hidden");
+    $$(".cp-etapa, .cp-passos").forEach((el) => el.classList.add("hidden"));
+    const ok = $("#concluido");
+    $("#concluidoLista").innerHTML = r.reservas.map((x) => `<div class="cp-linha"><span>${esc(x.nome)}</span><strong>${x.poltrona === "colo" ? "colo" : "Poltrona " + esc(x.poltrona)}</strong></div>`).join("");
+    ok.classList.remove("hidden");
+    ok.scrollIntoView({ behavior: "smooth", block: "start" });
+  } catch (e) {
+    $("#gerando").classList.add("hidden");
+    $("#btnPagar").disabled = false;
+    const d = e.dados || {};
+    if (d.poltronasOcupadas) { await atualizarOcupacao(); irEtapa(2); return msg(2, e.message); }
+    if (d.etapa === "poltronas") { irEtapa(2); return msg(2, e.message); }
+    if (Number.isInteger(d.pessoa)) { irEtapa(1); msg(1, e.message); $$(".cp-pessoa")[d.pessoa]?.classList.add("erro"); return; }
+    msg(3, e.message);
+  }
+}
+
 $("#btnPagar").addEventListener("click", async () => {
+  if (RESERVA) return reservar();
   msg(3, "");
   if (!S.forma) return msg(3, "Escolha a forma de pagamento.");
   if (!$("#cAceite").checked) return msg(3, "Marque a confirmação dos dados para continuar.");
