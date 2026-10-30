@@ -1830,6 +1830,14 @@ function viewPoltronas() {
     <div class="subbar">${sel}
       <div class="lotacao"><div class="lot-txt"><strong>${totalSent}</strong> de <strong>${pessoas.length}</strong> viajantes posicionados · capacidade total ${capacidadeEx(ex)}</div></div>
     </div>
+    <div class="link-polt no-print">
+      <i class="fa-solid fa-chair"></i>
+      <span>Link para o cliente escolher a poltrona (nome e RG, sem pagamento):
+        <a href="${esc(urlPoltrona(exId))}" target="_blank" rel="noopener">${esc(urlPoltrona(exId).replace(/^https?:\/\//, ""))}</a></span>
+      <button type="button" class="btn btn-light btn-sm" id="btnCopiarPoltLink"><i class="fa-solid fa-copy"></i> Copiar</button>
+      <a class="btn btn-wpp btn-sm" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(`Escolha sua poltrona para a excursão *${ex.destino || ""}* (${fData(ex.dataSaida)}):\n${urlPoltrona(exId)}`)}"><i class="fa-brands fa-whatsapp"></i> WhatsApp</a>
+      ${ex.linkAtivo === false ? `<span class="pill pill-red" title="Reabra as inscrições em Link de inscrição">inscrições encerradas</span>` : ""}
+    </div>
     ${pessoas.length > capacidadeEx(ex) ? `<div class="alerta"><i class="fa-solid fa-triangle-exclamation"></i> Há ${pessoas.length - capacidadeEx(ex)} viajante(s) sem lugar. Insira mais um veículo.
       <button class="btn btn-primary btn-sm" id="btnVeicExtra2"><i class="fa-solid fa-plus"></i> Inserir mais um veículo</button></div>` : ""}
     <div class="veic-tabs">${vs.map(([k, x], i) => {
@@ -1903,6 +1911,10 @@ function viewPoltronas() {
   $("#btnVeicExtra").onclick = () => formVeiculoExtra(exId);
   if ($("#btnVeicExtra2")) $("#btnVeicExtra2").onclick = () => formVeiculoExtra(exId);
   $("#btnPrint").onclick = () => window.print();
+  $("#btnCopiarPoltLink").onclick = async () => {
+    try { await navigator.clipboard.writeText(urlPoltrona(exId)); } catch { /* sem área de transferência */ }
+    toast("Link da escolha de poltrona copiado");
+  };
   if ($("#btnDelVeic")) $("#btnDelVeic").onclick = () => confirmar(`Remover o veículo <strong>${esc(vv.nome)}</strong> desta excursão? As poltronas dele serão liberadas.`, async () => {
     await update(ref(db), { [`excursoes/${own}/${exId}/veiculos/${vk}`]: null, [`${base}/${vk}`]: null });
     S.veicSel = null; toast("Veículo removido");
