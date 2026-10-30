@@ -1,4 +1,7 @@
 {
+  "redirects": [
+    { "source": "/sistema", "destination": "/sistema/", "permanent": true }
+  ],
   "functions": {
     "api/*.js": { "maxDuration": 30 }
   }
