@@ -1,6 +1,6 @@
 // Área do viajante: histórico de viagens, parcelas pagas e em aberto, meus dados
-import * as R from "./venda-regras.js?v=13";
-import { aoMudarSessao, telaAcesso, formPerfil, lerPerfil, salvarPerfil, sair, api, esc } from "./conta-viajante.js?v=13";
+import * as R from "./venda-regras.js?v=14";
+import { aoMudarSessao, telaAcesso, formPerfil, lerPerfil, salvarPerfil, sair, api, esc } from "./conta-viajante.js?v=14";
 
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
@@ -29,7 +29,8 @@ aoMudarSessao(async (u) => {
   CONTA = u;
   if (!u) {
     PERFIL = null; topo();
-    telaAcesso(C(), { titulo: "Minhas viagens", texto: "Entre para ver o histórico das suas excursões e as parcelas pagas e em aberto. Primeira vez? Crie a conta e faça o pré-cadastro." });
+    telaAcesso(C(), { titulo: "Área do cliente", texto: "Entre para ver o financeiro das suas viagens (parcelas pagas e em aberto). Primeira vez? Crie a conta e faça o pré-cadastro." });
+    C().insertAdjacentHTML("beforeend", `<p class="mc-rodape"><a href="../index.html"><i class="fa-solid fa-house"></i> Voltar à tela inicial</a> · <a href="../excursoes.html">Catálogo de viagens</a></p>`);
     return pronto();
   }
   try { PERFIL = await lerPerfil(); } catch { PERFIL = null; }
@@ -69,7 +70,7 @@ async function historico() {
   if (aba !== "viagens") return;
   if (!r.viagens.length) {
     C().innerHTML = `<div class="empty"><i class="fa-solid fa-suitcase-rolling"></i><p>Você ainda não tem viagens compradas pela internet.</p>
-      <a class="btn btn-primary btn-sm" href="../excursoes.html">Ver excursões</a></div>`;
+      <a class="btn btn-primary btn-sm" href="../excursoes.html"><i class="fa-solid fa-map-location-dot"></i> Ver o catálogo de viagens</a></div>`;
     return;
   }
   const proximas = r.viagens.filter((v) => v.dataSaida >= r.hoje && !["expirado", "cancelado"].includes(v.status)).sort((a, b) => a.dataSaida.localeCompare(b.dataSaida));
@@ -100,7 +101,7 @@ async function detalhe(pedido) {
   const abertas = v.parcelasLista.filter((p) => p.situacao === "aberta" || p.situacao === "vencida");
   const prox = abertas[0];
   C().innerHTML = `
-    <button type="button" class="link-btn mc-voltar" id="voltar"><i class="fa-solid fa-arrow-left"></i> Minhas viagens</button>
+    <button type="button" class="link-btn mc-voltar" id="voltar"><i class="fa-solid fa-arrow-left"></i> Financeiro</button>
     <div class="mc-cab">
       <div><h2>${esc(v.destino)}</h2><small class="muted">Pedido #${esc(v.codigo)} · comprado em ${new Date(v.criadoEm).toLocaleDateString("pt-BR")}${v.agencia ? ` · ${esc(v.agencia)}` : ""}</small></div>
       ${pill(STATUS, v.status)}

@@ -974,3 +974,14 @@ input:-webkit-autofill{-webkit-text-fill-color:#fff;-webkit-box-shadow:0 0 0 40p
 .mc-totais .card-fin{min-width:0}
 @media(max-width:640px){.mc-totais.cards-fin{gap:6px}.mc-totais .card-fin{padding:10px 8px}}
 .mc-user #btnSair i{color:#fff}
+/* menu da tela do cliente: Financeiro · Catálogo · Meus dados · Tela inicial */
+.mc-abas{grid-template-columns:repeat(4,1fr)}
+.mc-abas .cv-aba{display:flex;align-items:center;justify-content:center;gap:8px;text-decoration:none;text-align:center}
+.mc-abas .cv-aba:hover{color:var(--primary)}
+.mc-rodape{text-align:center;font-size:.85rem;margin-top:16px;color:var(--muted)}
+.mc-rodape a{color:var(--primary);font-weight:600;text-decoration:none}
+@media(max-width:640px){
+  .mc-abas{grid-template-columns:repeat(4,1fr);gap:4px}
+  .mc-abas .cv-aba{flex-direction:column;gap:3px;font-size:.7rem;padding:8px 2px}
+  .mc-abas .cv-aba i{font-size:1rem}
+}

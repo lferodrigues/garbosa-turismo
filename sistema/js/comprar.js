@@ -1,6 +1,6 @@
 // Página pública de compra: viajantes → poltronas → pagamento no Asaas
-import * as R from "./venda-regras.js?v=13";
-import { aoMudarSessao, telaAcesso, formPerfil, lerPerfil, salvarPerfil, paraPerfil, sair, api as apiConta } from "./conta-viajante.js?v=13";
+import * as R from "./venda-regras.js?v=14";
+import { aoMudarSessao, telaAcesso, formPerfil, lerPerfil, salvarPerfil, paraPerfil, sair, api as apiConta } from "./conta-viajante.js?v=14";
 
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
@@ -61,7 +61,7 @@ async function entrouOuSaiu(u) {
   if (!u) {
     PERFIL = null; barraConta();
     telaAcesso($("#etapa0"), { titulo: "Entre para comprar",
-      texto: "É a sua primeira vez? Clique em <strong>Criar conta</strong> e faça um pré-cadastro rápido. Nas próximas compras seus dados já vêm preenchidos e você acompanha as parcelas em <strong>Minhas viagens</strong>." });
+      texto: "É a sua primeira vez? Clique em <strong>Criar conta</strong> e faça um pré-cadastro rápido. Nas próximas compras seus dados já vêm preenchidos e você acompanha as parcelas na <strong>Área do cliente</strong>." });
     irEtapa(0, false);
     return mostrar("#compra");
   }
@@ -83,7 +83,7 @@ function barraConta() {
   b.classList.toggle("hidden", !CONTA);
   if (!CONTA) return;
   b.innerHTML = `<span><i class="fa-solid fa-circle-user"></i> ${esc(primeiro(PERFIL?.nome) || CONTA.email)}</span>
-    <a href="minha-conta.html"><i class="fa-solid fa-suitcase-rolling"></i> Minhas viagens</a>
+    <a href="minha-conta.html"><i class="fa-solid fa-circle-user"></i> Área do cliente</a>
     <button type="button" class="link-btn" id="btnSair">Sair</button>`;
   $("#btnSair").onclick = async () => { try { sessionStorage.removeItem(CHAVE); } catch { /* ignora */ } S.pessoas = [novaPessoa(true)]; await sair(); };
 }
