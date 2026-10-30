@@ -1665,6 +1665,9 @@ function linhasPassageiros(exId) {
   return viajantesEx(exId).map(([pid, p], i) => [i + 1, p.nome, DOCS[p.docTipo] || p.docTipo || "", p.docNumero || "", p.telefone || "", p.idade ?? "", p.colo ? "Sim" : "Não", p.colo ? "—" : rotuloPoltrona(exId, pid), brl(p.valor), brl(pagoDe(p)), statusPag(p).nome]);
 }
 const COLS_PASS = ["#", "Nome completo", "Documento", "Número", "Telefone", "Idade", "Colo", "Poltrona", "Valor", "Pago", "Situação"];
+// lista para o mapa de poltronas: sem valores em dinheiro (Valor, Pago e Situação de pagamento)
+const COLS_POLT = COLS_PASS.slice(0, 8);
+const linhasPoltronas = (exId) => linhasPassageiros(exId).map((l) => l.slice(0, 8));
 
 /* =========================================================
    VIAJANTES
@@ -1933,11 +1936,11 @@ function viewPoltronas() {
       ...porVeiculo.map(({ i, x, nm, cap, k }) => ({ nome: `Veículo ${i + 1} ${veic(x.tipo).nome.replace(" lugares", "")}`, colunas: ["Poltrona", "Nome", "Documento", "Telefone", "Idade"],
         linhas: Array.from({ length: cap }, (_, j) => { const n = j + 1, pid = ((S.poltronas[exId] || {})[k] || {})[n], p = pid ? S.viajantes[exId]?.[pid] : null;
           return [n, p?.nome || "", p ? `${DOCS[p.docTipo] || p.docTipo} ${p.docNumero}` : "", p?.telefone || "", p?.idade ?? ""]; }) })),
-      { nome: "Todos os viajantes", colunas: COLS_PASS, linhas: linhasPassageiros(exId) }
+      { nome: "Todos os viajantes", colunas: COLS_POLT, linhas: linhasPoltronas(exId) }
     ],
     pdf: () => baixarPDFPoltronas(titulo, sub,
       porVeiculo.map(({ i, x, nm, cap }) => ({ titulo: `${vs.length > 1 ? `Veículo ${i + 1} · ` : ""}${veic(x.tipo).nome}`, cap, layout: layoutAssentos(cap), nomes: nm })),
-      { colunas: COLS_PASS, linhas: linhasPassageiros(exId) })
+      { colunas: COLS_POLT, linhas: linhasPoltronas(exId) })
   };
 }
 
