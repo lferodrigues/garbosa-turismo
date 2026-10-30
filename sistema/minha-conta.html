@@ -5,12 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex, nofollow">
 <link rel="icon" href="../Assets/img/logo.ico" type="image/x-icon">
-<title>Minhas viagens | Garbosa Turismo</title>
+<title>Área do cliente | Garbosa Turismo</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
-<link rel="stylesheet" href="css/sistema.css?v=13">
+<link rel="stylesheet" href="css/sistema.css?v=14">
 </head>
 <body class="insc-body cp-body">
 <div id="loading" class="loading-screen">
@@ -98,17 +98,19 @@
 
 <main class="mc-wrap hidden" id="conta">
   <header class="mc-topo">
-    <a href="../index.html" class="mc-marca"><img src="../Assets/img/logo.ico" alt="" class="login-logo"><span><strong>Garbosa Turismo</strong><small>Área do viajante</small></span></a>
+    <a href="../index.html" class="mc-marca"><img src="../Assets/img/logo.ico" alt="" class="login-logo"><span><strong>Garbosa Turismo</strong><small>Área do cliente</small></span></a>
     <div class="mc-user hidden" id="mcUser"></div>
   </header>
   <section class="login-card mc-card">
-    <nav class="mc-abas hidden" id="mcAbas">
-      <button type="button" class="cv-aba ativo" data-aba="viagens"><i class="fa-solid fa-suitcase-rolling"></i> Minhas viagens</button>
-      <button type="button" class="cv-aba" data-aba="dados"><i class="fa-solid fa-id-card"></i> Meus dados</button>
+    <nav class="mc-abas hidden" id="mcAbas" aria-label="Menu do cliente">
+      <button type="button" class="cv-aba ativo" data-aba="viagens"><i class="fa-solid fa-sack-dollar"></i><span>Financeiro</span></button>
+      <a class="cv-aba" href="../excursoes.html"><i class="fa-solid fa-map-location-dot"></i><span>Catálogo de viagens</span></a>
+      <button type="button" class="cv-aba" data-aba="dados"><i class="fa-solid fa-id-card"></i><span>Meus dados</span></button>
+      <a class="cv-aba" href="../index.html"><i class="fa-solid fa-house"></i><span>Tela inicial</span></a>
     </nav>
     <div id="mcConteudo"></div>
   </section>
 </main>
-<script type="module" src="js/minha-conta.js?v=13"></script>
+<script type="module" src="js/minha-conta.js?v=14"></script>
 </body>
 </html>

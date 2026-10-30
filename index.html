@@ -11,6 +11,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="./Assets/css/novosite/style.css">
 <link rel="stylesheet"href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+<link rel="stylesheet" href="./Assets/css/novosite/conta.css?v=1">
 <script>
 document.addEventListener("DOMContentLoaded", function () {
     document.getElementById("currentYear").textContent = new Date().getFullYear();
@@ -35,6 +36,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 <li><a href="./excursoes.html">Excursões</a></li>
                 <li><a href="#contato">Contato</a></li>
                 <li><a href="./contrato.html">Contrato de prestação de serviço</a></li>
+                <li><a href="./sistema/minha-conta.html" id="linkConta"><i class="fa-regular fa-circle-user"></i> Área do cliente</a></li>
             </ul>
     
             <a class="btn-primary" href="./excursoes.html">
@@ -173,6 +175,14 @@ document.addEventListener("DOMContentLoaded", function () {
 </div>
 </footer>
 
+<!-- Área do cliente: login e cadastro (e-mail/senha ou Google) -->
+<div class="gc-modal" id="gcModal" hidden role="dialog" aria-modal="true" aria-label="Área do cliente">
+  <div class="gc-caixa">
+    <button type="button" class="gc-fechar" data-fechar aria-label="Fechar">&times;</button>
+    <div id="gcCorpo"></div>
+  </div>
+</div>
+<script type="module" src="./Assets/js/novosite/conta.js?v=1"></script>
 
 </body>
 </html>
