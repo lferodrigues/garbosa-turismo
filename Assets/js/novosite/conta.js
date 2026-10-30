@@ -22,12 +22,13 @@ function fechar() {
   document.body.style.overflow = "";
 }
 
-link?.addEventListener("click", (e) => {
+// "Área do cliente" no menu e os outros atalhos marcados com data-abrir-conta
+[link, ...document.querySelectorAll("[data-abrir-conta]")].filter(Boolean).forEach((el) => el.addEventListener("click", (e) => {
   if (logado) return; // já entrou: segue o link para a tela do cliente
   e.preventDefault();
   document.querySelector(".navbar ul")?.classList.remove("active");
   abrir();
-});
+}));
 modal.addEventListener("click", (e) => { if (e.target === modal || e.target.closest("[data-fechar]")) fechar(); });
 document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !modal.hidden) fechar(); });
 
