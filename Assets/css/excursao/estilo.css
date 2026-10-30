@@ -272,3 +272,7 @@ body {
 
 
 }
+
+/* link com cara de botão (catálogo dinâmico) e linha de data/local */
+a.btn-saiba{display:inline-block;text-decoration:none;text-align:center}
+.card-content .card-info{font-weight:600;opacity:.85;margin-bottom:4px}

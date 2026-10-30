@@ -144,6 +144,22 @@
                 ".validate": "newData.isBoolean()"
               }
             }
+          },
+          "folder": {
+            ".write": "(auth != null && root.child('excursoes').child($uid).child($excursaoId).child('colaboradores').child(auth.uid).exists())",
+            "caminho": {
+              ".validate": "newData.isString() && newData.val().length <= 300"
+            },
+            "raw": {
+              ".validate": "newData.isString() && newData.val().length <= 400"
+            },
+            "$outro": {
+              ".validate": false
+            }
+          },
+          "publicarSite": {
+            ".write": "(auth != null && root.child('excursoes').child($uid).child($excursaoId).child('colaboradores').child(auth.uid).exists())",
+            ".validate": "newData.isBoolean()"
           }
         }
       }
@@ -404,6 +420,72 @@
         },
         "$outro": {
           ".validate": false
+        }
+      }
+    },
+    "site": {
+      "excursoes": {
+        ".read": true,
+        ".indexOn": [
+          "ordem"
+        ],
+        "$id": {
+          ".write": "(auth != null && auth.token.email === 'contato@feliperodrigues.net') || (auth != null && root.child('usuarios').child(auth.uid).child('tipo').val() === 'agencia' && root.child('usuarios').child(auth.uid).child('ativo').val() !== false && ((!data.exists() && newData.child('owner').val() === auth.uid) || (data.exists() && data.child('owner').val() === auth.uid && (!newData.exists() || newData.child('owner').val() === auth.uid))))",
+          ".validate": "newData.hasChildren(['titulo', 'imagem', 'link'])",
+          "titulo": {
+            ".validate": "newData.isString() && newData.val().length <= 120"
+          },
+          "descricao": {
+            ".validate": "newData.isString() && newData.val().length <= 600"
+          },
+          "imagem": {
+            ".validate": "newData.isString() && newData.val().length <= 300"
+          },
+          "imagemRaw": {
+            ".validate": "newData.isString() && newData.val().length <= 400"
+          },
+          "link": {
+            ".validate": "newData.isString() && newData.val().length <= 400"
+          },
+          "local": {
+            ".validate": "newData.isString() && newData.val().length <= 80"
+          },
+          "data": {
+            ".validate": "newData.isString() && newData.val().length <= 40"
+          },
+          "categoria": {
+            ".validate": "newData.isString() && newData.val().length <= 40"
+          },
+          "owner": {
+            ".validate": "newData.isString() && newData.val().length <= 64"
+          },
+          "exId": {
+            ".validate": "newData.isString() && newData.val().length <= 64"
+          },
+          "origem": {
+            ".validate": "newData.isString() && newData.val().length <= 20"
+          },
+          "ordem": {
+            ".validate": "newData.isNumber()"
+          },
+          "ativo": {
+            ".validate": "newData.isBoolean()"
+          },
+          "destaque": {
+            ".validate": "newData.isBoolean()"
+          },
+          "botao": {
+            ".validate": "newData.isString() && newData.val().length <= 40"
+          },
+          "criadoEm": {
+            ".validate": "newData.isNumber()"
+          },
+          "atualizadoEm": {
+            ".validate": "newData.isNumber()"
+          },
+          "$outro": {
+            ".validate": false
+          }
         }
       }
     }

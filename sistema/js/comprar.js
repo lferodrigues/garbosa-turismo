@@ -36,6 +36,12 @@ async function carregar() {
   $("#cAgencia").textContent = EX.agencia || "Excursão";
   $("#cDestino").textContent = EX.destino;
   if (EX.descricao) { $("#cDesc").textContent = EX.descricao; $("#cDesc").classList.remove("hidden"); }
+  if (EX.folder?.caminho) {
+    const img = $("#cFolder");
+    img.onerror = () => { if (EX.folder.raw && img.src !== EX.folder.raw) img.src = EX.folder.raw; else img.classList.add("hidden"); };
+    img.src = "../" + EX.folder.caminho;
+    img.classList.remove("hidden");
+  }
   $("#cSaida").textContent = `${R.fData(EX.dataSaida)}${EX.horaSaida ? " às " + EX.horaSaida : ""}`;
   $("#cRetorno").textContent = `${R.fData(EX.dataRetorno)}${EX.horaRetorno ? " às " + EX.horaRetorno : ""}`;
   $("#cLocal").textContent = EX.localSaida || "A combinar";
