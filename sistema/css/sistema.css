@@ -1134,3 +1134,9 @@ input:-webkit-autofill{-webkit-text-fill-color:#fff;-webkit-box-shadow:0 0 0 40p
 .opc-escolha{display:grid;gap:6px;background:#fafaff;border:1px solid var(--line);border-radius:12px;padding:10px 12px}
 .opc-escolha>span{font-size:.82rem;font-weight:600;color:var(--primary)}
 .opc-escolha .check{margin:0;font-size:.88rem}
+
+/* ---------- selo automático de vagas ---------- */
+.cp-selo-vagas{display:inline-flex;align-items:center;gap:6px;margin:-6px 0 14px;padding:5px 14px;border-radius:30px;font-weight:700;font-size:.85rem;letter-spacing:.2px}
+.cp-selo-vagas.ultimas{background:#FFD54A;color:#5a4200}
+.cp-selo-vagas.esgotado{background:#e2463a;color:#fff}
+.pill-ultimas{background:#fff3c4;color:#7a5a00}.pill-esgotado{background:#fdecec;color:#a52a2a}

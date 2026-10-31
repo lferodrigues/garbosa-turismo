@@ -57,10 +57,14 @@
     const esc = (t) => String(t == null ? "" : t).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
     const linkSeguro = (l) => (/^(https?:\/\/|[\w./?=&%-]+$)/.test(l || "") && !/^javascript:/i.test(l) ? l : "#");
     const SELOS = { promocao: "Promoção", ultimas: "Últimas vagas", esgotado: "Esgotado" };
-    fetch("https://bus-virtual-dd0f7-default-rtdb.firebaseio.com/site/excursoes.json")
-      .then((r) => (r.ok ? r.json() : null))
-      .then((dados) => {
-        const lista = Object.values(dados || {}).filter((x) => x && x.ativo !== false && x.destaque && x.titulo && x.imagem)
+    // selo automático pelas poltronas ocupadas (Garbosa System): "Últimas vagas" faltando 30% ou menos, "Esgotado" lotado.
+    // "Esgotado" marcado à mão continua valendo; sem resposta da API, fica o selo escolhido à mão.
+    const VAGAS = fetch("/api/venda?vagas=1").then((r) => (r.ok ? r.json() : {})).catch(() => ({}));
+    const comSelo = (dados, vagas) => Object.entries(dados || {}).map(([id, x]) =>
+        x && typeof x === "object" ? { ...x, status: x.status === "esgotado" ? "esgotado" : (vagas[id] && vagas[id].selo) || x.status } : x);
+    Promise.all([fetch("https://bus-virtual-dd0f7-default-rtdb.firebaseio.com/site/excursoes.json").then((r) => (r.ok ? r.json() : null)), VAGAS])
+      .then(([dados, vagas]) => {
+        const lista = comSelo(dados, vagas).filter((x) => x && x.ativo !== false && x.destaque && x.titulo && x.imagem)
           .sort((a, b) => (a.ordem || 0) - (b.ordem || 0)).slice(0, 7);
         if (!lista.length) return;
         const todas = grade.querySelector(".gt-dest-todas").outerHTML;

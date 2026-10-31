@@ -196,6 +196,11 @@ asaasEventos/{id}                      eventos do webhook já processados (só s
   há a mesma caixa. Marcada, a excursão entra no catálogo com o folder e o botão **Comprar** (link de venda).
 - Se o banco não responder ou a lista estiver vazia, excursoes.html e o index mostram as excursões fixas.
 - **Status (selo)** no cadastro: *Promoção*, *Últimas vagas* ou *Esgotado* aparece no canto da foto no catálogo e nos destaques.
+- **Selo automático**: excursões do sistema ganham sozinhas **Últimas vagas** quando faltam 30% ou menos das poltronas
+  (contadas no mapa de poltronas, todos os veículos) e **Esgotado** quando todas estão ocupadas. "Esgotado" marcado à mão continua valendo;
+  nos outros casos o automático tem prioridade sobre o selo manual. O catálogo e os destaques consultam `GET /api/venda?vagas=1`
+  (cache de 1 minuto); as páginas de compra, reserva e poltrona mostram o mesmo selo no topo, e a tela Viajantes do painel também.
+  Regra em `venda-regras.js` (`seloVagas`, `PCT_ULTIMAS`).
   Esgotado deixa a foto em preto e branco e troca o botão por "Esgotado" (sem link). A venda online só fecha desmarcando *Vender pela internet* na excursão.
 - Banco: `site/excursoes/{id}` (leitura pública; escrita do admin ou da agência dona).
 - Vercel: variável **`GITHUB_TOKEN`** (token do GitHub com permissão *Contents: Read and write* no repositório).

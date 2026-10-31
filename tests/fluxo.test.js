@@ -245,3 +245,16 @@ test("opcionais: aparecem na venda e somam no valor de quem escolheu (cobrança 
   assert.deepEqual(a.opcionais, { o1: { titulo: "Passeio de barco", valor: 45 }, o2: { titulo: "Almoço", valor: 30.5 } });
   assert.equal(Math.round((a.valor - b.valor) * 100), 7550);
 });
+
+test("GET /api/venda?vagas=1 dá o selo de cada excursão do catálogo pelas poltronas ocupadas", async () => {
+  await db.ref("site/excursoes").set({ s1: { titulo: "Aldeia", exId: EX, owner: OWN }, s2: { titulo: "Fixa", link: "bh.html" } });
+  let r = await chamar(venda, { method: "GET", query: { vagas: "1" } });
+  assert.equal(r.statusCode, 200);
+  assert.deepEqual(r.body.s1, { selo: "", livres: 45, cap: 46 });
+  assert.equal(r.body.s2, undefined);
+  const mapa = Object.fromEntries(Array.from({ length: 33 }, (_, i) => [i + 1, "v" + i]));
+  await db.ref(`poltronas/${OWN}/${EX}/v1`).set(mapa);
+  assert.equal((await chamar(venda, { method: "GET", query: { vagas: "1" } })).body.s1.selo, "ultimas");
+  await db.ref(`poltronas/${OWN}/${EX}/v1`).set(Object.fromEntries(Array.from({ length: 46 }, (_, i) => [i + 1, "v" + i])));
+  assert.equal((await chamar(venda, { method: "GET", query: { vagas: "1" } })).body.s1.selo, "esgotado");
+});
