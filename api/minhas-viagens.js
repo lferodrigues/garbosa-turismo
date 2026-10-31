@@ -45,6 +45,8 @@ export default async function handler(req, res) {
     const pagoCent = parcelas.filter((x) => x.situacao === "paga").reduce((s, x) => s + x.valorCent, 0);
     const abertoCent = parcelas.filter((x) => x.situacao === "aberta" || x.situacao === "vencida").reduce((s, x) => s + x.valorCent, 0);
     const r = resumo(pedidoId, p);
+    r.grupo = ["expirado", "cancelado"].includes(p.status) ? null
+      : R.linkGrupoWhatsapp((await d.ref(`excursoes/${ref.own}/${ref.exId}/grupoWhatsapp`).get()).val()) || null;
     // o Asaas é a fonte mais atual: se ele já mostra parcela paga, a situação acompanha
     if (fonte === "asaas" && ["aguardando", "parcial", "pago"].includes(r.status)) {
       r.status = pagoCent > 0 && abertoCent === 0 ? "pago" : pagoCent > 0 ? "parcial" : r.status;

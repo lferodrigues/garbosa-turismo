@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
-<link rel="stylesheet" href="css/sistema.css?v=15">
+<link rel="stylesheet" href="css/sistema.css?v=19">
 </head>
 <body class="insc-body cp-body">
 <div id="loading" class="loading-screen">
@@ -166,6 +166,18 @@
       </div>
       <p class="cp-seguro"><i class="fa-solid fa-shield-halved"></i> O pagamento é feito na página do <strong>Asaas</strong>. A agência não vê os dados do seu cartão.</p>
     </div>
+
+    <!-- compra no boleto com grupo do WhatsApp: baixa o boleto e segue para o grupo -->
+    <div class="cp-etapa-fim hidden verify" id="fimBoleto">
+      <i class="fa-solid fa-circle-check" style="color:#1fa37a"></i>
+      <h2 id="fimTitulo">Compra registrada!</h2>
+      <p>Suas poltronas estão reservadas. Baixe o boleto e, em seguida, você entra no grupo do WhatsApp da excursão.</p>
+      <div class="cp-fim-passos">
+        <a class="btn btn-primary btn-block" id="fimBaixar" target="_blank" rel="noopener"><i class="fa-solid fa-barcode"></i> Baixar o boleto</a>
+        <a class="btn btn-block btn-zap" id="fimGrupo"><i class="fa-brands fa-whatsapp"></i> Entrar no grupo do WhatsApp</a>
+        <a class="btn btn-light btn-block" href="minha-conta.html"><i class="fa-solid fa-suitcase-rolling"></i> Ver minhas viagens e parcelas</a>
+      </div>
+    </div>
   </section>
 </main>
 
@@ -183,6 +195,6 @@
   <p><strong>Reservando suas poltronas</strong><span>e gerando a cobrança no Asaas…</span></p>
 </div>
 
-<script type="module" src="js/comprar.js?v=17"></script>
+<script type="module" src="js/comprar.js?v=18"></script>
 </body>
 </html>

@@ -1,6 +1,6 @@
 import { auth, db, ADMIN_EMAIL, authSecundario } from "./firebase.js?v=8";
 import { baixarXLSX, baixarPDF, baixarPDFPoltronas, carregarXLSX } from "./exportar.js?v=8";
-import * as R from "./venda-regras.js?v=15";
+import * as R from "./venda-regras.js?v=16";
 import {
   onAuthStateChanged, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword,
   sendPasswordResetEmail, updateProfile,
@@ -1047,6 +1047,13 @@ function formExcursao(id = null, viagemId = null) {
       <label>Horário de retorno<input type="time" name="horaRetorno" value="${esc(e.horaRetorno)}"></label>
       <label class="span2">Local de saída<input name="localSaida" required value="${esc(e.localSaida)}" placeholder="Ex.: Rodoviária de São João Nepomuceno"></label>
       <label class="span2">Descrição para a página de venda (opcional)<textarea name="descricao" rows="3" maxlength="1500" placeholder="O que está incluso, roteiro, observações…">${esc(e.descricao)}</textarea></label>
+      <div class="span2 grupo-zap">
+        <button type="button" class="btn btn-light btn-sm ${e.grupoWhatsapp ? "hidden" : ""}" id="btnGrupoZap"><i class="fa-brands fa-whatsapp"></i> Adicionar link do grupo do WhatsApp</button>
+        <label class="${e.grupoWhatsapp ? "" : "hidden"}" id="grupoZapBox"><span><i class="fa-brands fa-whatsapp"></i> Link do grupo do WhatsApp</span>
+          <span class="grupo-zap-linha"><input name="grupoWhatsapp" id="exGrupo" value="${esc(e.grupoWhatsapp || "")}" placeholder="https://chat.whatsapp.com/..." autocomplete="off" inputmode="url">
+          <button type="button" class="ic danger" id="btnGrupoRm" title="Remover link"><i class="fa-solid fa-trash"></i></button></span>
+          <small class="muted">Depois da compra o cliente vai direto para o grupo: ao baixar o boleto, ou logo depois de pagar o Pix ou o cartão.</small></label>
+      </div>
       <div class="section-label span2"><i class="fa-solid fa-bus"></i> ${id ? "Veículo principal" : "Veículo"}</div>
       <label class="span2">Vincular a um veículo agendado pela transportadora (opcional)<select name="viagemId" id="exViagem">${opcoesViagens(vinc, ownerPadrao)}</select></label>
       <label>Tipo de veículo<select name="tipo" id="exTipo" required>${opcoesVeiculo(v0.tipo || "onibus46")}</select></label>
@@ -1167,6 +1174,8 @@ function formExcursao(id = null, viagemId = null) {
   }
   if (viagemId) aplicarViagem();
   renderProdutos(); calc(); chips();
+  $("#btnGrupoZap").addEventListener("click", () => { $("#btnGrupoZap").classList.add("hidden"); $("#grupoZapBox").classList.remove("hidden"); $("#exGrupo").focus(); });
+  $("#btnGrupoRm").addEventListener("click", () => { $("#exGrupo").value = ""; $("#grupoZapBox").classList.add("hidden"); $("#btnGrupoZap").classList.remove("hidden"); });
   caixaFolder($("#exFolderBox"), () => FOLDER_FORM, (f) => { FOLDER_FORM = f; if (f && !$("#exPublicar").checked) $("#exPublicar").checked = true; }, () => f.elements.destino.value);
   f.addEventListener("submit", (ev) => { ev.preventDefault(); salvarExcursao(id, vk, colabs, e.colaboradores || {}); });
 }
@@ -1181,10 +1190,12 @@ async function salvarExcursao(id, vk, colabs = {}, colabsAntes = {}) {
   if (d.publicarSite && !FOLDER_FORM) return toast("Adicione o folder para mostrar a excursão no catálogo do site.", "erro");
   const precos = FORM_EX_TEMP ? FORM_EX_TEMP() : {};
   if ($$("#exProdutos [data-f=nome]").some((el) => !el.value.trim())) return toast("Dê um nome para cada produto (ou remova a linha vazia).", "erro");
+  const grupoWhatsapp = R.linkGrupoWhatsapp(d.grupoWhatsapp);
+  if (d.grupoWhatsapp && !grupoWhatsapp) return toast("Link do grupo inválido. Use o link de convite do grupo (https://chat.whatsapp.com/...).", "erro");
   const capNovo = veic(d.tipo).cap;
   const veiculo = { tipo: d.tipo, valorTransporte: num(d.valorTransporte), valorIngressos: arred(num(precos.ingresso?.valor) * capNovo), viagemId: d.viagemId || null };
   const ing = precos.ingresso && (precos.ingresso.valor !== null || precos.ingresso.valorInfantil !== null) ? precos.ingresso : null;
-  const info = { ingresso: ing, produtos: Object.keys(precos.produtos || {}).length ? precos.produtos : null, destino: d.destino, dataSaida: d.dataSaida, horaSaida: d.horaSaida, dataRetorno: d.dataRetorno || d.dataSaida, horaRetorno: d.horaRetorno, localSaida: d.localSaida, valorColo: num(d.valorColo),
+  const info = { grupoWhatsapp: grupoWhatsapp || null, ingresso: ing, produtos: Object.keys(precos.produtos || {}).length ? precos.produtos : null, destino: d.destino, dataSaida: d.dataSaida, horaSaida: d.horaSaida, dataRetorno: d.dataRetorno || d.dataSaida, horaRetorno: d.horaRetorno, localSaida: d.localSaida, valorColo: num(d.valorColo),
     descricao: d.descricao || null, folder: FOLDER_FORM || null, publicarSite: !!d.publicarSite, venda: { ativa: !!d.vendaAtiva, primeiraParcela: d.primeiraParcela || null, maxParcelas: Math.min(6, Math.max(1, parseInt(d.maxParcelas, 10) || 1)) } };
   const podeColab = !id || souDono(id);
   try {

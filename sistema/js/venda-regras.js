@@ -185,6 +185,12 @@ export function dividir(totalCent, n) {
   return Array.from({ length: n }, (_, i) => (i === n - 1 ? totalCent - base * (n - 1) : base));
 }
 
+/** Link de convite de grupo do WhatsApp (https://chat.whatsapp.com/CODIGO) — devolve o link limpo ou "" */
+export function linkGrupoWhatsapp(v) {
+  const m = String(v || "").trim().match(/^(?:https?:\/\/)?chat\.whatsapp\.com\/(?:invite\/)?([A-Za-z0-9]{10,40})\/?(?:\?.*)?$/);
+  return m ? `https://chat.whatsapp.com/${m[1]}` : "";
+}
+
 export const normCupom = (v) => String(v || "").trim().toUpperCase().replace(/[^A-Z0-9_-]/g, "").slice(0, 30);
 
 /**

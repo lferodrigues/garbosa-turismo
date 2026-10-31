@@ -1,5 +1,5 @@
 // Página pública: escolher a poltrona sem pagamento e sem login
-import * as R from "./venda-regras.js?v=15";
+import * as R from "./venda-regras.js?v=16";
 
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];

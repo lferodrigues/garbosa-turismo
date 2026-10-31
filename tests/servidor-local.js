@@ -33,7 +33,7 @@ usarFetch(async (url, op) => {
   return ok({});
 });
 const handlers = {};
-for (const n of ["venda", "cupom", "pedido", "asaas-webhook", "minhas-viagens", "pedido-cancelar", "poltrona-livre", "reserva", "relatorio-pagamentos"]) handlers[n] = (await import(`../api/${n}.js`)).default;
+for (const n of ["venda", "cupom", "pedido", "asaas-webhook", "minhas-viagens", "pedido-cancelar", "poltrona-livre", "reserva", "relatorio-pagamentos", "pedido-grupo"]) handlers[n] = (await import(`../api/${n}.js`)).default;
 const TIPOS = { ".html": "text/html; charset=utf-8", ".js": "text/javascript", ".css": "text/css", ".svg": "image/svg+xml", ".ico": "image/x-icon", ".png": "image/png", ".jpg": "image/jpeg" };
 
 http.createServer(async (req, res) => {

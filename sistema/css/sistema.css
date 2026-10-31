@@ -1044,3 +1044,14 @@ input:-webkit-autofill{-webkit-text-fill-color:#fff;-webkit-box-shadow:0 0 0 40p
 .rel-filtros button{border:1px solid var(--line);background:#fff;border-radius:20px;padding:5px 12px;font-size:.8rem;cursor:pointer}
 .rel-filtros button.on{background:var(--primary);color:#fff;border-color:var(--primary)}
 .rel-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+/* grupo do WhatsApp da excursão */
+.grupo-zap #btnGrupoZap{color:#1d9a55;border-color:#bfe8d1}
+.grupo-zap label>span:first-child{font-weight:600;color:#1d9a55}
+.grupo-zap-linha{display:flex;gap:8px;align-items:center;margin-top:4px}
+.grupo-zap-linha input{margin-top:0!important;flex:1}
+.grupo-zap-linha .ic{margin:0;flex:0 0 auto}
+.grupo-zap small{display:block;margin-top:4px;font-weight:400}
+.btn-zap{background:#1fa855;color:#fff!important;border:0}
+.btn-zap:hover{background:#178a45}
+.cp-fim-passos{display:grid;gap:10px;margin:14px 0 4px;text-align:left}
+.cp-fim-passos .btn{justify-content:center}

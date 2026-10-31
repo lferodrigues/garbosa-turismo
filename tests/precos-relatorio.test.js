@@ -128,3 +128,57 @@ test("compra com criança de 4 anos na poltrona cobra o valor infantil; relatór
   assert.equal(rel2.body.online[0].fonte, "sistema");
   assert.equal(rel2.body.online[0].situacao, "aguardando");
 });
+
+/* ---------- grupo do WhatsApp ---------- */
+import grupoApi from "../api/pedido-grupo.js";
+
+test("link do grupo do WhatsApp é validado e normalizado", () => {
+  assert.equal(R.linkGrupoWhatsapp("chat.whatsapp.com/AbCdEfGhIj123"), "https://chat.whatsapp.com/AbCdEfGhIj123");
+  assert.equal(R.linkGrupoWhatsapp(" https://chat.whatsapp.com/invite/AbCdEfGhIj123?mode=ac "), "https://chat.whatsapp.com/AbCdEfGhIj123");
+  assert.equal(R.linkGrupoWhatsapp("https://evil.com/chat.whatsapp.com/AbCdEfGhIj123"), "");
+  assert.equal(R.linkGrupoWhatsapp("javascript:alert(1)"), "");
+});
+
+test("Pix pede ao Asaas para voltar à página de obrigado, que leva ao grupo; boleto devolve o PDF e o grupo", async () => {
+  await db.ref(`excursoes/${OWN}/${EX}/grupoWhatsapp`).set("https://chat.whatsapp.com/GrupoHopi12345");
+  const corpos = [];
+  usarFetch(async (url, op) => {
+    const ok = (o) => ({ ok: true, status: 200, text: async () => JSON.stringify(o) });
+    if (url.includes("/customers?")) return ok({ data: [] });
+    if (url.endsWith("/customers")) return ok({ id: "cus_1" });
+    if (url.endsWith("/payments") && op.method === "POST") { corpos.push(JSON.parse(op.body)); return ok({ id: "pay_" + corpos.length, invoiceUrl: "https://asaas/i/" + corpos.length, bankSlipUrl: "https://asaas/b/" + corpos.length }); }
+    return ok({});
+  });
+  const pix = await chamar(pedido, { method: "POST", headers: { authorization: "Bearer tok-cli" }, body: { e: EX, pessoas: [pessoa(0, { assento: { vk: "v1", n: 1 } })], aceite: true, forma: "PIX", parcelas: 1 } });
+  assert.equal(pix.statusCode, 200, JSON.stringify(pix.body));
+  assert.equal(corpos[0].callback.autoRedirect, true);
+  assert.equal(corpos[0].callback.successUrl, `https://garbosaturismo.com.br/sistema/obrigado.html?p=${pix.body.pedidoId}`);
+  assert.equal(pix.body.grupo, "https://chat.whatsapp.com/GrupoHopi12345");
+
+  const ob = await chamar(grupoApi, { method: "GET", query: { p: pix.body.pedidoId } });
+  assert.equal(ob.statusCode, 200);
+  assert.equal(ob.body.grupo, "https://chat.whatsapp.com/GrupoHopi12345");
+  assert.equal(ob.body.destino, "Hopi Hari");
+  const nada = await chamar(grupoApi, { method: "GET", query: { p: "naoexiste123" } });
+  assert.equal(nada.statusCode, 404);
+});
+
+test("se o Asaas recusar o redirecionamento (domínio não cadastrado), a compra sai sem ele", async () => {
+  const corpos = [];
+  usarFetch(async (url, op) => {
+    const ok = (o) => ({ ok: true, status: 200, text: async () => JSON.stringify(o) });
+    if (url.includes("/customers?")) return ok({ data: [] });
+    if (url.endsWith("/customers")) return ok({ id: "cus_1" });
+    if (url.endsWith("/payments") && op.method === "POST") {
+      const c = JSON.parse(op.body); corpos.push(c);
+      if (c.callback) return { ok: false, status: 400, text: async () => JSON.stringify({ errors: [{ description: "O domínio da URL de sucesso não está cadastrado." }] }) };
+      return ok({ id: "pay_x", invoiceUrl: "https://asaas/i/x" });
+    }
+    return ok({});
+  });
+  const r = await chamar(pedido, { method: "POST", headers: { authorization: "Bearer tok-cli" }, body: { e: EX, pessoas: [pessoa(0, { assento: { vk: "v1", n: 3 } })], aceite: true, forma: "CREDIT_CARD", parcelas: 1 } });
+  assert.equal(r.statusCode, 200, JSON.stringify(r.body));
+  assert.equal(corpos.length, 2);
+  assert.equal(corpos[1].callback, undefined);
+  assert.equal(r.body.grupo, null);
+});
