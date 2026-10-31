@@ -120,3 +120,31 @@ test("valor final à mão substitui o gerado pelo sistema (e criança em branco 
   const c = R.custosVeiculo({ ...ex, valorFinal: 199.9 }, ex.veiculos.v1);
   assert.equal(c.manual, true); assert.equal(Math.round(c.calculado * 100), auto);
 });
+
+test("notificações do Asaas: WhatsApp ligado, cobrança criada garantida e lembrete 5 dias antes do vencimento", async () => {
+  const { ajustesNotificacoes } = await import("../api/_lib/asaas.js");
+  // configuração padrão de um cliente novo no Asaas (WhatsApp desligado em tudo)
+  const padrao = [
+    { id: "n1", event: "PAYMENT_CREATED", scheduleOffset: 0, enabled: true, whatsappEnabledForCustomer: false },
+    { id: "n2", event: "PAYMENT_DUEDATE_WARNING", scheduleOffset: 0, enabled: true, whatsappEnabledForCustomer: false },
+    { id: "n3", event: "PAYMENT_DUEDATE_WARNING", scheduleOffset: 10, enabled: true, whatsappEnabledForCustomer: false },
+    { id: "n4", event: "PAYMENT_OVERDUE", scheduleOffset: 0, enabled: true, whatsappEnabledForCustomer: false },
+    { id: "n5", event: "PAYMENT_RECEIVED", scheduleOffset: 0, enabled: false, whatsappEnabledForCustomer: false }
+  ];
+  const { mudar, lembrete } = ajustesNotificacoes(padrao);
+  assert.equal(lembrete, true);
+  assert.deepEqual(mudar, [
+    { id: "n1", whatsappEnabledForCustomer: true },
+    { id: "n2", whatsappEnabledForCustomer: true },
+    { id: "n3", scheduleOffset: 5, whatsappEnabledForCustomer: true },
+    { id: "n4", whatsappEnabledForCustomer: true }
+  ]); // n5 desligado no painel continua desligado
+  // cobrança criada e lembrete desligados no painel: são religados com WhatsApp
+  const r = ajustesNotificacoes([
+    { id: "a", event: "PAYMENT_CREATED", enabled: false, whatsappEnabledForCustomer: false },
+    { id: "b", event: "PAYMENT_DUEDATE_WARNING", scheduleOffset: 10, enabled: false, whatsappEnabledForCustomer: true }
+  ]);
+  assert.deepEqual(r.mudar, [{ id: "a", enabled: true, whatsappEnabledForCustomer: true }, { id: "b", scheduleOffset: 5, enabled: true }]);
+  // já configurado: não muda nada
+  assert.deepEqual(ajustesNotificacoes([{ id: "c", event: "PAYMENT_DUEDATE_WARNING", scheduleOffset: 5, enabled: true, whatsappEnabledForCustomer: true }]).mudar, []);
+});
