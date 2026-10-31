@@ -1141,3 +1141,7 @@ input:-webkit-autofill{-webkit-text-fill-color:#fff;-webkit-box-shadow:0 0 0 40p
 .cp-selo-vagas.esgotado{background:#e2463a;color:#fff}
 .pill-ultimas{background:#fff3c4;color:#7a5a00}.pill-esgotado{background:#fdecec;color:#a52a2a}
 .manual-box{padding:12px;margin:0;background:#fffbea;border:1px solid #f3e3a3;border-radius:12px}
+.botoes-itens{display:flex;flex-wrap:wrap;gap:8px}
+.opc-secao{margin-top:2px}
+.opc-titulo{font-size:.85rem;font-weight:700;color:var(--primary);margin-bottom:8px}
+.opc-titulo small{font-weight:400}
