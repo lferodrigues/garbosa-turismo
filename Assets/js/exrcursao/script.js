@@ -21,7 +21,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const SELOS = { promocao: "Promoção", ultimas: "Últimas vagas", esgotado: "Esgotado" };
     const selo = (x) => (SELOS[x.status] ? `<span class="selo selo-${x.status}">${SELOS[x.status]}</span>` : "");
 
-    // selo automático pelas poltronas ocupadas (Garbosa System): "Últimas vagas" faltando 30% ou menos, "Esgotado" lotado.
+    // selo automático pelas poltronas ocupadas (Garbosa System): "Últimas vagas" faltando 40% ou menos, "Esgotado" lotado.
     // "Esgotado" marcado à mão continua valendo; sem resposta da API, fica o selo escolhido à mão.
     const VAGAS = fetch("/api/venda?vagas=1").then((r) => (r.ok ? r.json() : {})).catch(() => ({}));
     const comSelo = (dados, vagas) => Object.entries(dados || {}).map(([id, x]) =>

@@ -1,6 +1,6 @@
 import { auth, db, ADMIN_EMAIL, authSecundario } from "./firebase.js?v=8";
 import { baixarXLSX, baixarPDF, baixarPDFPoltronas, carregarXLSX } from "./exportar.js?v=9";
-import * as R from "./venda-regras.js?v=18";
+import * as R from "./venda-regras.js?v=19";
 import { htmlOnibus } from "./mapa-onibus.js?v=1";
 import {
   onAuthStateChanged, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword,
@@ -1764,7 +1764,7 @@ function formSite(id = null) {
         <option value="">— Sem selo —</option>
         ${Object.entries(STATUS_SITE).map(([k, s]) => `<option value="${k}" ${x.status === k ? "selected" : ""}>${s.nome}</option>`).join("")}
       </select><small class="muted">Esgotado: o cartão fica em preto e branco e o botão vira "Esgotado", sem link.
-        Excursões do sistema (ou com o botão levando a uma excursão do sistema) ganham sozinhas "Últimas vagas" (faltando 30% ou menos das poltronas) e "Esgotado" (todas ocupadas) — o selo daqui vale enquanto isso não acontece.</small></label>
+        Excursões do sistema (ou com o botão levando a uma excursão do sistema) ganham sozinhas "Últimas vagas" (faltando 40% ou menos das poltronas marcadas no mapa) e "Esgotado" (todas ocupadas) — o selo daqui vale enquanto isso não acontece.</small></label>
       <label class="span2">Descrição<textarea name="descricao" rows="3" maxlength="600">${esc(x.descricao)}</textarea></label>
       <div class="section-label span2"><i class="fa-solid fa-link"></i> Para onde o botão leva</div>
       <label class="span2">Excursão do sistema (abre a página de compra ou de inscrição)<select name="exLink" id="sExLink">
@@ -1887,10 +1887,9 @@ const linhasPoltronas = (exId) => linhasPassageiros(exId).map((l) => l.slice(0, 
 function seloVagasEx(exId) {
   const ex = S.excursoes[exId], mapa = S.poltronas[exId] || {};
   if (!ex) return "";
-  const marcadas = veiculosDe(ex).reduce((s, [vk, v]) => s + Object.entries(mapa[vk] || {}).filter(([n, pid]) => pid && Number(n) <= veic(v.tipo).cap).length, 0);
-  const ocup = Math.max(marcadas, ocupantes(exId).length); // marcadas no mapa ou viajantes cadastrados (o maior)
+  const ocup = veiculosDe(ex).reduce((s, [vk, v]) => s + Object.entries(mapa[vk] || {}).filter(([n, pid]) => pid && Number(n) <= veic(v.tipo).cap).length, 0); // só poltronas marcadas no mapa
   const selo = R.seloVagas(capacidadeEx(ex), ocup);
-  return selo ? `<span class="pill pill-${selo}" title="Selo automático no site: ${ocup} poltronas ocupadas">${selo === "esgotado" ? "Esgotado" : "Últimas vagas"}</span>` : "";
+  return selo ? `<span class="pill pill-${selo}" title="Selo automático no site: ${ocup} poltronas marcadas no mapa">${selo === "esgotado" ? "Esgotado" : "Últimas vagas"}</span>` : "";
 }
 
 function viewViajantes() {

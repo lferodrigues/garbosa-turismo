@@ -96,15 +96,16 @@ test("leito do Double Decker (49 a 60) custa + R$ 20, também com cupom e crian�
   assert.equal(c.descontoCent, 2000);
 });
 
-test("selo automático: últimas vagas faltando 30% ou menos, esgotado quando lota", async () => {
+test("selo automático: últimas vagas faltando 40% ou menos, esgotado quando lota", async () => {
   const R = await import("../sistema/js/venda-regras.js");
-  assert.equal(R.seloVagas(46, 32), "");          // faltam 14 (> 13)
-  assert.equal(R.seloVagas(46, 33), "ultimas");   // faltam 13 = 30% de 46 arredondado para baixo
+  assert.equal(R.seloVagas(46, 27), "");          // faltam 19 (> 18)
+  assert.equal(R.seloVagas(46, 28), "ultimas");   // faltam 18 = 40% de 46 arredondado para baixo
+  assert.equal(R.seloVagas(46, 30), "ultimas");   // caso do Frei Gilson: 30 marcadas
   assert.equal(R.seloVagas(46, 46), "esgotado");
-  assert.equal(R.seloVagas(15, 10), "");          // faltam 5
-  assert.equal(R.seloVagas(15, 11), "ultimas");   // faltam 4
+  assert.equal(R.seloVagas(15, 8), "");           // faltam 7
+  assert.equal(R.seloVagas(15, 9), "ultimas");    // faltam 6
   assert.equal(R.seloVagas(0, 0), "");
-  assert.equal(R.seloDosVeiculos([{ cap: 46, ocupadas: Array(40) }, { cap: 15, ocupadas: Array(15) }]), "ultimas"); // faltam 6 de 61
+  assert.equal(R.seloDosVeiculos([{ cap: 46, ocupadas: Array(30) }, { cap: 15, ocupadas: Array(8) }]), "ultimas"); // faltam 23 de 61 (máx. 24)
 });
 
 test("valor final à mão substitui o gerado pelo sistema (e criança em branco = mesmo valor)", async () => {

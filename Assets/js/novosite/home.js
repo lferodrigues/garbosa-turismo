@@ -49,7 +49,7 @@
     prepararSlides();
   }
 
-  /* dados do site (Garbosa System) + selo automático pelas poltronas: "Últimas vagas" faltando 30% ou menos, "Esgotado" lotado.
+  /* dados do site (Garbosa System) + selo automático pelas poltronas: "Últimas vagas" faltando 40% ou menos, "Esgotado" lotado.
      "Esgotado" marcado à mão continua valendo; sem resposta da API, fica o selo escolhido à mão. */
   const esc = (t) => String(t == null ? "" : t).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const linkSeguro = (l) => (/^(https?:\/\/|[\w./?=&%-]+$)/.test(l || "") && !/^javascript:/i.test(l) ? l : "#");
