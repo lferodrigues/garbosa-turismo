@@ -3,7 +3,7 @@
 // e o mesmo "Token de autenticação" da variável ASAAS_WEBHOOK_TOKEN na Vercel.
 import { db } from "./_lib/firebase.js";
 import { enviar, lerCorpo, soMetodo } from "./_lib/http.js";
-import { lerPedido, desfazerPedido, repartir, notificar, R } from "./_lib/venda.js";
+import { lerPedido, desfazerPedido, repartir, notificar, cancelarSeApagadoNoAsaas, R } from "./_lib/venda.js";
 
 const PAGOU = new Set(["PAYMENT_CONFIRMED", "PAYMENT_RECEIVED"]);
 const ESTORNOU = new Set(["PAYMENT_REFUNDED", "PAYMENT_PARTIALLY_REFUNDED", "PAYMENT_CHARGEBACK_REQUESTED", "PAYMENT_RECEIVED_IN_CASH_UNDONE", "PAYMENT_DELETED"]);
@@ -94,7 +94,19 @@ async function removerPagamento(info, pay, evento) {
   const { pedidoId, own, exId, ped } = info;
   const d = await db();
   const ja = (await d.ref(`pedidos/${own}/${exId}/${pedidoId}/pagamentos/${pay.id}`).get()).val();
-  if (!ja) return; // cobrança apagada antes de ser paga (ex.: pedido expirado): nada a desfazer
+  if (!ja) {
+    // cobrança apagada no Asaas antes de ser paga: se não sobrou nenhuma, o pedido é cancelado aqui também
+    // (assim o cliente não vê mais a fatura em aberto em Minhas viagens)
+    if (evento === "PAYMENT_DELETED") {
+      const atual = await lerPedido(pedidoId);
+      if (atual && await cancelarSeApagadoNoAsaas(atual)) {
+        const ex = await excursao(own, exId);
+        await notificar(own, ex, exId, { tipo: "venda", titulo: "Compra online cancelada no Asaas",
+          texto: `A cobrança de ${ped.titular?.nome} foi apagada no Asaas. O pedido foi cancelado e as poltronas liberadas — ${ex.destino || ""}.`, link: `#/poltronas/${exId}` });
+      }
+    }
+    return;
+  }
   const upd = { [`pedidos/${own}/${exId}/${pedidoId}/pagamentos/${pay.id}`]: null };
   for (const vid of Object.keys(ped.viajantes || {})) upd[`viajantes/${own}/${exId}/${vid}/pagamentos/${pay.id}`] = null;
   // não recria viajantes que a agência apagou

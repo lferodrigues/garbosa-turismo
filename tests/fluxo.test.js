@@ -258,3 +258,71 @@ test("GET /api/venda?vagas=1 dá o selo de cada excursão do catálogo pelas pol
   await db.ref(`poltronas/${OWN}/${EX}/v1`).set(Object.fromEntries(Array.from({ length: 46 }, (_, i) => [i + 1, "v" + i])));
   assert.equal((await chamar(venda, { method: "GET", query: { vagas: "1" } })).body.s1.selo, "esgotado");
 });
+
+/* ---------- excluir no sistema ↔ apagar no Asaas ---------- */
+const asaasParcelas = (parcelas) => usarFetch(async (url, op) => {
+  chamadas.push({ url, metodo: op.method });
+  const ok = (o) => ({ ok: true, status: 200, text: async () => JSON.stringify(o) });
+  if (url.includes("/installments/ins_1/payments")) return ok({ data: parcelas });
+  return ok({ deleted: true });
+});
+
+test("excluir no sistema uma compra sem pagamento cancela no Asaas e some a fatura do cliente", async () => {
+  await comprar([pessoa(0, { assento: { vk: "v1", n: 30 } }), pessoa(1, { assento: { vk: "v1", n: 31 } })]);
+  const pid = Object.keys(db.dump().pedidos[OWN][EX])[0];
+  const r = await chamar(cancelar, { method: "POST", headers: { authorization: "Bearer tok-dono" }, body: { pedido: pid, excluir: true } });
+  assert.equal(r.statusCode, 200, JSON.stringify(r.body));
+  const dump = db.dump();
+  assert.equal(dump.pedidos[OWN][EX][pid].status, "cancelado");
+  assert.ok(chamadas.some((c) => c.metodo === "DELETE" && c.url.endsWith("/installments/ins_1")));
+  assert.equal(Object.values(dump.viajantes[OWN][EX]).filter((v) => v.origem === "venda").length, 0);
+  assert.equal(dump.poltronas[OWN][EX].v1[30], undefined);
+  const lista = await chamar(minhas, { method: "GET", headers: { authorization: "Bearer tok-cli" } });
+  assert.equal(lista.body.viagens[0].status, "cancelado");
+});
+
+test("excluir no sistema uma compra com parcela paga apaga só as parcelas em aberto no Asaas", async () => {
+  await comprar([pessoa(0, { assento: { vk: "v1", n: 32 } })]);
+  const pid = Object.keys(db.dump().pedidos[OWN][EX])[0];
+  await db.ref(`pedidos/${OWN}/${EX}/${pid}/status`).set("parcial");
+  await db.ref(`pedidos/${OWN}/${EX}/${pid}/recebidoCent`).set(10000);
+  asaasParcelas([
+    { id: "p1", installmentNumber: 1, value: 100, status: "RECEIVED" },
+    { id: "p2", installmentNumber: 2, value: 100, status: "PENDING" },
+    { id: "p3", installmentNumber: 3, value: 100, status: "OVERDUE" }
+  ]);
+  chamadas = [];
+  const r = await chamar(cancelar, { method: "POST", headers: { authorization: "Bearer tok-dono" }, body: { pedido: pid, excluir: true } });
+  assert.equal(r.statusCode, 200, JSON.stringify(r.body));
+  assert.equal(r.body.pagoCent, 10000);
+  const apagadas = chamadas.filter((c) => c.metodo === "DELETE").map((c) => c.url.split("/").pop());
+  assert.deepEqual(apagadas, ["p2", "p3"]);
+  assert.equal(db.dump().pedidos[OWN][EX][pid].status, "cancelado");
+  assert.equal(db.dump().poltronas[OWN][EX].v1[32], undefined);
+});
+
+test("cobrança apagada direto no Asaas: webhook cancela o pedido; pedido já travado se acerta em Minhas viagens", async () => {
+  await comprar([pessoa(0, { assento: { vk: "v1", n: 33 } })]);
+  const pid = Object.keys(db.dump().pedidos[OWN][EX])[0];
+  // ainda sobra parcela viva: não cancela
+  asaasParcelas([{ id: "p1", status: "PENDING" }, { id: "p2", status: "PENDING", deleted: true }]);
+  await evento("evt_del1", "PAYMENT_DELETED", { id: "p2", externalReference: pid, value: 100 });
+  assert.equal(db.dump().pedidos[OWN][EX][pid].status, "aguardando");
+  // todas apagadas: cancela e libera a poltrona
+  asaasParcelas([{ id: "p1", status: "PENDING", deleted: true }, { id: "p2", status: "PENDING", deleted: true }]);
+  await evento("evt_del2", "PAYMENT_DELETED", { id: "p1", externalReference: pid, value: 100 });
+  assert.equal(db.dump().pedidos[OWN][EX][pid].status, "cancelado");
+  assert.equal(db.dump().poltronas[OWN][EX].v1[33], undefined);
+
+  // pedido que ficou travado antes desta correção (aguardando, mas apagado no Asaas)
+  await db.ref(`pedidos/${OWN}/${EX}/${pid}/status`).set("aguardando");
+  asaasParcelas([]);
+  const r = await chamar(minhas, { method: "GET", headers: { authorization: "Bearer tok-cli" } });
+  assert.equal(r.body.viagens[0].status, "cancelado");
+  assert.equal(db.dump().pedidos[OWN][EX][pid].status, "cancelado");
+  // Asaas fora do ar não cancela nada
+  await db.ref(`pedidos/${OWN}/${EX}/${pid}/status`).set("aguardando");
+  usarFetch(async () => ({ ok: false, status: 500, text: async () => "{}" }));
+  await chamar(minhas, { method: "GET", headers: { authorization: "Bearer tok-cli" } });
+  assert.equal(db.dump().pedidos[OWN][EX][pid].status, "aguardando");
+});

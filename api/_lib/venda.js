@@ -1,7 +1,7 @@
 // Regras de servidor da venda online: excursão, cupons, poltronas, pedidos e pagamentos.
 import { db, TIMESTAMP } from "./firebase.js";
 import { ErroUsuario } from "./http.js";
-import { cancelarCobranca } from "./asaas.js";
+import { asaas, cancelarCobranca } from "./asaas.js";
 import * as R from "../../sistema/js/venda-regras.js";
 
 /* ---------- excursão ---------- */
@@ -166,6 +166,79 @@ export async function desfazerPedido({ pedidoId, own, exId, ped }, status, motiv
   }
   await d.ref().update(upd);
   if (ped.cupom && ped.cupomPessoas) await usarCupom(exId, ped.cupom, -ped.cupomPessoas, 0).catch(() => {});
+}
+
+/** Cobranças do pedido no Asaas: { existe: false } se foram todas apagadas; senão a lista (sem as apagadas) */
+export async function cobrancasDoPedido(ped) {
+  const a = ped.asaas || {};
+  if (!a.installment && !a.payment) return { existe: false, lista: [] };
+  try {
+    let lista;
+    if (a.installment) {
+      const r = await asaas("GET", `/installments/${a.installment}/payments?limit=100`);
+      if (!Array.isArray(r?.data)) throw new Error("resposta do Asaas sem a lista de parcelas");
+      lista = r.data;
+    } else {
+      const r = await asaas("GET", `/payments/${a.payment}`);
+      if (!r?.id) throw new Error("resposta do Asaas sem a cobrança");
+      lista = [r];
+    }
+    // só conta como "apagada" o que o Asaas diz claramente que foi apagado (ou não existe mais)
+    const vivas = lista.filter((x) => x && x.deleted !== true);
+    return { existe: vivas.length > 0, lista: vivas };
+  } catch (e) {
+    if (e.status === 404) return { existe: false, lista: [] };
+    throw e; // Asaas fora do ar: não decide nada
+  }
+}
+
+/**
+ * Pedido aguardando pagamento cuja cobrança não existe mais no Asaas (apagada lá): cancela no sistema.
+ * Devolve true se cancelou. Se o Asaas não responder, não mexe em nada.
+ */
+export async function cancelarSeApagadoNoAsaas(info, motivo = "Cobrança apagada no Asaas") {
+  if (info?.ped?.status !== "aguardando") return false;
+  try {
+    if ((await cobrancasDoPedido(info.ped)).existe) return false;
+  } catch { return false; }
+  await desfazerPedido(info, "cancelado", motivo);
+  info.ped.status = "cancelado"; info.ped.motivo = motivo;
+  return true;
+}
+
+const PAGA = new Set(["RECEIVED", "CONFIRMED", "RECEIVED_IN_CASH"]);
+/**
+ * A agência excluiu a compra (ou um viajante dela) no sistema: encerra o pedido inteiro.
+ * Sem pagamento → cancela a cobrança no Asaas, libera poltronas e tira os viajantes.
+ * Com pagamento → apaga no Asaas só as parcelas ainda não pagas e encerra; o que já foi pago precisa de estorno no Asaas.
+ * Devolve { pagoCent } (quanto já tinha sido pago).
+ */
+export async function encerrarPedido(info, motivo) {
+  const { pedidoId, own, exId, ped } = info;
+  const d = await db();
+  if (ped.status === "aguardando") { await desfazerPedido(info, "cancelado", motivo); return { pagoCent: 0 }; }
+  const vids = Object.keys(ped.viajantes || {});
+  if (!["cancelado", "expirado"].includes(ped.status)) {
+    try {
+      const { lista } = await cobrancasDoPedido(ped);
+      for (const pg of lista.filter((x) => !PAGA.has(x.status))) {
+        try { await asaas("DELETE", `/payments/${pg.id}`); } catch (e) { console.warn("apagar parcela", pg.id, e.message); }
+      }
+    } catch (e) { console.warn("parcelas do pedido", e.message); }
+  }
+  await liberarPoltronas(own, exId, vids);
+  const upd = { [`pedidos/${own}/${exId}/${pedidoId}/encerradoEm`]: Date.now() };
+  if (!["cancelado", "expirado"].includes(ped.status)) {
+    upd[`pedidos/${own}/${exId}/${pedidoId}/status`] = "cancelado";
+    upd[`pedidos/${own}/${exId}/${pedidoId}/motivo`] = motivo;
+  }
+  vids.forEach((vid) => { upd[`viajantes/${own}/${exId}/${vid}`] = null; });
+  if (ped.titular?.cpf) {
+    const atual = (await d.ref(`vendasCpf/${exId}/${ped.titular.cpf}`).get()).val();
+    if (atual === pedidoId) upd[`vendasCpf/${exId}/${ped.titular.cpf}`] = null;
+  }
+  await d.ref().update(upd);
+  return { pagoCent: Math.max(0, ped.recebidoCent || 0) };
 }
 
 /** Reparte um valor (centavos) entre os viajantes do pedido, proporcional ao valor de cada um */
