@@ -1559,7 +1559,7 @@ async function sincronizarSite(exId, own, e) {
     imagem: e.folder.caminho, imagemRaw: e.folder.raw || "",
     link: `sistema/${vende ? "comprar" : "inscricao"}.html?e=${encodeURIComponent(exId)}`, botao: vende ? "Comprar" : "Inscrever-se",
     data: fData(e.dataSaida), local: String(e.localSaida || "").slice(0, 80), categoria: atual?.categoria || "Excursão",
-    owner: own, exId, origem: "sistema", ativo: atual?.ativo !== false, destaque: !!atual?.destaque,
+    owner: own, exId, origem: "sistema", ativo: atual?.ativo !== false, destaque: !!atual?.destaque, status: atual?.status || null,
     ordem: atual?.ordem ?? Date.now(), criadoEm: atual?.criadoEm || Date.now(), atualizadoEm: Date.now()
   });
 }
@@ -1574,6 +1574,8 @@ const SITE_INICIAL = [
   { titulo: "Show do Frei Gilson", categoria: "Evento", local: "Juiz de Fora · MG", imagem: "Assets/img/excursoes/frei.png", link: "evento-frei-gilson.html", descricao: "Uma noite repleta do Espírito Santo." },
   { titulo: "PHN 2026", categoria: "Religioso", local: "Aparecida + Canção Nova · SP", imagem: "Assets/img/excursoes/phn.webp", link: "phn.html", descricao: "Aparecida e Canção Nova no PHN 2026." }
 ];
+/** Selo do cartão no site: promoção, últimas vagas ou esgotado */
+const STATUS_SITE = { promocao: { nome: "Promoção", cls: "pill-red" }, ultimas: { nome: "Últimas vagas", cls: "pill-yellow" }, esgotado: { nome: "Esgotado", cls: "" } };
 const listaSite = () => Object.entries(S.site || {}).sort((a, b) => (a[1].ordem || 0) - (b[1].ordem || 0));
 
 function viewSite() {
@@ -1589,7 +1591,7 @@ function viewSite() {
           <strong>${esc(x.titulo)}</strong>
           <small>${esc([x.categoria, x.local, x.data].filter(Boolean).join(" · "))}</small>
           <small class="muted">${x.origem === "sistema" ? `<i class="fa-solid fa-gear"></i> Vem de uma excursão do sistema${x.owner && x.owner !== U.uid ? ` (${esc(nomeAgencia(x.owner))})` : ""}` : `<i class="fa-solid fa-link"></i> ${esc(x.link)}`}</small>
-          ${x.ativo === false ? `<span class="pill pill-red">oculta</span>` : `<span class="pill pill-green">no site</span>`}
+          <span>${x.ativo === false ? `<span class="pill pill-red">oculta</span>` : `<span class="pill pill-green">no site</span>`}${STATUS_SITE[x.status] ? ` <span class="pill ${STATUS_SITE[x.status].cls}">${STATUS_SITE[x.status].nome}</span>` : ""}</span>
         </div>
         <div class="site-acoes">
           <button class="ic" data-s="up" data-id="${id}" title="Subir" ${i === 0 ? "disabled" : ""}><i class="fa-solid fa-arrow-up"></i></button>
@@ -1640,6 +1642,10 @@ function formSite(id = null) {
       <label>Local<input name="local" maxlength="80" value="${esc(x.local)}" placeholder="Rio de Janeiro · RJ"></label>
       <label>Data (texto livre)<input name="data" maxlength="40" value="${esc(x.data)}" placeholder="26/07/2027"></label>
       <label>Texto do botão<input name="botao" maxlength="40" value="${esc(x.botao || "Saiba mais")}"></label>
+      <label class="span2">Status (selo no cartão do site)<select name="status">
+        <option value="">— Sem selo —</option>
+        ${Object.entries(STATUS_SITE).map(([k, s]) => `<option value="${k}" ${x.status === k ? "selected" : ""}>${s.nome}</option>`).join("")}
+      </select><small class="muted">Esgotado: o cartão fica em preto e branco e o botão vira "Esgotado", sem link.</small></label>
       <label class="span2">Descrição<textarea name="descricao" rows="3" maxlength="600">${esc(x.descricao)}</textarea></label>
       <div class="section-label span2"><i class="fa-solid fa-link"></i> Para onde o botão leva</div>
       <label class="span2">Excursão do sistema (abre a página de compra ou de inscrição)<select name="exLink" id="sExLink">
@@ -1662,7 +1668,7 @@ function formSite(id = null) {
       const link = ex ? `sistema/${ex.venda?.ativa ? "comprar" : "inscricao"}.html?e=${encodeURIComponent(d.exLink)}` : d.link.trim();
       if (!link) return toast("Escolha uma excursão do sistema ou informe o endereço do botão.", "erro");
       const dados = { titulo: d.titulo, categoria: d.categoria, local: d.local, data: d.data, botao: d.botao || "Saiba mais", descricao: d.descricao,
-        imagem: foto.caminho, imagemRaw: foto.raw || "", link, ativo: !!d.ativo, destaque: !!d.destaque, atualizadoEm: Date.now(),
+        imagem: foto.caminho, imagemRaw: foto.raw || "", link, ativo: !!d.ativo, destaque: !!d.destaque, atualizadoEm: Date.now(), status: STATUS_SITE[d.status] ? d.status : null,
         origem: x.origem || "site", owner: x.owner || U.uid, ordem: x.ordem ?? Date.now(), criadoEm: x.criadoEm || Date.now(), ...(x.exId ? { exId: x.exId } : {}) };
       try {
         await set(id ? ref(db, `site/excursoes/${id}`) : push(ref(db, "site/excursoes")), dados);

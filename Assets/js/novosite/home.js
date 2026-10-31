@@ -56,6 +56,7 @@
   if (grade) {
     const esc = (t) => String(t == null ? "" : t).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
     const linkSeguro = (l) => (/^(https?:\/\/|[\w./?=&%-]+$)/.test(l || "") && !/^javascript:/i.test(l) ? l : "#");
+    const SELOS = { promocao: "Promoção", ultimas: "Últimas vagas", esgotado: "Esgotado" };
     fetch("https://bus-virtual-dd0f7-default-rtdb.firebaseio.com/site/excursoes.json")
       .then((r) => (r.ok ? r.json() : null))
       .then((dados) => {
@@ -63,12 +64,15 @@
           .sort((a, b) => (a.ordem || 0) - (b.ordem || 0)).slice(0, 7);
         if (!lista.length) return;
         const todas = grade.querySelector(".gt-dest-todas").outerHTML;
-        grade.innerHTML = lista.map((x) => `
-          <article class="gt-dest">
-            <a href="${esc(linkSeguro(x.link))}" class="gt-dest-img"><img loading="lazy" src="${esc(x.imagem)}" data-raw="${esc(x.imagemRaw || "")}" alt="">${x.categoria ? `<span class="gt-tag">${esc(x.categoria)}</span>` : ""}</a>
+        grade.innerHTML = lista.map((x) => {
+          const esg = x.status === "esgotado";
+          return `
+          <article class="gt-dest ${esg ? "gt-esgotado" : ""}">
+            <a href="${esc(linkSeguro(x.link))}" class="gt-dest-img"><img loading="lazy" src="${esc(x.imagem)}" data-raw="${esc(x.imagemRaw || "")}" alt="">${x.categoria ? `<span class="gt-tag">${esc(x.categoria)}</span>` : ""}${SELOS[x.status] ? `<span class="gt-selo gt-selo-${x.status}">${SELOS[x.status]}</span>` : ""}</a>
             <h3>${esc(x.titulo)}</h3><p>${esc([x.local, x.data].filter(Boolean).join(" · "))}</p>
-            <a class="gt-btn gt-btn-roxo gt-btn-p" href="${esc(linkSeguro(x.link))}">${esc(x.botao && x.botao !== "Saiba mais" ? x.botao : "Mais sobre " + x.titulo)}</a>
-          </article>`).join("") + todas;
+            ${esg ? `<span class="gt-btn gt-btn-p gt-btn-esgotado" aria-disabled="true">Esgotado</span>` : `<a class="gt-btn gt-btn-roxo gt-btn-p" href="${esc(linkSeguro(x.link))}">${esc(x.botao && x.botao !== "Saiba mais" ? x.botao : "Mais sobre " + x.titulo)}</a>`}
+          </article>`;
+        }).join("") + todas;
         grade.querySelectorAll("img[data-raw]").forEach((img) => img.addEventListener("error", () => { if (img.dataset.raw && img.src !== img.dataset.raw) img.src = img.dataset.raw; }, { once: true }));
       })
       .catch(() => { /* mantém os cartões do HTML */ });

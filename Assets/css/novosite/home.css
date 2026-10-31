@@ -207,3 +207,12 @@ a{color:inherit}
   .gt-slide{transition:none}
   .gt-marquee-trilho{animation:none;flex-wrap:wrap;justify-content:center;width:auto}
 }
+/* selos do Garbosa System: promoção, últimas vagas, esgotado */
+.gt-selo{position:absolute;top:12px;right:12px;color:#fff;font-size:.68rem;font-weight:800;padding:4px 10px;border-radius:30px;text-transform:uppercase;letter-spacing:.5px;box-shadow:0 4px 12px rgba(0,0,0,.25)}
+.gt-selo-promocao{background:#e53935}
+.gt-selo-ultimas{background:#ff9800;animation:gt-selo-pulsa 1.6s ease-in-out infinite}
+.gt-selo-esgotado{background:#333}
+@keyframes gt-selo-pulsa{50%{transform:scale(1.08)}}
+@media (prefers-reduced-motion:reduce){.gt-selo-ultimas{animation:none}}
+.gt-esgotado .gt-dest-img img{filter:grayscale(1);opacity:.75}
+.gt-btn-esgotado{background:#e0e0e0;color:#666;cursor:not-allowed}
