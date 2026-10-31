@@ -74,6 +74,37 @@ export async function reservarPoltronas(own, exId, assentos) {
   }
 }
 
+/**
+ * Troca/reserva poltronas numa transação só: cada item { vid, vk, n } tira o viajante de onde
+ * ele estava (se estava) e coloca na poltrona nova; { vid, sair: true } só libera.
+ * Se alguma poltrona nova estiver com outra pessoa, nada muda.
+ */
+export async function trocarPoltronas(own, exId, itens) {
+  if (!itens.length) return;
+  const vids = new Set(itens.map((a) => a.vid));
+  let ocupadas = [];
+  const r = await (await db()).ref(`poltronas/${own}/${exId}`).transaction((atual) => {
+    const mapa = atual || {};
+    for (const vk of Object.keys(mapa)) {
+      const m = mapa[vk];
+      if (!m || typeof m !== "object") continue;
+      for (const n of Object.keys(m)) if (vids.has(m[n])) m[n] = null;
+    }
+    const novos = itens.filter((a) => !a.sair);
+    ocupadas = novos.filter((a) => mapa[a.vk]?.[a.n]);
+    if (ocupadas.length) return; // aborta
+    for (const a of novos) {
+      if (!mapa[a.vk] || typeof mapa[a.vk] !== "object") mapa[a.vk] = {};
+      mapa[a.vk][a.n] = a.vid;
+    }
+    return mapa;
+  });
+  if (!r.committed) {
+    throw new ErroUsuario(`A(s) poltrona(s) ${ocupadas.map((a) => a.n).join(", ")} acabou(aram) de ser reservada(s) por outra pessoa. Escolha outra(s).`, 409,
+      { poltronasOcupadas: ocupadas.map((a) => ({ vk: a.vk, n: a.n })) });
+  }
+}
+
 /** Libera só as poltronas que ainda pertencem a estes viajantes */
 export async function liberarPoltronas(own, exId, vids) {
   const set = new Set(vids);

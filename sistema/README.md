@@ -190,4 +190,10 @@ Os dois links ficam em **Link de inscrição** de cada excursão e funcionam enq
   pelo WhatsApp (32) 9 9977-5281) e a poltrona no mapa. API `/api/poltrona-livre`. Viajantes com selo "poltrona".
 - `sistema/reservar.html?e={id}` — **reserva completa**: mesmos dados da compra (CPF, nascimento, contato, endereço, colo), sem pagamento.
   API `/api/reserva`. Viajantes com selo "reserva" e pagamento "A combinar".
+- Na escolha rápida dá para **Adicionar criança de colo** (até 5 anos completos na data da saída, pela data de nascimento):
+  não ocupa poltrona, vai no colo de um adulto da lista e paga o *Valor para criança de colo*.
+- **Documento já cadastrado**: antes do mapa, os documentos são comparados com os viajantes da excursão (RG, CPF ou matrícula,
+  com ou sem pontuação: "MG-12.345.678" = "12345678"). Se já existir, aparece um pop-up com o nome abreviado e a poltrona
+  perguntando se quer mudar algo: **manter** (não duplica; pode levar criança no colo), **mudar** (troca a poltrona/corrige o nome —
+  só cadastros feitos por este link; os da agência mostram o botão do WhatsApp) ou corrigir o documento digitado.
 - As duas reservam a poltrona em transação (sem duplicar lugar), avisam a agência no sino e não precisam de regras novas no banco.

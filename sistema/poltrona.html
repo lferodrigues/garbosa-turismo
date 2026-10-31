@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
-<link rel="stylesheet" href="css/sistema.css?v=16">
+<link rel="stylesheet" href="css/sistema.css?v=21">
 </head>
 <body class="insc-body cp-body">
 <div id="loading" class="loading-screen">
@@ -121,7 +121,11 @@
     <div class="cp-etapa" id="etapa1">
       <p class="cp-dica">Não precisa pagar nada aqui nem criar conta: é só informar quem vai viajar e escolher a poltrona.</p>
       <div id="lista"></div>
-      <button type="button" class="btn btn-light btn-block" id="btnMais"><i class="fa-solid fa-user-plus"></i> Adicionar outra pessoa</button>
+      <div class="cp-add">
+        <button type="button" class="btn btn-light" id="btnMais"><i class="fa-solid fa-user-plus"></i> Adicionar outra pessoa</button>
+        <button type="button" class="btn btn-light" id="btnColo"><i class="fa-solid fa-baby"></i> Adicionar criança de colo</button>
+      </div>
+      <p class="cp-dica" style="margin-top:8px"><i class="fa-solid fa-baby"></i> Criança de colo: até <span id="idadeColo">5</span> anos completos na data da viagem. Não ocupa poltrona e vai no colo de um adulto da lista.</p>
       <p class="login-msg" id="msg1" role="alert"></p>
       <button type="button" class="btn btn-primary btn-block" id="btnIr2" style="margin-top:12px">Escolher a poltrona <i class="fa-solid fa-arrow-right"></i></button>
     </div>
@@ -160,6 +164,6 @@
     <a href="../index.html" class="btn btn-light btn-block">Ver outras excursões</a>
   </section>
 </main>
-<script type="module" src="js/poltrona.js?v=18"></script>
+<script type="module" src="js/poltrona.js?v=19"></script>
 </body>
 </html>
