@@ -63,7 +63,7 @@
         ".write": "(auth != null && auth.token.email === 'contato@feliperodrigues.net') || (auth != null && root.child('usuarios').child(auth.uid).child('tipo').val() === 'transportadora' && root.child('usuarios').child(auth.uid).child('ativo').val() !== false && (!data.exists() || data.child('transportadoraUid').val() === auth.uid) && (!newData.exists() || newData.child('transportadoraUid').val() === auth.uid))",
         ".validate": "newData.hasChildren(['transportadoraUid', 'tipoVeiculo', 'destino', 'motorista', 'dataSaida', 'dataRetorno', 'valorFinal'])",
         "tipoVeiculo": {
-          ".validate": "newData.isString() && newData.val().matches(/^(van15|van20|micro32|micro36|onibus42|onibus46|onibus50|onibus64)$/)"
+          ".validate": "newData.isString() && newData.val().matches(/^(van15|van20|micro32|micro36|onibus42|onibus46|onibus50|dd60|onibus64)$/)"
         },
         "dataSaida": {
           ".validate": "newData.isString() && newData.val().matches(/^\\d{4}-\\d{2}-\\d{2}$/)"
@@ -104,7 +104,7 @@
           "veiculos": {
             ".write": "(auth != null && root.child('excursoes').child($uid).child($excursaoId).child('colaboradores').child(auth.uid).exists())",
             "$veiculoId": {
-              ".validate": "newData.hasChildren(['tipo', 'valorTransporte']) && newData.child('tipo').isString() && newData.child('tipo').val().matches(/^(van15|van20|micro32|micro36|onibus42|onibus46|onibus50|onibus64)$/) && newData.child('valorTransporte').isNumber()"
+              ".validate": "newData.hasChildren(['tipo', 'valorTransporte']) && newData.child('tipo').isString() && newData.child('tipo').val().matches(/^(van15|van20|micro32|micro36|onibus42|onibus46|onibus50|dd60|onibus64)$/) && newData.child('valorTransporte').isNumber()"
             }
           },
           "$campo": {

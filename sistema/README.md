@@ -68,7 +68,13 @@ Depois da compra online o cliente vai direto para o grupo:
 | Ônibus 42 | 29 |
 | Ônibus 46 | 32 |
 | Ônibus 50 | 35 |
-| Ônibus 64 | 40 |
+| Ônibus Double Decker 60 (`dd60`) | 40 |
+| Ônibus 64 (só excursões antigas) | 40 |
+
+**Double Decker 60**: mapa de dois pisos (superior 1–48; inferior 49–60, leito completo).
+As poltronas **leito (49 a 60) custam + R$ 20** por pessoa: na compra online, na reserva, na escolha rápida e no painel
+(ao sentar/tirar alguém do leito o valor do viajante sobe/desce R$ 20; compras online não mudam). Regra em `venda-regras.js` (`VEICULOS.dd60.leito`, `extraPoltronaCent`).
+O ônibus de 64 não aparece mais para excursões novas, mas continua valendo nas que já o usam.
 
 ## Valor final da transportadora
 `custo = chofer + diesel + gastos adicionais` → `valor final = custo × (1 + margem/100)`

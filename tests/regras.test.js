@@ -67,3 +67,31 @@ test("rotas internas dizem qual variável falta na Vercel; páginas públicas n�
   assert.match(a.b.erro, /GITHUB_TOKEN/);
   assert.doesNotMatch(b.b.erro, /GITHUB_TOKEN/);
 });
+
+test("Double Decker 60: dois pisos com todas as poltronas de 1 a 60, sem repetir", async () => {
+  const R = await import("../sistema/js/venda-regras.js");
+  assert.equal(R.VEICULOS.dd60.cap, 60);
+  assert.equal(R.VEICULOS.dd60.div, 40);
+  assert.equal(R.VEICULOS.onibus64.cap, 64); // as excursões antigas continuam com o de 64
+  const planta = R.plantaVeiculo("dd60");
+  assert.deepEqual(planta.map((p) => p.titulo), ["Piso superior", "Piso inferior"]);
+  const nums = R.numerosDaPlanta(planta);
+  assert.equal(nums.length, 60);
+  assert.deepEqual([...nums].sort((a, b) => a - b), Array.from({ length: 60 }, (_, i) => i + 1));
+  assert.deepEqual(planta[0].linhas[0], { esq: [1, 2], dir: [4, 3] });
+  assert.deepEqual(planta[1].linhas.at(-1), { esq: [58, 59], dir: [60], largo: true });
+  assert.equal(R.plantaVeiculo("onibus46").length, 1);
+});
+
+test("leito do Double Decker (49 a 60) custa + R$ 20, também com cupom e criança", async () => {
+  const R = await import("../sistema/js/venda-regras.js");
+  assert.equal(R.extraPoltronaCent("dd60", 48), 0);
+  assert.equal(R.extraPoltronaCent("dd60", 49), 2000);
+  assert.equal(R.extraPoltronaCent("dd60", 60), 2000);
+  assert.equal(R.extraPoltronaCent("onibus46", 50), 0);
+  const c = R.calcularItens([{ extraCent: 2000 }, { extraCent: 0 }, { infantil: true, extraCent: 2000 }, { colo: true, extraCent: 2000 }],
+    { valorCent: 10000, valorInfantilCent: 6000, valorColoCent: 1000, cupom: { ok: true, valorCent: 8000, porCompra: 1, restam: 5 } });
+  assert.deepEqual(c.itens.map((i) => i.valorCent), [10000, 10000, 8000, 1000]); // cupom 80 + leito 20 / cheio / infantil 60 + 20 / colo
+  assert.equal(c.totalCent, 29000);
+  assert.equal(c.descontoCent, 2000);
+});

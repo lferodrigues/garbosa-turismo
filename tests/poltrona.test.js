@@ -115,3 +115,22 @@ test("altera o cadastro (troca a poltrona) e mantém outro para levar criança n
   r = await salvar([{ vid: "antigo", nome: "Antigo Silva", docTipo: "RG", docNumero: "44444", assento: { vk: "v1", n: 9 } }]);
   assert.equal(r.statusCode, 409); assert.match(r.body.erro, /agência/);
 });
+
+test("poltrona leito do Double Decker soma R$ 20 no valor do viajante", async () => {
+  await db.ref(`excursoes/${OWN}/${EX}/veiculos/v1/tipo`).set("dd60");
+  const base = (await chamar({ method: "GET", query: { e: EX } })).body;
+  assert.equal(base.veiculos[0].tipo, "dd60");
+  let r = await salvar([
+    { nome: "Ana Paula Souza", docTipo: "RG", docNumero: "MG-1.111.111", assento: { vk: "v1", n: 10 } },
+    { nome: "Bia Paula Souza", docTipo: "RG", docNumero: "MG-2.222.222", assento: { vk: "v1", n: 51 } }
+  ]);
+  assert.equal(r.statusCode, 200, JSON.stringify(r.body));
+  const vs = Object.values(db.dump().viajantes[OWN][EX]);
+  const ana = vs.find((v) => v.nome === "Ana Paula Souza"), bia = vs.find((v) => v.nome === "Bia Paula Souza");
+  assert.equal(bia.valor - ana.valor, 20);
+  // trocar a Bia do leito para o piso de cima tira os R$ 20
+  const vid = (await chamar({ method: "POST", body: { acao: "conferir", e: EX, docs: ["2222222"] } })).body.encontrados[0].vid;
+  r = await salvar([{ vid, nome: "Bia Paula Souza", docTipo: "RG", docNumero: "2222222", assento: { vk: "v1", n: 11 } }]);
+  assert.equal(r.statusCode, 200, JSON.stringify(r.body));
+  assert.equal(db.dump().viajantes[OWN][EX][vid].valor, ana.valor);
+});

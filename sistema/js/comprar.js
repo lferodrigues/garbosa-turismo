@@ -1,5 +1,6 @@
 // Página pública de compra: viajantes → poltronas → pagamento no Asaas
-import * as R from "./venda-regras.js?v=16";
+import * as R from "./venda-regras.js?v=18";
+import { htmlOnibus } from "./mapa-onibus.js?v=1";
 import { aoMudarSessao, telaAcesso, formPerfil, lerPerfil, salvarPerfil, paraPerfil, sair, api as apiConta } from "./conta-viajante.js?v=16";
 
 const $ = (s, el = document) => el.querySelector(s);
@@ -52,7 +53,8 @@ async function carregar() {
   const infCent = EX.valorInfantilCent ?? EX.valorCent;
   $("#cColo").textContent = [
     infCent !== EX.valorCent ? `Criança até ${R.IDADE_INFANTIL} anos com poltrona: ${R.brl(infCent)}` : "",
-    EX.valorColoCent > 0 ? `Criança de colo (até ${R.IDADE_COLO} anos): ${R.brl(EX.valorColoCent)}` : `Criança de colo (até ${R.IDADE_COLO} anos) não paga`
+    EX.valorColoCent > 0 ? `Criança de colo (até ${R.IDADE_COLO} anos): ${R.brl(EX.valorColoCent)}` : `Criança de colo (até ${R.IDADE_COLO} anos) não paga`,
+    leitoTexto()
   ].filter(Boolean).join(" · ");
   if (RESERVA) {
     $("#cFormas").innerHTML = `<li><i class="fa-solid fa-couch"></i><span><strong>Escolha sua poltrona agora</strong>sem pagar nada pelo site</span></li>
@@ -271,8 +273,15 @@ $("#btnAddDep").addEventListener("click", () => {
 });
 
 /* ---------- cupom e valores ---------- */
+const tipoVeic = (vk) => EX.veiculos.find((v) => v.id === vk)?.tipo;
+const extraDe = (p) => (ocupaPoltrona(p) && p.assento ? R.extraPoltronaCent(tipoVeic(p.assento.vk), p.assento.n) : 0);
+/** "Poltrona leito (piso inferior): + R$ 20,00" quando a excursão tem Double Decker */
+function leitoTexto() {
+  const v = EX.veiculos.find((x) => R.VEICULOS[x.tipo]?.leito);
+  return v ? `Poltrona leito (piso inferior, ${R.VEICULOS[v.tipo].leito.de}–${R.VEICULOS[v.tipo].leito.ate}): + ${R.brl(R.centavos(R.VEICULOS[v.tipo].leito.extra))}` : "";
+}
 function conta() {
-  const pessoas = S.pessoas.map((p) => ({ colo: !ocupaPoltrona(p), infantil: ocupaPoltrona(p) && R.ehInfantil(idade(p)) }));
+  const pessoas = S.pessoas.map((p) => ({ colo: !ocupaPoltrona(p), infantil: ocupaPoltrona(p) && R.ehInfantil(idade(p)), extraCent: extraDe(p) }));
   const cupom = S.cupom ? { ok: true, valorCent: S.cupom.valorCent, porCompra: S.cupom.porCompra, restam: S.cupom.restam ?? Infinity } : null;
   return R.calcularItens(pessoas, { valorCent: EX.valorCent, valorColoCent: EX.valorColoCent, valorInfantilCent: EX.valorInfantilCent ?? EX.valorCent, cupom });
 }
@@ -283,8 +292,9 @@ function tabelaResumo(comPoltrona) {
     const it = c.itens[i];
     const nome = p.nome.trim() || (p.titular ? "Titular" : `Dependente ${i}`);
     const tags = [it.colo ? `<em class="cp-tag colo">colo</em>` : "", it.infantil ? `<em class="cp-tag colo">até ${R.IDADE_INFANTIL} anos</em>` : "", it.cupom ? `<em class="cp-tag cupom">cupom</em>` : "",
-      comPoltrona && p.assento ? `<em class="cp-tag polt">poltrona ${veicNome(p.assento.vk)}${p.assento.n}</em>` : ""].join("");
-    return `<div class="cp-linha"><span>${i + 1}. ${esc(nome)} ${tags}</span><strong>${it.cupom ? `<s>${R.brl(it.infantil ? (EX.valorInfantilCent ?? EX.valorCent) : EX.valorCent)}</s> ` : ""}${R.brl(it.valorCent)}</strong></div>`;
+      comPoltrona && p.assento ? `<em class="cp-tag polt">poltrona ${veicNome(p.assento.vk)}${p.assento.n}</em>` : "",
+      it.extraCent ? `<em class="cp-tag colo">leito + ${R.brl(it.extraCent)}</em>` : ""].join("");
+    return `<div class="cp-linha"><span>${i + 1}. ${esc(nome)} ${tags}</span><strong>${it.cupom ? `<s>${R.brl((it.infantil ? (EX.valorInfantilCent ?? EX.valorCent) : EX.valorCent) + it.extraCent)}</s> ` : ""}${R.brl(it.valorCent)}</strong></div>`;
   }).join("");
   const desc = c.descontoCent > 0
     ? `<div class="cp-linha desconto"><span><i class="fa-solid fa-tag"></i> Cupom ${esc(S.cupom.codigo)} (${c.comCupom} pessoa${c.comCupom > 1 ? "s" : ""})</span><strong>− ${R.brl(c.descontoCent)}</strong></div>` : "";
@@ -414,15 +424,7 @@ function desenharVeiculo(v) {
     if (ocup.has(n)) return `<span class="seat reservada" aria-label="Poltrona ${n} reservada"><span class="sn">${n}</span></span>`;
     return `<button type="button" class="seat livre" data-n="${n}" aria-label="Poltrona ${n} disponível"><span class="sn">${n}</span></button>`;
   };
-  const linhas = R.layoutAssentos(v.cap);
-  return `<div class="bus ${v.cap <= 20 ? "bus-van" : ""}">
-    <div class="bus-front"><span class="driver"><i class="fa-solid fa-dharmachakra"></i> Motorista</span><span class="door">Porta</span></div>
-    <div class="bus-body">
-      ${linhas.map((l) => `<div class="bus-row"><div class="side">${l.esq.map(seat).join("")}</div><div class="aisle"></div><div class="side">${l.dir.map(seat).join("")}${l.wc ? `<div class="wc">WC</div>` : ""}</div></div>`).join("")}
-      <div class="corredor-label">CORREDOR</div>
-    </div>
-    ${v.cap > 20 && !linhas.some((l) => l.wc) ? `<div class="bus-back">Toalete</div>` : ""}
-  </div>`;
+  return htmlOnibus(R.plantaVeiculo(v.tipo, v.cap), seat, v.cap);
 }
 function escolher(vk, n) {
   const dono = S.pessoas.find((p) => p.assento?.vk === vk && p.assento.n === n);

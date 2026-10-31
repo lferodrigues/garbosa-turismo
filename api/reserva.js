@@ -86,7 +86,7 @@ export default async function handler(req, res) {
       upd[`viajantes/${own}/${exId}/${vids[i]}`] = {
         nome: p.nome, docTipo: p.rg ? "RG" : "CERTIDAO", docNumero: p.rg || "", telefone: p.whatsapp, idade: R.idadeEm(p.nascimento, ex.dataSaida), colo: p.colo,
         cpf: p.cpf ? R.mascaraCpf(p.cpf) : "", rg: p.rg, nascimento: p.nascimento, email: p.email, endereco: p.endereco,
-        valor: R.reais(R.precoDeCent(ex, { colo: p.colo, idade: R.idadeEm(p.nascimento, ex.dataSaida) })), formaPagamento: "A combinar", origem: "reserva",
+        valor: R.reais(R.precoDeCent(ex, { colo: p.colo, idade: R.idadeEm(p.nascimento, ex.dataSaida) }) + R.extraAssentoCent(ex, p.assento)), formaPagamento: "A combinar", origem: "reserva",
         responsavel: i === 0 ? null : pessoas[0].nome,
         obs: `Reserva pelo link${p.assento ? ` · poltrona ${rotulo(p.assento)}` : " · colo"}${i ? ` · com ${pessoas[0].nome.split(" ")[0]}` : ""}`.slice(0, 300),
         consentimentoLgpd: true, criadoEm: Date.now()

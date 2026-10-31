@@ -1,6 +1,7 @@
 import { auth, db, ADMIN_EMAIL, authSecundario } from "./firebase.js?v=8";
-import { baixarXLSX, baixarPDF, baixarPDFPoltronas, carregarXLSX } from "./exportar.js?v=8";
-import * as R from "./venda-regras.js?v=16";
+import { baixarXLSX, baixarPDF, baixarPDFPoltronas, carregarXLSX } from "./exportar.js?v=9";
+import * as R from "./venda-regras.js?v=18";
+import { htmlOnibus } from "./mapa-onibus.js?v=1";
 import {
   onAuthStateChanged, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword,
   sendPasswordResetEmail, updateProfile,
@@ -22,7 +23,8 @@ const VEICULOS = {
   onibus42: { nome: "Ônibus 42 lugares",       cap: 42, div: 29, icone: "fa-bus" },
   onibus46: { nome: "Ônibus 46 lugares",       cap: 46, div: 32, icone: "fa-bus" },
   onibus50: { nome: "Ônibus 50 lugares",       cap: 50, div: 35, icone: "fa-bus" },
-  onibus64: { nome: "Ônibus 64 lugares",       cap: 64, div: 40, icone: "fa-bus" }
+  dd60:     { nome: "Ônibus Double Decker 60 lugares", cap: 60, div: 40, icone: "fa-bus" },
+  onibus64: { nome: "Ônibus 64 lugares",       cap: 64, div: 40, icone: "fa-bus", legado: true } // só para excursões antigas
 };
 const DOCS = { RG: "RG", CNH: "CNH", CERTIDAO: "Certidão de Nascimento" };
 const TIPOS = { agencia: "Agência de turismo", transportadora: "Transporte / Fretamento", admin: "Administrador" };
@@ -951,7 +953,7 @@ function detalhes(tipo, id) {
 /* =========================================================
    EXCURSÕES
 ========================================================= */
-const opcoesVeiculo = (sel) => Object.entries(VEICULOS).map(([k, v]) => `<option value="${k}" ${k === sel ? "selected" : ""}>${v.nome}</option>`).join("");
+const opcoesVeiculo = (sel) => Object.entries(VEICULOS).filter(([k, v]) => !v.legado || k === sel).map(([k, v]) => `<option value="${k}" ${k === sel ? "selected" : ""}>${v.nome}</option>`).join("");
 
 function viewExcursoes() {
   const lista = ordenar(S.excursoes, "dataSaida").reverse();
@@ -959,7 +961,7 @@ function viewExcursoes() {
   <section class="panel">
     ${toolbar(ehAdmin() ? "Excursões de todas as agências" : "Excursões", "fa-route", podeAgencia() ? tbBtn("btnNovaEx", "fa-plus", "Cadastrar excursão", "tool-accent") : "")}
     <div class="regra"><i class="fa-solid fa-calculator"></i> Valor por poltrona = (transporte + ingressos e produtos × lotação) ÷ poltronas de rateio:
-      ${Object.values(VEICULOS).map((v) => `<span>${v.nome.replace(" lugares", "")}: ÷${v.div}</span>`).join("")}</div>
+      ${Object.values(VEICULOS).filter((v) => !v.legado).map((v) => `<span>${v.nome.replace(" lugares", "")}: ÷${v.div}</span>`).join("")}</div>
     ${lista.length ? `<div class="table-wrap"><table class="grid">
       <thead><tr>${ehAdmin() ? "<th>Agência</th>" : ""}<th>Destino</th><th>Saída</th><th>Retorno</th><th>Veículos</th><th>Ocupação</th><th>Valor/poltrona</th><th></th></tr></thead>
       <tbody>${lista.map(([id, e]) => {
@@ -1909,17 +1911,6 @@ function formViajante(exId, pid = null) {
 /* =========================================================
    POLTRONAS
 ========================================================= */
-function layoutAssentos(cap) {
-  const linhas = [];
-  if (cap <= 20) {               // vans: 2 + 1
-    for (let n = 1; n <= cap; n += 3) linhas.push({ esq: [n, n + 1].filter((x) => x <= cap), dir: [n + 2].filter((x) => x <= cap) });
-  } else {                        // ônibus: 2 + 2 (padrão 1 2 | 4 3)
-    const cheias = Math.floor(cap / 4), resto = cap % 4;
-    for (let r = 0; r < cheias; r++) { const b = r * 4 + 1; linhas.push({ esq: [b, b + 1], dir: [b + 3, b + 2] }); }
-    if (resto) { const b = cheias * 4 + 1; const s = Array.from({ length: resto }, (_, i) => b + i); linhas.push({ esq: s.slice(0, 2), dir: s.slice(2).reverse(), wc: resto <= 2 }); }
-  }
-  return linhas;
-}
 function nomesPorPoltrona(exId, vk) {
   const nomes = {};
   Object.entries((S.poltronas[exId] || {})[vk] || {}).forEach(([n, pid]) => { const p = S.viajantes[exId]?.[pid]; if (p) nomes[n] = p.nome; });
@@ -1944,20 +1935,7 @@ function viewPoltronas() {
     return `<div class="seat ${pid ? "ocupada" : ""} ${pid && pid === S.passSel ? "sel" : ""}" data-seat="${n}" ${pid ? `draggable="true" data-pid="${pid}"` : ""} title="${esc(nome || "Poltrona " + n + " livre")}">
       <span class="sn">${n}</span>${pid ? `<span class="snome">${esc(nome.split(" ")[0])}</span><button class="seat-x" data-x="${n}" title="Liberar">×</button>` : ""}</div>`;
   };
-  const linhas = layoutAssentos(vv.cap);
-  const bus = `
-    <div class="bus ${vv.cap <= 20 ? "bus-van" : ""}">
-      <div class="bus-front"><span class="driver"><i class="fa-solid fa-dharmachakra"></i> Motorista</span><span class="door">Porta</span></div>
-      <div class="bus-body">
-        ${linhas.map((l) => `<div class="bus-row">
-          <div class="side">${l.esq.map(seat).join("")}</div>
-          <div class="aisle"></div>
-          <div class="side">${l.dir.map(seat).join("")}${l.wc ? `<div class="wc">WC</div>` : ""}</div>
-        </div>`).join("")}
-        <div class="corredor-label">CORREDOR</div>
-      </div>
-      ${vv.cap > 20 && !linhas.some((l) => l.wc) ? `<div class="bus-back">Toalete</div>` : ""}
-    </div>`;
+  const bus = htmlOnibus(R.plantaVeiculo(v.tipo, vv.cap), seat, vv.cap);
   const numerada = Array.from({ length: vv.cap }, (_, i) => i + 1).map((n) => `<li><span>${n}</span>${esc(nomes[mapa[n]] || "")}</li>`).join("");
 
   $("#workspace").innerHTML = `
@@ -2005,13 +1983,23 @@ function viewPoltronas() {
 
   ligarSeletor();
   const base = `poltronas/${own}/${exId}`;
+  // poltrona leito (Double Decker 60, piso inferior): + R$ 20 no valor de quem senta nela.
+  // Compras online ficam como estão (o valor já foi cobrado no Asaas).
+  const ajusteLeito = (upd, pid, de, para) => {
+    const p = S.viajantes[exId]?.[pid];
+    if (!p || p.origem === "venda" || p.colo) return;
+    const tipo = (a) => ex.veiculos?.[a?.vk]?.tipo;
+    const dif = R.extraPoltronaCent(tipo(para), para?.n) - R.extraPoltronaCent(tipo(de), de?.n);
+    if (dif) upd[`viajantes/${own}/${exId}/${pid}/valor`] = R.reais(R.centavos(p.valor) + dif);
+  };
   const salvarPos = async (pid, n) => {
     const upd = {};
     const ant = poltronaDe(exId, pid);
-    if (ant) upd[`${ant.vk}/${ant.n}`] = null;
-    upd[`${vk}/${n}`] = pid;
+    if (ant) upd[`${base}/${ant.vk}/${ant.n}`] = null;
+    upd[`${base}/${vk}/${n}`] = pid;
+    ajusteLeito(upd, pid, ant, { vk, n });
     S.passSel = null;
-    try { await update(ref(db, base), upd); } catch (e) { falha(e); }
+    try { await update(ref(db), upd); } catch (e) { falha(e); }
   };
   $("#busca").addEventListener("input", (e) => {
     S.busca = e.target.value; const pos = e.target.selectionStart; render();
@@ -2034,18 +2022,26 @@ function viewPoltronas() {
     el.addEventListener("dragleave", () => el.classList.remove("over"));
     el.addEventListener("drop", (e) => { e.preventDefault(); el.classList.remove("over"); const pid = e.dataTransfer.getData("text/plain"); if (pid) salvarPos(pid, el.dataset.seat); });
   });
-  $$(".seat-x").forEach((b) => b.addEventListener("click", async () => { try { await remove(ref(db, `${base}/${vk}/${b.dataset.x}`)); } catch (e) { falha(e); } }));
+  $$(".seat-x").forEach((b) => b.addEventListener("click", async () => {
+    const n = b.dataset.x, upd = { [`${base}/${vk}/${n}`]: null };
+    ajusteLeito(upd, mapa[n], { vk, n }, null);
+    try { await update(ref(db), upd); } catch (e) { falha(e); }
+  }));
   $("#btnAuto").onclick = async () => {
     const livres = pessoas.filter(([id]) => !poltronaDe(exId, id)).map(([id]) => id);
     if (!livres.length) return toast("Todos os viajantes já estão posicionados.");
     const upd = {};
     for (const [k, x] of vs) {
       const m = (S.poltronas[exId] || {})[k] || {};
-      for (let n = 1; n <= veic(x.tipo).cap && livres.length; n++) if (!m[n]) upd[`${k}/${n}`] = livres.shift();
+      for (let n = 1; n <= veic(x.tipo).cap && livres.length; n++) if (!m[n]) { const pid = livres.shift(); upd[`${base}/${k}/${n}`] = pid; ajusteLeito(upd, pid, null, { vk: k, n }); }
     }
-    try { await update(ref(db, base), upd); toast(livres.length ? `${livres.length} viajante(s) ficaram sem lugar` : "Viajantes distribuídos", livres.length ? "erro" : "ok"); } catch (e) { falha(e); }
+    try { await update(ref(db), upd); toast(livres.length ? `${livres.length} viajante(s) ficaram sem lugar` : "Viajantes distribuídos", livres.length ? "erro" : "ok"); } catch (e) { falha(e); }
   };
-  $("#btnLimpar").onclick = () => confirmar("Liberar todas as poltronas deste veículo?", async () => { await remove(ref(db, `${base}/${vk}`)); toast("Veículo liberado"); }, "Limpar");
+  $("#btnLimpar").onclick = () => confirmar("Liberar todas as poltronas deste veículo?", async () => {
+    const upd = { [`${base}/${vk}`]: null };
+    Object.entries(mapa).forEach(([n, pid]) => { if (pid) ajusteLeito(upd, pid, { vk, n }, null); });
+    await update(ref(db), upd); toast("Veículo liberado");
+  }, "Limpar");
   $("#btnVeicExtra").onclick = () => formVeiculoExtra(exId);
   if ($("#btnVeicExtra2")) $("#btnVeicExtra2").onclick = () => formVeiculoExtra(exId);
   $("#btnPrint").onclick = () => window.print();
@@ -2074,7 +2070,7 @@ function viewPoltronas() {
       { nome: "Todos os viajantes", colunas: COLS_POLT, linhas: linhasPoltronas(exId) }
     ],
     pdf: () => baixarPDFPoltronas(titulo, sub,
-      porVeiculo.map(({ i, x, nm, cap }) => ({ titulo: `${vs.length > 1 ? `Veículo ${i + 1} · ` : ""}${veic(x.tipo).nome}`, cap, layout: layoutAssentos(cap), nomes: nm })),
+      porVeiculo.map(({ i, x, nm, cap }) => ({ titulo: `${vs.length > 1 ? `Veículo ${i + 1} · ` : ""}${veic(x.tipo).nome}`, cap, planta: R.plantaVeiculo(x.tipo, cap), nomes: nm })),
       { colunas: COLS_POLT, linhas: linhasPoltronas(exId) })
   };
 }
