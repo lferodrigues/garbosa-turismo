@@ -13,8 +13,9 @@ export function usarFalsos({ db, auth }) { _db = db; _auth = auth || null; _ts =
 function lerCredencial() {
   const bruto = (process.env.FIREBASE_SERVICE_ACCOUNT || "").trim();
   if (!bruto) throw new ErroConfig("FIREBASE_SERVICE_ACCOUNT não configurada na Vercel.");
-  const json = bruto.startsWith("{") ? bruto : Buffer.from(bruto, "base64").toString("utf8");
-  const cred = JSON.parse(json);
+  let cred;
+  try { cred = JSON.parse(bruto.startsWith("{") ? bruto : Buffer.from(bruto, "base64").toString("utf8")); }
+  catch { throw new ErroConfig("FIREBASE_SERVICE_ACCOUNT inválida: cole o conteúdo inteiro do .json da conta de serviço."); }
   if (cred.private_key) cred.private_key = cred.private_key.replace(/\\n/g, "\n");
   return cred;
 }

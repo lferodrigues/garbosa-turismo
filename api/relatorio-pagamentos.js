@@ -85,5 +85,5 @@ export default async function handler(req, res) {
         outros: { viajantes: outros.length, totalCent: soma(outros, "valorCent"), pagoCent: soma(outros, "pagoCent"), abertoCent: soma(outros, "abertoCent") }
       }
     });
-  } catch (e) { tratarErro(res, e); }
+  } catch (e) { tratarErro(res, e, { interno: true }); }
 }
