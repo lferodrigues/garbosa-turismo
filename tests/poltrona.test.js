@@ -53,3 +53,65 @@ test("recusa poltrona ocupada, RG vazio e link encerrado", async () => {
   assert.equal(r.statusCode, 409);
   assert.equal(Object.values(db.dump().viajantes[OWN][EX]).length, 1);
 });
+
+/* ---------- criança de colo ---------- */
+const nasc = (anos, dias = 0) => somarDias(`${Number(somarDias(hojeBR(), 30).slice(0, 4)) - anos}${somarDias(hojeBR(), 30).slice(4)}`, dias);
+test("criança de colo até 5 anos completos não ocupa poltrona e vai com um adulto", async () => {
+  await db.ref(`excursoes/${OWN}/${EX}/valorColo`).set(30);
+  const r = await salvar([
+    { nome: "Ana Paula Souza", docTipo: "RG", docNumero: "MG-55.555", assento: { vk: "v1", n: 5 } },
+    { nome: "Lia Souza", docTipo: "CERTIDAO", colo: true, nascimento: nasc(5), com: 0, assento: { vk: "v1", n: 9 } }
+  ]);
+  assert.equal(r.statusCode, 200, JSON.stringify(r.body));
+  assert.deepEqual(r.body.poltronas.map((x) => x.poltrona), ["5", "colo"]);
+  const lia = Object.values(db.dump().viajantes[OWN][EX]).find((v) => v.nome === "Lia Souza");
+  assert.equal(lia.colo, true); assert.equal(lia.idade, 5); assert.equal(lia.valor, 30); assert.equal(lia.responsavel, "Ana Paula Souza");
+  assert.equal(Object.keys(db.dump().poltronas[OWN][EX].v1).length, 2); // só a Ana sentou
+});
+test("colo recusa quem passa de 5 anos, sem data ou sem adulto", async () => {
+  const ana = { nome: "Ana Paula Souza", docTipo: "RG", docNumero: "MG-55.555", assento: { vk: "v1", n: 5 } };
+  let r = await salvar([ana, { nome: "Lia Souza", docTipo: "CERTIDAO", colo: true, nascimento: nasc(6), com: 0 }]);
+  assert.equal(r.statusCode, 400); assert.match(r.body.erro, /6 anos/);
+  r = await salvar([ana, { nome: "Lia Souza", docTipo: "CERTIDAO", colo: true, nascimento: "", com: 0 }]);
+  assert.equal(r.statusCode, 400);
+  r = await salvar([{ nome: "Lia Souza", docTipo: "CERTIDAO", colo: true, nascimento: nasc(2), com: 0 }]);
+  assert.equal(r.statusCode, 400); assert.match(r.body.erro, /colo de quem/);
+});
+
+/* ---------- documento já cadastrado ---------- */
+test("conferir acha o documento com ou sem pontuação e não mostra o nome inteiro", async () => {
+  await salvar([{ nome: "Ana Paula Souza", docTipo: "RG", docNumero: "MG-12.345.678", assento: { vk: "v1", n: 5 } }]);
+  await db.ref(`viajantes/${OWN}/${EX}/antigo/rg`).set("98.765-4");
+  const r = await chamar({ method: "POST", body: { acao: "conferir", e: EX, docs: ["12345678", "999999", "mg 98765-4"] } });
+  assert.equal(r.statusCode, 200);
+  assert.deepEqual(r.body.encontrados.map((x) => [x.i, x.nome, x.poltrona, x.podeAlterar]), [[0, "Ana S.", "5", true], [2, "Antigo S.", "2", false]]);
+});
+test("não deixa cadastrar o mesmo documento duas vezes", async () => {
+  await salvar([{ nome: "Ana Paula Souza", docTipo: "RG", docNumero: "MG-12.345.678", assento: { vk: "v1", n: 5 } }]);
+  const r = await salvar([{ nome: "Ana P Souza", docTipo: "RG", docNumero: "12345678", assento: { vk: "v1", n: 7 } }]);
+  assert.equal(r.statusCode, 409);
+  assert.deepEqual(r.body.jaCadastrados, [0]);
+});
+test("altera o cadastro (troca a poltrona) e mantém outro para levar criança no colo", async () => {
+  await salvar([{ nome: "Ana Paula Souza", docTipo: "RG", docNumero: "MG-12.345.678", assento: { vk: "v1", n: 5 } }]);
+  const vid = (await chamar({ method: "POST", body: { acao: "conferir", e: EX, docs: ["12345678"] } })).body.encontrados[0].vid;
+  let r = await salvar([{ vid, nome: "Ana Paula de Souza", docTipo: "RG", docNumero: "12.345.678", assento: { vk: "v1", n: 8 } }]);
+  assert.equal(r.statusCode, 200, JSON.stringify(r.body));
+  let d = db.dump();
+  assert.equal(d.poltronas[OWN][EX].v1[8], vid);
+  assert.equal(d.poltronas[OWN][EX].v1[5], undefined);
+  assert.equal(d.viajantes[OWN][EX][vid].nome, "Ana Paula de Souza");
+  assert.equal(Object.keys(d.viajantes[OWN][EX]).length, 2);
+  // mantém a Ana e cadastra a filha no colo dela
+  r = await salvar([{ vid, docNumero: "MG12345678", manter: true }, { nome: "Lia Souza", docTipo: "CERTIDAO", colo: true, nascimento: nasc(1), com: 0 }]);
+  assert.equal(r.statusCode, 200, JSON.stringify(r.body));
+  assert.deepEqual(r.body.poltronas.map((x) => [x.poltrona, x.mantido]), [["8", true], ["colo", false]]);
+  d = db.dump();
+  assert.equal(Object.values(d.viajantes[OWN][EX]).find((v) => v.nome === "Lia Souza").responsavel, "Ana Paula de Souza");
+  // documento errado ou cadastro da agência não podem ser alterados
+  r = await salvar([{ vid, nome: "Outra Pessoa", docTipo: "RG", docNumero: "11111111", assento: { vk: "v1", n: 9 } }]);
+  assert.equal(r.statusCode, 409);
+  await db.ref(`viajantes/${OWN}/${EX}/antigo/rg`).set("4444-4");
+  r = await salvar([{ vid: "antigo", nome: "Antigo Silva", docTipo: "RG", docNumero: "44444", assento: { vk: "v1", n: 9 } }]);
+  assert.equal(r.statusCode, 409); assert.match(r.body.erro, /agência/);
+});

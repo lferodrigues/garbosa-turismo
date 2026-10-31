@@ -62,6 +62,19 @@ export function mascaraTel(v) {
   if (d.length <= 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
   return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
 }
+/**
+ * Documento normalizado para comparar cadastros: tanto faz escrever com ou sem pontuação.
+ * "MG-12.345.678", "mg 12345678", "12.345.678 SSP/MG" e "12345678" viram "12345678".
+ * Devolve "" se sobrar menos de 4 caracteres (não dá para comparar com segurança).
+ */
+export function normDoc(v) {
+  let s = String(v ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().replace(/[^0-9A-Z]/g, "");
+  s = s.replace(/^(RG|CPF|CI|CERTIDAO|N)?(?=[A-Z]*\d)/, "");  // rótulo digitado antes do número
+  s = s.replace(/^[A-Z]{1,6}(?=\d)/, "");                      // UF/órgão antes: MG, SSPMG…
+  s = s.replace(/(\d)[A-Z]{2,}$/, "$1");                       // UF/órgão depois: SSPMG (o X final do RG fica)
+  s = s.replace(/^0+(?=\d)/, "");
+  return s.length >= 4 ? s : "";
+}
 export const mascaraCep = (v) => soDig(v).slice(0, 8).replace(/(\d{5})(\d)/, "$1-$2");
 export const emailValido = (v) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(v || "").trim());
 
