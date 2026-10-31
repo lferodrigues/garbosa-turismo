@@ -50,19 +50,42 @@ export async function clienteAsaas(t, externalReference) {
   return id;
 }
 
+export const DIAS_LEMBRETE = 5; // lembrete de vencimento: 5 dias antes (o Asaas aceita 0, 5, 10, 15 ou 30)
+
 /**
  * O Asaas cria o cliente com o WhatsApp DESLIGADO em todas as notificações.
- * Liga o WhatsApp para o cliente receber a cobrança, os lembretes e o recibo (e-mail e SMS continuam como estão).
- * Precisa rodar ANTES de criar a cobrança para a mensagem de "cobrança criada" sair. Falha não impede a venda.
+ * Aqui, antes de criar a cobrança:
+ *  - liga o WhatsApp (o celular é o WhatsApp do cadastro) em todas as notificações ativas;
+ *  - garante ligadas a "cobrança criada" (o cliente recebe a cobrança assim que finaliza a compra)
+ *    e o lembrete antes do vencimento, que passa para 5 dias antes de cada parcela (o padrão do Asaas é 10);
+ *  - o aviso no dia do vencimento e os de atraso continuam como estão no painel do Asaas.
+ * Falha não impede a venda.
  */
+export function ajustesNotificacoes(lista) {
+  const vivas = (lista || []).filter((n) => n && !n.deleted);
+  // lembrete "antes do vencimento" = PAYMENT_DUEDATE_WARNING com dias > 0 (o de 0 é o do próprio dia)
+  const avisos = vivas.filter((n) => n.event === "PAYMENT_DUEDATE_WARNING" && Number(n.scheduleOffset) > 0);
+  const lembrete = avisos.find((n) => Number(n.scheduleOffset) === DIAS_LEMBRETE)
+    || avisos.find((n) => Number(n.scheduleOffset) === 10) || avisos[0] || null;
+  const mudar = [];
+  for (const n of vivas) {
+    const essencial = n.event === "PAYMENT_CREATED" || n === lembrete;
+    const alt = {};
+    if (n === lembrete && Number(n.scheduleOffset) !== DIAS_LEMBRETE) alt.scheduleOffset = DIAS_LEMBRETE;
+    if (essencial && n.enabled === false) alt.enabled = true;
+    // só mexe no WhatsApp; notificações desligadas no painel do Asaas (fora as essenciais) continuam desligadas
+    if ((n.enabled !== false || essencial) && n.whatsappEnabledForCustomer !== true) alt.whatsappEnabledForCustomer = true;
+    if (Object.keys(alt).length) mudar.push({ id: n.id, ...alt });
+  }
+  return { mudar, lembrete: !!lembrete };
+}
+
 export async function ligarWhatsapp(customer) {
   try {
     const lista = (await asaas("GET", `/customers/${customer}/notifications`))?.data || [];
-    // só mexe no WhatsApp; notificações desligadas no painel do Asaas continuam desligadas
-    const mudar = lista.filter((n) => n && !n.deleted && n.enabled !== false && n.whatsappEnabledForCustomer !== true)
-      .map((n) => ({ id: n.id, whatsappEnabledForCustomer: true }));
+    const { mudar, lembrete } = ajustesNotificacoes(lista);
     if (mudar.length) await asaas("PUT", "/notifications/batch", { customer, notifications: mudar });
-    return { ok: true, total: lista.length, ligadas: mudar.length, em: Date.now() };
+    return { ok: true, total: lista.length, ligadas: mudar.length, lembreteDias: lembrete ? DIAS_LEMBRETE : null, em: Date.now() };
   } catch (e) {
     console.warn("Asaas: não foi possível ligar o WhatsApp do cliente", e.message);
     return { ok: false, erro: String(e.message || e).slice(0, 300), em: Date.now() };
