@@ -39,6 +39,7 @@ export default async function handler(req, res) {
         folder: ex.folder?.caminho ? { caminho: ex.folder.caminho, raw: ex.folder.raw || "" } : null };
       if (!sit.ativa) return enviar(res, 200, { ...base, ativa: false, motivo: sit.motivo });
       return enviar(res, 200, { ...base, ativa: true, hoje: R.hojeBR(), valorCent: R.precoPessoaCent(ex), valorColoCent: R.centavos(ex.valorColo),
+        valorInfantilCent: R.precoInfantilCent(ex), idadeInfantil: R.IDADE_INFANTIL,
         veiculos: await veiculosComOcupacao(own, exId, ex) });
     }
 
@@ -79,14 +80,13 @@ export default async function handler(req, res) {
     await reservarPoltronas(own, exId, pessoas.map((p, i) => (p.assento ? { ...p.assento, vid: vids[i] } : null)).filter(Boolean));
     vidsReservados = vids;
 
-    const valorCent = R.precoPessoaCent(ex), valorColoCent = R.centavos(ex.valorColo);
     const rotulo = (a) => { const lista = R.veiculosDe(ex); const i = lista.findIndex(([k]) => k === a.vk); return lista.length > 1 ? `V${i + 1}·${a.n}` : `${a.n}`; };
     const upd = {};
     pessoas.forEach((p, i) => {
       upd[`viajantes/${own}/${exId}/${vids[i]}`] = {
         nome: p.nome, docTipo: p.rg ? "RG" : "CERTIDAO", docNumero: p.rg || "", telefone: p.whatsapp, idade: R.idadeEm(p.nascimento, ex.dataSaida), colo: p.colo,
         cpf: p.cpf ? R.mascaraCpf(p.cpf) : "", rg: p.rg, nascimento: p.nascimento, email: p.email, endereco: p.endereco,
-        valor: R.reais(p.colo ? valorColoCent : valorCent), formaPagamento: "A combinar", origem: "reserva",
+        valor: R.reais(R.precoDeCent(ex, { colo: p.colo, idade: R.idadeEm(p.nascimento, ex.dataSaida) })), formaPagamento: "A combinar", origem: "reserva",
         responsavel: i === 0 ? null : pessoas[0].nome,
         obs: `Reserva pelo link${p.assento ? ` · poltrona ${rotulo(p.assento)}` : " · colo"}${i ? ` · com ${pessoas[0].nome.split(" ")[0]}` : ""}`.slice(0, 300),
         consentimentoLgpd: true, criadoEm: Date.now()

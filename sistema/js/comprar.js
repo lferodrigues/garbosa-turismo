@@ -1,6 +1,6 @@
 // Página pública de compra: viajantes → poltronas → pagamento no Asaas
-import * as R from "./venda-regras.js?v=14";
-import { aoMudarSessao, telaAcesso, formPerfil, lerPerfil, salvarPerfil, paraPerfil, sair, api as apiConta } from "./conta-viajante.js?v=14";
+import * as R from "./venda-regras.js?v=15";
+import { aoMudarSessao, telaAcesso, formPerfil, lerPerfil, salvarPerfil, paraPerfil, sair, api as apiConta } from "./conta-viajante.js?v=15";
 
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
@@ -49,7 +49,11 @@ async function carregar() {
   $("#cRetorno").textContent = `${R.fData(EX.dataRetorno)}${EX.horaRetorno ? " às " + EX.horaRetorno : ""}`;
   $("#cLocal").textContent = EX.localSaida || "A combinar";
   $("#cValor").textContent = R.brl(EX.valorCent);
-  $("#cColo").textContent = EX.valorColoCent > 0 ? `Criança de colo (até ${R.IDADE_COLO} anos): ${R.brl(EX.valorColoCent)}` : `Criança de colo (até ${R.IDADE_COLO} anos) não paga`;
+  const infCent = EX.valorInfantilCent ?? EX.valorCent;
+  $("#cColo").textContent = [
+    infCent !== EX.valorCent ? `Criança até ${R.IDADE_INFANTIL} anos com poltrona: ${R.brl(infCent)}` : "",
+    EX.valorColoCent > 0 ? `Criança de colo (até ${R.IDADE_COLO} anos): ${R.brl(EX.valorColoCent)}` : `Criança de colo (até ${R.IDADE_COLO} anos) não paga`
+  ].filter(Boolean).join(" · ");
   if (RESERVA) {
     $("#cFormas").innerHTML = `<li><i class="fa-solid fa-couch"></i><span><strong>Escolha sua poltrona agora</strong>sem pagar nada pelo site</span></li>
       <li><i class="fa-brands fa-whatsapp"></i><span><strong>Pagamento combinado</strong>direto com a agência</span></li>`;
@@ -268,9 +272,9 @@ $("#btnAddDep").addEventListener("click", () => {
 
 /* ---------- cupom e valores ---------- */
 function conta() {
-  const pessoas = S.pessoas.map((p) => ({ colo: !ocupaPoltrona(p) }));
+  const pessoas = S.pessoas.map((p) => ({ colo: !ocupaPoltrona(p), infantil: ocupaPoltrona(p) && R.ehInfantil(idade(p)) }));
   const cupom = S.cupom ? { ok: true, valorCent: S.cupom.valorCent, porCompra: S.cupom.porCompra, restam: S.cupom.restam ?? Infinity } : null;
-  return R.calcularItens(pessoas, { valorCent: EX.valorCent, valorColoCent: EX.valorColoCent, cupom });
+  return R.calcularItens(pessoas, { valorCent: EX.valorCent, valorColoCent: EX.valorColoCent, valorInfantilCent: EX.valorInfantilCent ?? EX.valorCent, cupom });
 }
 function tabelaResumo(comPoltrona) {
   const c = conta();
@@ -278,9 +282,9 @@ function tabelaResumo(comPoltrona) {
   const linhas = S.pessoas.map((p, i) => {
     const it = c.itens[i];
     const nome = p.nome.trim() || (p.titular ? "Titular" : `Dependente ${i}`);
-    const tags = [it.colo ? `<em class="cp-tag colo">colo</em>` : "", it.cupom ? `<em class="cp-tag cupom">cupom</em>` : "",
+    const tags = [it.colo ? `<em class="cp-tag colo">colo</em>` : "", it.infantil ? `<em class="cp-tag colo">até ${R.IDADE_INFANTIL} anos</em>` : "", it.cupom ? `<em class="cp-tag cupom">cupom</em>` : "",
       comPoltrona && p.assento ? `<em class="cp-tag polt">poltrona ${veicNome(p.assento.vk)}${p.assento.n}</em>` : ""].join("");
-    return `<div class="cp-linha"><span>${i + 1}. ${esc(nome)} ${tags}</span><strong>${it.cupom ? `<s>${R.brl(EX.valorCent)}</s> ` : ""}${R.brl(it.valorCent)}</strong></div>`;
+    return `<div class="cp-linha"><span>${i + 1}. ${esc(nome)} ${tags}</span><strong>${it.cupom ? `<s>${R.brl(it.infantil ? (EX.valorInfantilCent ?? EX.valorCent) : EX.valorCent)}</s> ` : ""}${R.brl(it.valorCent)}</strong></div>`;
   }).join("");
   const desc = c.descontoCent > 0
     ? `<div class="cp-linha desconto"><span><i class="fa-solid fa-tag"></i> Cupom ${esc(S.cupom.codigo)} (${c.comCupom} pessoa${c.comCupom > 1 ? "s" : ""})</span><strong>− ${R.brl(c.descontoCent)}</strong></div>` : "";
@@ -354,7 +358,7 @@ $("#btnVolta2").addEventListener("click", () => irEtapa(2));
 async function atualizarOcupacao() {
   try {
     const novo = await api(`${API_INFO}?e=${encodeURIComponent(exId)}`);
-    if (novo.ativa) { EX.veiculos = novo.veiculos; EX.valorCent = novo.valorCent; }
+    if (novo.ativa) { EX.veiculos = novo.veiculos; EX.valorCent = novo.valorCent; EX.valorInfantilCent = novo.valorInfantilCent; }
   } catch { /* mantém o que já tinha */ }
   // escolhas que ficaram ocupadas ou de pessoas que agora vão no colo voltam a ficar em aberto
   S.pessoas.forEach((p) => {

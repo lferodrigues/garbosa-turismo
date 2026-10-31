@@ -29,7 +29,24 @@ Todas as páginas exportam **XLSX** e **PDF** (o PDF de poltronas desenha o mapa
 - **Venda online com Asaas** (`comprar.html?e={id}`): veja a seção abaixo.
 
 ## Cálculo do valor por poltrona
-`(valor do transporte + ingressos) ÷ divisor`
+`(valor do transporte + Σ valor unitário de cada item × lotação do veículo) ÷ divisor`
+
+- **Itens por pessoa**: **Ingressos** (fixo) + os produtos criados no botão **Adicionar produto** (nome + valor unitário).
+  Cada item tem o **valor unitário** e o valor **até 5 anos** (em branco = mesmo valor).
+- **Criança até 5 anos completos que ocupa poltrona**: mesmo cálculo usando os valores "até 5 anos" dos itens.
+- **Criança de colo**: não ocupa poltrona e paga só o *Valor para criança de colo*.
+- Excursões antigas (com o "valor total dos ingressos" no veículo) continuam com o mesmo preço até serem editadas;
+  ao editar, o total é convertido para valor unitário (total ÷ lotação).
+- A regra fica em `sistema/js/venda-regras.js` (`custosVeiculo`, `precoDeCent`) e é a mesma no sistema, no link de inscrição,
+  na reserva e na venda online (o servidor recalcula pela idade na data da saída).
+
+## Relatórios da excursão
+Ícone 📄 **Relatórios** na lista de excursões, ou os botões **Custos** e **Quem pagou (Asaas)** no Financeiro. Os dois exportam XLSX e PDF.
+- **Custos e valores**: ônibus/transporte, ingressos e cada produto (unitário, até 5 anos, quantidade e total) por veículo e somados,
+  valor por poltrona, receita prevista, recebido e resultado (receita − custo).
+- **Quem pagou e quem não pagou**: compras online com as parcelas consultadas **na hora no Asaas** (pago, parcial, vencido, aguardando, cancelado,
+  próximo vencimento, cobrança pelo WhatsApp) + os demais viajantes com os pagamentos do Financeiro. Se o Asaas não responder, mostra o que o webhook já gravou.
+  API: `GET /api/relatorio-pagamentos?e={exId}&own={uidAgencia}` com o token do sistema (agência dona, colaborador ou admin).
 
 | Veículo | Divisor |
 |---|---|
@@ -58,7 +75,7 @@ Todas as páginas exportam **XLSX** e **PDF** (o PDF de poltronas desenha o mapa
 usuarios/{uid}                     perfil (nome, empresa, documento, whatsapp, email, tipo, ativo)
 agencias/{uid}                     nome da agência (lista para a transportadora)
 viagens/{id}                       veículos agendados pelas transportadoras
-excursoes/{uidAgencia}/{id}        excursões + veiculos/{vId}
+excursoes/{uidAgencia}/{id}        excursões + veiculos/{vId} + ingresso {valor, valorInfantil} + produtos/{pId} {nome, valor, valorInfantil, ordem}
 viajantes/{uidAgencia}/{exId}/{id} passageiros
 poltronas/{uidAgencia}/{exId}/{vId}/{numero} = idViajante
 logs/{id}                          login, logout, sessão, cadastro e ações do admin
@@ -96,6 +113,7 @@ api/cupom.js              POST confere um cupom
 api/pedido.js             POST fecha a compra (reserva poltronas + cobrança no Asaas)
 api/asaas-webhook.js      POST avisos do Asaas (pago, vencido, estornado)
 api/pedido-cancelar.js    POST agência cancela pedido sem pagamento
+api/relatorio-pagamentos.js GET quem pagou / quem não pagou (parcelas consultadas no Asaas)
 api/_lib/                 Firebase Admin, cliente do Asaas e regras de servidor
 sistema/comprar.html      página pública de compra (+ js/comprar.js)
 sistema/js/venda-regras.js regras compartilhadas (valores, cupom, parcelas, validações)

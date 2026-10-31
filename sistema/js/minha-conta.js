@@ -1,6 +1,6 @@
 // Área do viajante: histórico de viagens, parcelas pagas e em aberto, meus dados
-import * as R from "./venda-regras.js?v=14";
-import { aoMudarSessao, telaAcesso, formPerfil, lerPerfil, salvarPerfil, sair, api, esc } from "./conta-viajante.js?v=14";
+import * as R from "./venda-regras.js?v=15";
+import { aoMudarSessao, telaAcesso, formPerfil, lerPerfil, salvarPerfil, sair, api, esc } from "./conta-viajante.js?v=15";
 
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];

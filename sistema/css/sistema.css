@@ -1012,3 +1012,35 @@ input:-webkit-autofill{-webkit-text-fill-color:#fff;-webkit-box-shadow:0 0 0 40p
 .link-polt>i{color:var(--primary-2);font-size:1.1rem}
 .link-polt span{flex:1;min-width:220px}
 .link-polt a:not(.btn){color:var(--primary);font-weight:700;overflow-wrap:anywhere}
+/* ingressos e produtos da excursão */
+.prod-grid{display:grid;gap:8px;background:#fafaff;border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.prod-head,.prod-row{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr) minmax(0,1fr) 34px;gap:8px;align-items:center}
+.prod-head{font-size:.72rem;font-weight:600;color:#777;text-transform:uppercase;letter-spacing:.02em}
+.prod-row input{margin-top:0!important;padding:8px 10px!important}
+.prod-nome{font-size:.88rem;color:var(--primary)}
+.prod-nome i{margin-right:4px}
+#exProdutos{display:grid;gap:8px}
+#exProdutos:empty{display:none}
+.prod-row .ic{margin:0}
+@media (max-width:560px){
+  .prod-head{display:none}
+  .prod-row{grid-template-columns:1fr 1fr 34px;padding-top:8px;border-top:1px dashed var(--line)}
+  .prod-row>:first-child{grid-column:1/-1}
+  .prod-head+.prod-row{border-top:0;padding-top:0}
+}
+/* relatórios da excursão */
+.rel-tabela{width:100%;border-collapse:collapse;font-size:.86rem;margin:6px 0 4px}
+.rel-tabela th,.rel-tabela td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+.rel-tabela th{font-size:.72rem;text-transform:uppercase;color:#777;font-weight:600;letter-spacing:.02em}
+.rel-tabela td.n,.rel-tabela th.n{text-align:right;white-space:nowrap}
+.rel-tabela tr.tot td{font-weight:700;border-top:2px solid var(--line);color:var(--primary)}
+.rel-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin:4px 0 14px}
+.rel-card{background:#f6f5ff;border-radius:12px;padding:10px 12px;display:grid;gap:2px}
+.rel-card small{font-size:.72rem;color:#666}
+.rel-card strong{font-size:1.1rem;color:var(--primary)}
+.rel-card.ok strong{color:var(--green)}
+.rel-card.ruim strong{color:var(--red)}
+.rel-filtros{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 10px}
+.rel-filtros button{border:1px solid var(--line);background:#fff;border-radius:20px;padding:5px 12px;font-size:.8rem;cursor:pointer}
+.rel-filtros button.on{background:var(--primary);color:#fff;border-color:var(--primary)}
+.rel-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}

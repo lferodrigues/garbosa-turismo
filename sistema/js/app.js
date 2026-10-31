@@ -1,5 +1,6 @@
 import { auth, db, ADMIN_EMAIL, authSecundario } from "./firebase.js?v=8";
 import { baixarXLSX, baixarPDF, baixarPDFPoltronas, carregarXLSX } from "./exportar.js?v=8";
+import * as R from "./venda-regras.js?v=15";
 import {
   onAuthStateChanged, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword,
   sendPasswordResetEmail, updateProfile,
@@ -793,7 +794,11 @@ async function exportar(formato, botao) {
    CÁLCULOS DE EXCURSÃO
 ========================================================= */
 const veiculosDe = (ex) => Object.entries(ex?.veiculos || {}).sort((a, b) => (a[1].ordem || 0) - (b[1].ordem || 0));
-const precoPoltrona = (v) => (num(v.valorTransporte) + num(v.valorIngressos)) / veic(v.tipo).div;
+/** Conta do veículo (transporte, ingressos e produtos × lotação ÷ rateio) — mesma regra da venda online */
+const custosV = (v, ex) => R.custosVeiculo(ex, v);
+const precoPoltrona = (v, ex) => custosV(v, ex).porPoltrona;
+const precoInfantil = (v, ex) => custosV(v, ex).porPoltronaInfantil;
+const arred = (n) => Math.round(n * 100) / 100;
 const capacidadeEx = (ex) => veiculosDe(ex).reduce((s, [, v]) => s + veic(v.tipo).cap, 0);
 const viajantesEx = (exId) => ordenar(S.viajantes[exId], "nome");
 const ocupantes = (exId) => viajantesEx(exId).filter(([, p]) => !p.colo);
@@ -935,8 +940,8 @@ function detalhes(tipo, id) {
       </div>
       <h4 class="sub">Veículos</h4>
       ${veiculosDe(e).map(([, v], i) => `<div class="veic-card"><i class="fa-solid ${veic(v.tipo).icone}"></i>
-        <div><strong>Veículo ${i + 1}: ${esc(veic(v.tipo).nome)}</strong><small>Transporte ${brl(v.valorTransporte)} · Ingressos ${brl(v.valorIngressos)}</small></div>
-        <span class="preco">${brl(precoPoltrona(v))}<small>/poltrona</small></span></div>`).join("")}`,
+        <div><strong>Veículo ${i + 1}: ${esc(veic(v.tipo).nome)}</strong><small>Transporte ${brl(v.valorTransporte)} · Ingressos e produtos ${brl(custosV(v, e).somaItens)}</small></div>
+        <span class="preco">${brl(precoPoltrona(v, e))}<small>/poltrona</small></span></div>`).join("")}`,
       [{ html: "Fechar", acao: fecharModal },
        { html: `<i class="fa-solid fa-users"></i> Viajantes`, acao: () => { fecharModal(); irPara("viajantes", id); } },
        { html: `<i class="fa-solid fa-couch"></i> Poltronas`, classe: "btn-primary", acao: () => { fecharModal(); irPara("poltronas", id); } }]);
@@ -953,7 +958,7 @@ function viewExcursoes() {
   $("#workspace").innerHTML = `
   <section class="panel">
     ${toolbar(ehAdmin() ? "Excursões de todas as agências" : "Excursões", "fa-route", podeAgencia() ? tbBtn("btnNovaEx", "fa-plus", "Cadastrar excursão", "tool-accent") : "")}
-    <div class="regra"><i class="fa-solid fa-calculator"></i> Valor por poltrona = (valor do transporte + ingressos) ÷ poltronas de rateio:
+    <div class="regra"><i class="fa-solid fa-calculator"></i> Valor por poltrona = (transporte + ingressos e produtos × lotação) ÷ poltronas de rateio:
       ${Object.values(VEICULOS).map((v) => `<span>${v.nome.replace(" lugares", "")}: ÷${v.div}</span>`).join("")}</div>
     ${lista.length ? `<div class="table-wrap"><table class="grid">
       <thead><tr>${ehAdmin() ? "<th>Agência</th>" : ""}<th>Destino</th><th>Saída</th><th>Retorno</th><th>Veículos</th><th>Ocupação</th><th>Valor/poltrona</th><th></th></tr></thead>
@@ -966,11 +971,12 @@ function viewExcursoes() {
           <td>${fData(e.dataRetorno)} ${esc(e.horaRetorno || "")}</td>
           <td>${vs.map(([, v]) => esc(veic(v.tipo).nome)).join("<br>")}</td>
           <td><span class="pill ${occ > cap ? "pill-red" : occ === cap ? "pill-yellow" : ""}">${occ}/${cap}</span></td>
-          <td>${vs.map(([, v]) => `<strong class="money">${brl(precoPoltrona(v))}</strong>`).join("<br>")}</td>
+          <td>${vs.map(([, v]) => `<strong class="money">${brl(precoPoltrona(v, e))}</strong>`).join("<br>")}</td>
           <td class="acoes">
             <button class="ic" title="Viajantes" data-a="via" data-id="${id}"><i class="fa-solid fa-users"></i></button>
             <button class="ic" title="Poltronas" data-a="pol" data-id="${id}"><i class="fa-solid fa-couch"></i></button>
             <button class="ic" title="Financeiro" data-a="fin" data-id="${id}"><i class="fa-solid fa-sack-dollar"></i></button>
+            <button class="ic" title="Relatórios: custos e quem pagou (Asaas)" data-a="rel" data-id="${id}"><i class="fa-solid fa-file-invoice-dollar"></i></button>
             <button class="ic" title="Venda online (Asaas): link, cupons e pedidos" data-a="venda" data-id="${id}"><i class="fa-solid fa-cart-shopping"></i></button>
             <button class="ic" title="Link de inscrição" data-a="link" data-id="${id}"><i class="fa-solid fa-link"></i></button>
             <button class="ic" title="Editar" data-a="edit" data-id="${id}"><i class="fa-solid fa-pen"></i></button>
@@ -986,6 +992,7 @@ function viewExcursoes() {
     if (b.dataset.a === "pol") irPara("poltronas", id);
     if (b.dataset.a === "edit") formExcursao(id);
     if (b.dataset.a === "fin") irPara("financeiro", id);
+    if (b.dataset.a === "rel") menuRelatorios(id);
     if (b.dataset.a === "link") mostrarLink(id, own);
     if (b.dataset.a === "venda") painelVenda(id, own);
     if (b.dataset.a === "del") confirmar(`Excluir a excursão <strong>${esc(S.excursoes[id].destino)}</strong> com todos os viajantes, pagamentos e o mapa de poltronas? O link de inscrição também deixa de funcionar.`, async () => {
@@ -1000,9 +1007,9 @@ function viewExcursoes() {
   const linhas = [];
   lista.forEach(([id, e]) => veiculosDe(e).forEach(([, v], i) => linhas.push([
     ...(ehAdmin() ? [nomeAgencia(e._owner)] : []), e.destino, `${fData(e.dataSaida)} ${e.horaSaida || ""}`, `${fData(e.dataRetorno)} ${e.horaRetorno || ""}`,
-    `${i + 1}. ${veic(v.tipo).nome}`, brl(v.valorTransporte), brl(v.valorIngressos), `÷${veic(v.tipo).div}`, brl(precoPoltrona(v)), `${ocupantes(id).length}/${capacidadeEx(e)}`])));
+    `${i + 1}. ${veic(v.tipo).nome}`, brl(v.valorTransporte), brl(custosV(v, e).somaItens), `÷${veic(v.tipo).div}`, brl(precoPoltrona(v, e)), `${ocupantes(id).length}/${capacidadeEx(e)}`])));
   S.exportar = { titulo: "Excursões", sub: `${P.empresa} · ${lista.length} excursão(ões)`,
-    sheets: [{ nome: "Excursões", colunas: [...(ehAdmin() ? ["Agência"] : []), "Destino", "Saída", "Retorno", "Veículo", "Transporte", "Ingressos", "Rateio", "Valor/poltrona", "Ocupação"], linhas }] };
+    sheets: [{ nome: "Excursões", colunas: [...(ehAdmin() ? ["Agência"] : []), "Destino", "Saída", "Retorno", "Veículo", "Transporte", "Ingressos e produtos", "Rateio", "Valor/poltrona", "Ocupação"], linhas }] };
 }
 
 function opcoesViagens(sel, agUid) {
@@ -1025,6 +1032,11 @@ function formExcursao(id = null, viagemId = null) {
   const gerenciaColab = !id || souDono(id);
   const colabs = { ...(e.colaboradores || {}) };
   FOLDER_FORM = e.folder?.caminho ? { ...e.folder } : null;
+  // ingressos por pessoa (excursões antigas guardavam o valor total no veículo: converte para unitário)
+  const capV0 = v0.tipo ? veic(v0.tipo).cap : 0;
+  const ingLegado = !e.ingresso && num(v0.valorIngressos) > 0 && capV0 ? arred(num(v0.valorIngressos) / capV0) : 0;
+  const ingAtual = e.ingresso ? { ...e.ingresso } : ingLegado ? { valor: ingLegado } : {};
+  const prods = R.itensDe({ produtos: e.produtos }).map((x) => ({ id: x.id, nome: x.nome, valor: e.produtos[x.id].valor ?? "", valorInfantil: e.produtos[x.id].valorInfantil ?? "" }));
   abrirModal(id ? "Editar excursão" : "Cadastrar excursão", `
     <form id="fEx" class="form-grid">
       ${ehAdmin() ? `<label class="span2">Agência responsável<select name="owner" id="exOwner" ${id ? "disabled" : ""}>${opcoesAgenciaDona(ownerPadrao)}</select></label>` : ""}
@@ -1039,8 +1051,19 @@ function formExcursao(id = null, viagemId = null) {
       <label class="span2">Vincular a um veículo agendado pela transportadora (opcional)<select name="viagemId" id="exViagem">${opcoesViagens(vinc, ownerPadrao)}</select></label>
       <label>Tipo de veículo<select name="tipo" id="exTipo" required>${opcoesVeiculo(v0.tipo || "onibus46")}</select></label>
       <label>Valor cobrado pela empresa de transporte (R$)<input type="number" step="0.01" min="0" name="valorTransporte" id="exTransp" required value="${esc(v0.valorTransporte)}"></label>
-      <label>Ingressos — valor total (R$, 0 se não houver)<input type="number" step="0.01" min="0" name="valorIngressos" id="exIngr" value="${esc(v0.valorIngressos ?? 0)}"></label>
+      <div class="section-label span2"><i class="fa-solid fa-ticket"></i> Ingressos e produtos (valor por pessoa)</div>
+      <small class="muted span2">Cada valor unitário é multiplicado pela lotação do veículo e entra no rateio, junto com o transporte. Deixe "até 5 anos" em branco quando a criança pagar o mesmo valor.</small>
+      ${ingLegado ? `<div class="alerta span2" style="margin:0"><i class="fa-solid fa-circle-info"></i> Esta excursão tinha o valor total dos ingressos (${brl(v0.valorIngressos)}). Convertemos para ${brl(ingLegado)} por pessoa — confira antes de salvar.</div>` : ""}
+      <div class="prod-grid span2">
+        <div class="prod-head"><span>Item</span><span>Valor unitário (R$)</span><span>Até 5 anos (R$)</span><span></span></div>
+        <div class="prod-row"><strong class="prod-nome"><i class="fa-solid fa-ticket"></i> Ingressos</strong>
+          <input type="number" step="0.01" min="0" name="ingValor" id="exIngr" value="${esc(ingAtual.valor ?? "")}" placeholder="Valor unitário" aria-label="Ingresso: valor unitário">
+          <input type="number" step="0.01" min="0" name="ingInfantil" value="${esc(ingAtual.valorInfantil ?? "")}" placeholder="Até 5 anos: igual" aria-label="Ingresso: valor até 5 anos"><span></span></div>
+        <div id="exProdutos"></div>
+      </div>
+      <div class="span2"><button type="button" class="btn btn-light btn-sm" id="btnAddProd"><i class="fa-solid fa-plus"></i> Adicionar produto</button></div>
       <label>Valor para criança de colo (R$)<input type="number" step="0.01" min="0" name="valorColo" value="${esc(e.valorColo ?? 0)}"></label>
+      <small class="muted" style="align-self:end">Criança de colo não ocupa poltrona e paga só este valor.</small>
       <div class="calc-box span2" id="exCalc"></div>
       <div class="section-label span2"><i class="fa-solid fa-cart-shopping"></i> Venda online (Asaas)</div>
       <label class="check span2"><input type="checkbox" name="vendaAtiva" id="exVendaAtiva" ${e.venda?.ativa || !id ? "checked" : ""}> Vender pela internet com cartão em até 6x, Pix e boleto parcelado</label>
@@ -1064,12 +1087,50 @@ function formExcursao(id = null, viagemId = null) {
     { html: `<i class="fa-solid fa-floppy-disk"></i> Salvar`, classe: "btn-primary", acao: () => salvarExcursao(id, vk, colabs, e.colaboradores || {}) }
   ], true);
   const f = $("#fEx");
-  const calc = () => {
-    const d = lerForm(f), vv = veic(d.tipo);
-    const soma = num(d.valorTransporte) + num(d.valorIngressos);
-    $("#exCalc").innerHTML = `${linha("Transporte + ingressos", brl(soma))}${linha(`Rateio (${vv.nome})`, `÷ ${vv.div}`)}
-      <div class="calc-total"><span>Valor por poltrona</span><strong>${brl(soma / vv.div)}</strong></div>`;
+  const lerProdutos = () => {
+    $$("#exProdutos .prod-row").forEach((row) => {
+      const p = prods.find((x) => x.id === row.dataset.id);
+      if (p) { p.nome = $("[data-f=nome]", row).value.trim(); p.valor = $("[data-f=valor]", row).value; p.valorInfantil = $("[data-f=inf]", row).value; }
+    });
   };
+  const exTemp = () => {
+    const d = lerForm(f);
+    lerProdutos();
+    return {
+      d, ex: { valorColo: num(d.valorColo), ingresso: { valor: d.ingValor === "" ? null : num(d.ingValor), valorInfantil: d.ingInfantil === "" ? null : num(d.ingInfantil) },
+        produtos: Object.fromEntries(prods.map((p, i) => [p.id, { nome: p.nome || "Produto", valor: num(p.valor), valorInfantil: p.valorInfantil === "" ? null : num(p.valorInfantil), ordem: i }])) }
+    };
+  };
+  const calc = () => {
+    const { d, ex } = exTemp();
+    const c = R.custosVeiculo(ex, { tipo: d.tipo, valorTransporte: num(d.valorTransporte) });
+    const linhasItens = c.itens.filter((i) => i.valor || i.valorInfantil).map((i) =>
+      linha(`${esc(i.nome)} <small class="muted">${brl(i.valor)} × ${c.cap}</small>`, brl(i.total))).join("");
+    $("#exCalc").innerHTML = `${linha("Transporte", brl(c.transporte))}${linhasItens}
+      ${linha("<strong>Custo total do veículo</strong>", brl(c.custoTotal))}${linha(`Rateio (${esc(c.nome)})`, `÷ ${c.div}`)}
+      <div class="calc-total"><span>Valor por poltrona</span><strong>${brl(c.porPoltrona)}</strong></div>
+      ${c.porPoltronaInfantil !== c.porPoltrona ? linha("Criança até 5 anos (com poltrona)", brl(c.porPoltronaInfantil)) : ""}
+      ${linha("Criança de colo", brl(ex.valorColo))}`;
+  };
+  const renderProdutos = () => {
+    $("#exProdutos").innerHTML = prods.map((p) => `<div class="prod-row" data-id="${esc(p.id)}">
+      <input data-f="nome" value="${esc(p.nome)}" placeholder="Nome do produto (ex.: almoço)" maxlength="60" aria-label="Nome do produto">
+      <input data-f="valor" type="number" step="0.01" min="0" value="${esc(p.valor)}" placeholder="Valor unitário" aria-label="Valor unitário">
+      <input data-f="inf" type="number" step="0.01" min="0" value="${esc(p.valorInfantil)}" placeholder="Até 5 anos: igual" aria-label="Valor até 5 anos">
+      <button type="button" class="ic danger" data-rmp="${esc(p.id)}" title="Remover produto"><i class="fa-solid fa-trash"></i></button></div>`).join("");
+    $$("[data-rmp]", $("#exProdutos")).forEach((b) => b.addEventListener("click", () => {
+      lerProdutos();
+      prods.splice(prods.findIndex((x) => x.id === b.dataset.rmp), 1);
+      renderProdutos(); calc();
+    }));
+  };
+  $("#btnAddProd").addEventListener("click", () => {
+    lerProdutos();
+    prods.push({ id: "p" + Date.now().toString(36), nome: "", valor: "", valorInfantil: "" });
+    renderProdutos(); calc();
+    $("#exProdutos .prod-row:last-child [data-f=nome]").focus();
+  });
+  FORM_EX_TEMP = () => { const t = exTemp(); return t.ex; };
   const chips = () => {
     $("#colabChips").innerHTML = Object.entries(colabs).map(([uid, c]) => `<span class="chip"><strong>@${esc(c.instagram)}</strong><small>${esc(c.nome)} · ${esc(c.empresa || "")}</small>
       ${gerenciaColab ? `<button type="button" data-rm="${uid}" title="Remover">×</button>` : ""}</span>`).join("") || `<small class="muted">Nenhum colaborador.</small>`;
@@ -1105,7 +1166,7 @@ function formExcursao(id = null, viagemId = null) {
     $("#colabInsta").addEventListener("keydown", (ev) => { if (ev.key === "Enter") { ev.preventDefault(); addColab(); } });
   }
   if (viagemId) aplicarViagem();
-  calc(); chips();
+  renderProdutos(); calc(); chips();
   caixaFolder($("#exFolderBox"), () => FOLDER_FORM, (f) => { FOLDER_FORM = f; if (f && !$("#exPublicar").checked) $("#exPublicar").checked = true; }, () => f.elements.destino.value);
   f.addEventListener("submit", (ev) => { ev.preventDefault(); salvarExcursao(id, vk, colabs, e.colaboradores || {}); });
 }
@@ -1118,8 +1179,12 @@ async function salvarExcursao(id, vk, colabs = {}, colabsAntes = {}) {
   if (d.vendaAtiva && !d.primeiraParcela) return toast("Escolha a data de início do parcelamento da venda online.", "erro");
   if (d.vendaAtiva && d.primeiraParcela >= d.dataSaida) return toast("O início do parcelamento precisa ser antes da data de saída.", "erro");
   if (d.publicarSite && !FOLDER_FORM) return toast("Adicione o folder para mostrar a excursão no catálogo do site.", "erro");
-  const veiculo = { tipo: d.tipo, valorTransporte: num(d.valorTransporte), valorIngressos: num(d.valorIngressos), viagemId: d.viagemId || null };
-  const info = { destino: d.destino, dataSaida: d.dataSaida, horaSaida: d.horaSaida, dataRetorno: d.dataRetorno || d.dataSaida, horaRetorno: d.horaRetorno, localSaida: d.localSaida, valorColo: num(d.valorColo),
+  const precos = FORM_EX_TEMP ? FORM_EX_TEMP() : {};
+  if ($$("#exProdutos [data-f=nome]").some((el) => !el.value.trim())) return toast("Dê um nome para cada produto (ou remova a linha vazia).", "erro");
+  const capNovo = veic(d.tipo).cap;
+  const veiculo = { tipo: d.tipo, valorTransporte: num(d.valorTransporte), valorIngressos: arred(num(precos.ingresso?.valor) * capNovo), viagemId: d.viagemId || null };
+  const ing = precos.ingresso && (precos.ingresso.valor !== null || precos.ingresso.valorInfantil !== null) ? precos.ingresso : null;
+  const info = { ingresso: ing, produtos: Object.keys(precos.produtos || {}).length ? precos.produtos : null, destino: d.destino, dataSaida: d.dataSaida, horaSaida: d.horaSaida, dataRetorno: d.dataRetorno || d.dataSaida, horaRetorno: d.horaRetorno, localSaida: d.localSaida, valorColo: num(d.valorColo),
     descricao: d.descricao || null, folder: FOLDER_FORM || null, publicarSite: !!d.publicarSite, venda: { ativa: !!d.vendaAtiva, primeiraParcela: d.primeiraParcela || null, maxParcelas: Math.min(6, Math.max(1, parseInt(d.maxParcelas, 10) || 1)) } };
   const podeColab = !id || souDono(id);
   try {
@@ -1171,7 +1236,7 @@ async function publicarInscricao(exId, own = dono(exId)) {
   const pub = {
     owner: own, agencia: nomeAgencia(own), destino: e.destino, dataSaida: e.dataSaida, horaSaida: e.horaSaida || "",
     dataRetorno: e.dataRetorno || e.dataSaida, horaRetorno: e.horaRetorno || "", localSaida: e.localSaida || "",
-    valor: Math.round(precoPoltrona(v0) * 100) / 100, valorColo: num(e.valorColo), ativa: e.linkAtivo !== false,
+    valor: arred(precoPoltrona(v0, e)), valorInfantil: arred(precoInfantil(v0, e)), valorColo: num(e.valorColo), ativa: e.linkAtivo !== false,
     notificar: notificar_, atualizadoEm: Date.now()
   };
   await set(ref(db, `inscricoes/${exId}`), pub);
@@ -1183,7 +1248,7 @@ function mostrarLink(exId, own = dono(exId), recemCriada = false, pub = null) {
   const e = doEstado || pub || {};
   const url = urlInscricao(exId);
   const v0 = veiculosDe(doEstado)[0]?.[1];
-  const valor = v0 ? precoPoltrona(v0) : num(pub?.valor);
+  const valor = v0 ? precoPoltrona(v0, doEstado) : num(pub?.valor);
   const ativo = doEstado ? doEstado.linkAtivo !== false : pub?.ativa !== false;
   const texto = `Inscrição para a excursão *${e.destino || ""}*\n📅 Saída: ${fData(e.dataSaida)}${e.horaSaida ? " às " + e.horaSaida : ""}\n📍 Local: ${e.localSaida || "a combinar"}\n💰 Valor: ${brl(valor)}\n\nFaça seu cadastro: ${url}`;
   abrirModal(recemCriada ? "Excursão cadastrada! Links para os viajantes" : "Links de inscrição e reserva", `
@@ -1250,7 +1315,7 @@ async function painelVenda(exId, own = dono(exId), recemCriada = false, exDados 
   if (!e) return;
   const v = e.venda || {}, ativa = v.ativa === true, url = urlVenda(exId);
   const v0 = veiculosDe(e)[0]?.[1];
-  const valor = v0 ? Math.round(precoPoltrona(v0) * 100) / 100 : 0;
+  const valor = v0 ? arred(precoPoltrona(v0, e)) : 0;
   const max = parseInt(v.maxParcelas, 10) || 1;
   let usos = {}, pedidos = {};
   try {
@@ -1366,7 +1431,7 @@ function formCupom(exId, own, codigo = null) {
   const e = S.excursoes[exId] || {};
   const c = codigo ? e.cupons?.[codigo] || {} : { porCompra: 5, ativo: true };
   const v0 = veiculosDe(e)[0]?.[1];
-  const cheio = v0 ? Math.round(precoPoltrona(v0) * 100) / 100 : 0;
+  const cheio = v0 ? arred(precoPoltrona(v0, e)) : 0;
   abrirModal(codigo ? `Editar cupom ${codigo}` : "Novo cupom de promoção", `
     <form id="fCupom" class="form-grid">
       <label>Código do cupom<input name="codigo" required maxlength="30" value="${esc(codigo || "")}" ${codigo ? "readonly" : ""} placeholder="Ex.: AMIGOS10" style="text-transform:uppercase"></label>
@@ -1410,6 +1475,7 @@ function formCupom(exId, own, codigo = null) {
    FOLDER (imagem enviada ao GitHub) E CATÁLOGO DO SITE
 ========================================================= */
 let FOLDER_FORM = null;
+let FORM_EX_TEMP = null;   // lê ingressos/produtos do formulário de excursão aberto
 const srcImg = (o) => (o?.caminho || o?.imagem ? `../${o.caminho || o.imagem}` : "");
 const rawImg = (o) => o?.raw || o?.imagemRaw || "";
 const imgTag = (o, cls = "") => `<img class="${cls}" src="${esc(srcImg(o))}" alt="" loading="lazy" onerror="if(this.dataset.r!=='1'&&'${esc(rawImg(o))}'){this.dataset.r='1';this.src='${esc(rawImg(o))}'}">`;
@@ -1614,13 +1680,14 @@ function formSite(id = null) {
 function formVeiculoExtra(exId) {
   const ex = S.excursoes[exId], own = dono(exId);
   const faltam = ocupantes(exId).length - capacidadeEx(ex);
+  const porPessoa = !!ex.ingresso || !!Object.keys(ex.produtos || {}).length;   // ingressos/produtos por pessoa × lotação
   abrirModal("Inserir mais um veículo", `
     ${faltam > 0 ? `<div class="alerta" style="margin:0 0 14px"><i class="fa-solid fa-triangle-exclamation"></i> Faltam <strong>${faltam}</strong> lugares para acomodar todos os viajantes.</div>` : ""}
     <form id="fVx" class="form-grid">
       <label class="span2">Vincular a um veículo agendado (opcional)<select name="viagemId" id="vxViagem">${opcoesViagens("", own)}</select></label>
       <label>Tipo de veículo<select name="tipo" id="vxTipo">${opcoesVeiculo(faltam > 0 && faltam <= 15 ? "van15" : "onibus46")}</select></label>
       <label>Valor do transporte (R$)<input type="number" step="0.01" min="0" name="valorTransporte" id="vxTransp" required></label>
-      <label class="span2">Ingressos — valor total (R$)<input type="number" step="0.01" min="0" name="valorIngressos" value="0"></label>
+      ${porPessoa ? "" : `<label class="span2">Ingressos — valor total (R$)<input type="number" step="0.01" min="0" name="valorIngressos" value="0"></label>`}
       <div class="calc-box span2" id="vxCalc"></div>
     </form>`, [
     { html: "Cancelar", acao: fecharModal },
@@ -1629,7 +1696,7 @@ function formVeiculoExtra(exId) {
       if (!f.reportValidity()) return;
       const d = lerForm(f), k = "v" + Date.now();
       try {
-        await set(ref(db, `excursoes/${own}/${exId}/veiculos/${k}`), { tipo: d.tipo, valorTransporte: num(d.valorTransporte), valorIngressos: num(d.valorIngressos), viagemId: d.viagemId || null, ordem: veiculosDe(ex).length });
+        await set(ref(db, `excursoes/${own}/${exId}/veiculos/${k}`), { tipo: d.tipo, valorTransporte: num(d.valorTransporte), valorIngressos: porPessoa ? arred(num(ex.ingresso?.valor) * veic(d.tipo).cap) : num(d.valorIngressos), viagemId: d.viagemId || null, ordem: veiculosDe(ex).length });
         S.veicSel = k;
         publicarInscricao(exId, own).catch(() => {});
         fecharModal();
@@ -1638,7 +1705,11 @@ function formVeiculoExtra(exId) {
     } }
   ]);
   const f = $("#fVx");
-  const calc = () => { const d = lerForm(f), vv = veic(d.tipo); $("#vxCalc").innerHTML = `<div class="calc-total"><span>Valor por poltrona (÷${vv.div})</span><strong>${brl((num(d.valorTransporte) + num(d.valorIngressos)) / vv.div)}</strong></div>`; };
+  const calc = () => {
+    const d = lerForm(f), c = custosV({ tipo: d.tipo, valorTransporte: num(d.valorTransporte), valorIngressos: num(d.valorIngressos) }, ex);
+    $("#vxCalc").innerHTML = `${porPessoa ? c.itens.filter((i) => i.valor).map((i) => linha(`${esc(i.nome)} <small class="muted">${brl(i.valor)} × ${c.cap}</small>`, brl(i.total))).join("") : ""}
+      <div class="calc-total"><span>Valor por poltrona (÷${c.div})</span><strong>${brl(c.porPoltrona)}</strong></div>`;
+  };
   f.addEventListener("input", calc);
   $("#vxViagem").addEventListener("change", () => { const vg = S.viagens[$("#vxViagem").value]; if (vg) { $("#vxTipo").value = vg.tipoVeiculo; $("#vxTransp").value = vg.valorFinal; calc(); } });
   calc();
@@ -1758,13 +1829,15 @@ function formViajante(exId, pid = null) {
       <label>Telefone<input name="telefone" data-mask="tel" inputmode="tel" required value="${esc(p.telefone)}" placeholder="(32) 99999-9999"></label>
       <label>Idade<input type="number" min="0" max="120" name="idade" id="pIdade" value="${esc(p.idade)}"></label>
       <label class="check span2"><input type="checkbox" name="colo" id="pColo" ${p.colo ? "checked" : ""}> Criança de colo (não ocupa poltrona)</label>
-      <label>Valor a pagar (R$)<input type="number" step="0.01" min="0" name="valor" id="pValor" value="${esc(p.valor ?? valorPadrao(exId, !!p.colo))}"></label>
+      <label>Valor a pagar (R$)<input type="number" step="0.01" min="0" name="valor" id="pValor" value="${esc(p.valor ?? valorPadrao(exId, !!p.colo, p.idade))}"></label>
       <label>Forma de pagamento<select name="formaPagamento"><option value="">—</option>${FORMAS.concat(p.formaPagamento && !FORMAS.includes(p.formaPagamento) ? [p.formaPagamento] : []).map((x) => `<option ${x === p.formaPagamento ? "selected" : ""}>${esc(x)}</option>`).join("")}</select></label>
       <label class="span2">Observação<input name="obs" value="${esc(p.obs)}" placeholder="Ex.: guia, poltrona preferida..."></label>
     </form>`, botoes);
   let valorMexido = !!pid;
   $("#pValor").addEventListener("input", () => { valorMexido = true; });
-  $("#pColo").addEventListener("change", () => { if (!valorMexido) $("#pValor").value = valorPadrao(exId, $("#pColo").checked); });
+  const recalc = () => { if (!valorMexido) $("#pValor").value = valorPadrao(exId, $("#pColo").checked, $("#pIdade").value); };
+  $("#pColo").addEventListener("change", recalc);
+  $("#pIdade").addEventListener("input", recalc);
   const sug = () => { if (!pid && $("#pIdade").value !== "" && num($("#pIdade").value) <= 5 && $("#pDoc").value === "CERTIDAO") { $("#pColo").checked = true; if (!valorMexido) $("#pValor").value = valorPadrao(exId, true); } };
   $("#pIdade").addEventListener("change", sug);
   $("#pDoc").addEventListener("change", sug);
@@ -2276,14 +2349,238 @@ function navegadorCurto(ua = "") {
 }
 
 /* =========================================================
+   RELATÓRIOS DA EXCURSÃO
+   - Custos: transporte, ingressos e produtos de cada veículo × receita dos viajantes
+   - Pagamentos: quem pagou e quem não pagou (compras online consultadas no Asaas)
+========================================================= */
+function menuRelatorios(exId) {
+  const e = S.excursoes[exId];
+  if (!e) return;
+  abrirModal(`Relatórios · ${e.destino}`, `
+    <div class="rel-menu">
+      <button class="prox" data-rel="custos"><span><strong><i class="fa-solid fa-file-invoice-dollar"></i> Custos e valores</strong><small>Ônibus, ingressos e outros produtos de cada veículo, valor por poltrona e o resultado da excursão.</small></span></button>
+      <button class="prox" data-rel="pag"><span><strong><i class="fa-solid fa-money-check-dollar"></i> Quem pagou e quem não pagou</strong><small>Compras online consultadas na hora no Asaas + pagamentos registrados no Financeiro.</small></span></button>
+    </div>`, [{ html: "Fechar", acao: fecharModal }]);
+  $$("[data-rel]", $("#modalBody")).forEach((b) => b.addEventListener("click", () => (b.dataset.rel === "custos" ? relatorioCustos(exId) : relatorioPagamentos(exId))));
+}
+
+/** Monta os números do relatório de custos (em reais) */
+function dadosCustos(exId) {
+  const e = S.excursoes[exId];
+  const veics = veiculosDe(e).map(([vk, v], i) => ({ vk, i, ...custosV(v, e) }));
+  const custoTotal = veics.reduce((s, v) => s + v.custoTotal, 0);
+  const transporte = veics.reduce((s, v) => s + v.transporte, 0);
+  // itens somados de todos os veículos, na ordem em que aparecem
+  const itens = [];
+  veics.forEach((v) => v.itens.forEach((it) => {
+    const k = it.legado ? "ingresso-legado" : it.id;
+    let x = itens.find((y) => y.k === k);
+    if (!x) itens.push(x = { k, nome: it.nome, valor: it.valor, valorInfantil: it.valorInfantil, qtd: 0, total: 0 });
+    x.qtd += it.qtd; x.total += it.total;
+  }));
+  const vs = viajantesEx(exId).map(([, p]) => p);
+  const previsto = vs.reduce((s, p) => s + num(p.valor), 0);
+  const recebido = vs.reduce((s, p) => s + pagoDe(p), 0);
+  const colo = vs.filter((p) => p.colo).length;
+  const infantil = vs.filter((p) => !p.colo && R.ehInfantil(p.idade)).length;
+  return { e, veics, itens, transporte, custoTotal, previsto, recebido, qtd: vs.length, colo, infantil,
+    adultos: vs.length - colo - infantil, cap: capacidadeEx(e) };
+}
+
+function relatorioCustos(exId) {
+  const r = dadosCustos(exId), e = r.e;
+  const tabelaVeic = (v) => `
+    <h4 class="sub">Veículo ${v.i + 1}: ${esc(v.nome)}</h4>
+    <div class="rel-scroll"><table class="rel-tabela">
+      <thead><tr><th>Item</th><th class="n">Unitário</th><th class="n">Até 5 anos</th><th class="n">Qtd</th><th class="n">Total</th></tr></thead>
+      <tbody>
+        <tr><td><i class="fa-solid fa-bus"></i> Transporte (ônibus)</td><td class="n">—</td><td class="n">—</td><td class="n">1</td><td class="n">${brl(v.transporte)}</td></tr>
+        ${v.itens.map((it) => `<tr><td>${esc(it.nome)}</td><td class="n">${brl(it.valor)}</td><td class="n">${brl(it.valorInfantil)}</td><td class="n">${it.qtd}</td><td class="n">${brl(it.total)}</td></tr>`).join("")}
+        <tr class="tot"><td colspan="4">Custo total do veículo</td><td class="n">${brl(v.custoTotal)}</td></tr>
+        <tr><td colspan="4">Rateio (poltronas que pagam)</td><td class="n">÷ ${v.div}</td></tr>
+        <tr class="tot"><td colspan="4">Valor por poltrona</td><td class="n">${brl(v.porPoltrona)}</td></tr>
+        ${v.porPoltronaInfantil !== v.porPoltrona ? `<tr><td colspan="4">Criança até 5 anos (com poltrona)</td><td class="n">${brl(v.porPoltronaInfantil)}</td></tr>` : ""}
+      </tbody></table></div>`;
+  const resultado = r.previsto - r.custoTotal;
+  abrirModal(`Custos e valores · ${e.destino}`, `
+    <div class="rel-cards">
+      <div class="rel-card"><small>Custo total</small><strong>${brl(r.custoTotal)}</strong></div>
+      <div class="rel-card"><small>Receita prevista (${r.qtd} viajantes)</small><strong>${brl(r.previsto)}</strong></div>
+      <div class="rel-card ok"><small>Já recebido</small><strong>${brl(r.recebido)}</strong></div>
+      <div class="rel-card ${resultado >= 0 ? "ok" : "ruim"}"><small>Resultado previsto</small><strong>${brl(resultado)}</strong></div>
+    </div>
+    <div class="rel-scroll"><table class="rel-tabela">
+      <thead><tr><th>Resumo de custos</th><th class="n">Unitário</th><th class="n">Até 5 anos</th><th class="n">Qtd</th><th class="n">Total</th></tr></thead>
+      <tbody>
+        <tr><td><i class="fa-solid fa-bus"></i> Ônibus / transporte</td><td class="n">—</td><td class="n">—</td><td class="n">${r.veics.length}</td><td class="n">${brl(r.transporte)}</td></tr>
+        ${r.itens.map((it) => `<tr><td>${esc(it.nome)}</td><td class="n">${brl(it.valor)}</td><td class="n">${brl(it.valorInfantil)}</td><td class="n">${it.qtd}</td><td class="n">${brl(it.total)}</td></tr>`).join("")}
+        <tr class="tot"><td colspan="4">Total</td><td class="n">${brl(r.custoTotal)}</td></tr>
+      </tbody></table></div>
+    <div class="dl" style="margin-top:8px">
+      ${linha("Viajantes", `${r.adultos} com valor cheio · ${r.infantil} até 5 anos · ${r.colo} de colo · ${r.cap} lugares`)}
+      ${linha("Criança de colo", brl(e.valorColo))}
+    </div>
+    ${r.veics.map(tabelaVeic).join("")}`, [
+    { html: "Fechar", acao: fecharModal },
+    { html: `<i class="fa-solid fa-file-excel"></i> XLSX`, acao: (ev) => exportarRelatorio("xlsx", ev.currentTarget, folhasCustos(exId)) },
+    { html: `<i class="fa-solid fa-file-pdf"></i> PDF`, classe: "btn-primary", acao: (ev) => exportarRelatorio("pdf", ev.currentTarget, folhasCustos(exId)) }
+  ], true);
+}
+
+function folhasCustos(exId) {
+  const r = dadosCustos(exId), e = r.e;
+  const linhasItens = [["Ônibus / transporte", "", "", r.veics.length, brl(r.transporte)],
+    ...r.itens.map((it) => [it.nome, brl(it.valor), brl(it.valorInfantil), it.qtd, brl(it.total)]), ["TOTAL", "", "", "", brl(r.custoTotal)]];
+  const linhasVeic = [];
+  r.veics.forEach((v) => {
+    const nome = `${v.i + 1}. ${v.nome}`;
+    linhasVeic.push([nome, "Transporte (ônibus)", "", "", 1, brl(v.transporte)]);
+    v.itens.forEach((it) => linhasVeic.push([nome, it.nome, brl(it.valor), brl(it.valorInfantil), it.qtd, brl(it.total)]));
+    linhasVeic.push([nome, "Custo total", "", "", "", brl(v.custoTotal)]);
+    linhasVeic.push([nome, `Valor por poltrona (÷${v.div})`, "", "", "", brl(v.porPoltrona)]);
+    if (v.porPoltronaInfantil !== v.porPoltrona) linhasVeic.push([nome, "Criança até 5 anos (com poltrona)", "", "", "", brl(v.porPoltronaInfantil)]);
+  });
+  return {
+    titulo: `Custos ${e.destino} ${fData(e.dataSaida)}`, sub: `${nomeAgencia(e._owner)} · custos, valores e resultado`,
+    sheets: [
+      { nome: "Resumo", colunas: ["Item", "Valor unitário", "Até 5 anos", "Quantidade", "Total"], linhas: linhasItens },
+      { nome: "Por veículo", colunas: ["Veículo", "Item", "Valor unitário", "Até 5 anos", "Quantidade", "Total"], linhas: linhasVeic },
+      { nome: "Resultado", colunas: ["Descrição", "Valor"], linhas: [
+        ["Custo total", brl(r.custoTotal)], [`Receita prevista (${r.qtd} viajantes)`, brl(r.previsto)], ["Já recebido", brl(r.recebido)],
+        ["A receber", brl(Math.max(0, r.previsto - r.recebido))], ["Resultado previsto (receita − custo)", brl(r.previsto - r.custoTotal)],
+        ["Viajantes com valor cheio", String(r.adultos)], ["Crianças até 5 anos com poltrona", String(r.infantil)], ["Crianças de colo", String(r.colo)],
+        ["Valor para criança de colo", brl(e.valorColo)]] }
+    ]
+  };
+}
+
+async function exportarRelatorio(formato, botao, rel) {
+  if (!rel) return;
+  botao.disabled = true;
+  const original = botao.innerHTML;
+  botao.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Gerando`;
+  try {
+    if (formato === "xlsx") await baixarXLSX(rel.titulo, rel.sheets);
+    else await baixarPDF(rel.titulo, rel.sub, rel.sheets);
+  } catch (e) { falha(e); }
+  botao.disabled = false;
+  botao.innerHTML = original;
+}
+
+const SIT_PAG = {
+  pago: ["Pago", "pill-green"], parcial: ["Parcial", "pill-yellow"], aguardando: ["Não pagou", "pill-red"], vencido: ["Vencido", "pill-red"],
+  cancelado: ["Cancelado", ""], estornado: ["Estornado", ""], isento: ["Sem valor", ""]
+};
+const pillSit = (s) => `<span class="pill ${SIT_PAG[s]?.[1] || ""}">${SIT_PAG[s]?.[0] || esc(s)}</span>`;
+
+async function relatorioPagamentos(exId, filtro = "") {
+  const e = S.excursoes[exId];
+  if (!e) return;
+  abrirModal(`Quem pagou · ${e.destino}`, `<div class="empty"><i class="fa-solid fa-spinner fa-spin"></i><p>Consultando o Asaas…</p></div>`, [{ html: "Fechar", acao: fecharModal }], true);
+  let r;
+  try {
+    const resp = await fetch(`/api/relatorio-pagamentos?e=${encodeURIComponent(exId)}&own=${encodeURIComponent(dono(exId))}`,
+      { headers: { Authorization: `Bearer ${await auth.currentUser.getIdToken()}` } });
+    r = await resp.json().catch(() => ({}));
+    if (!resp.ok) throw new Error(r.erro || `Erro ${resp.status} ao consultar os pagamentos.`);
+  } catch (err) {
+    $("#modalBody").innerHTML = `<div class="alerta"><i class="fa-solid fa-triangle-exclamation"></i> ${esc(err.message)}</div>`;
+    return;
+  }
+  REL_PAG = { exId, r };
+  desenharPagamentos(filtro);
+}
+let REL_PAG = null;
+
+function desenharPagamentos(filtro = "") {
+  const { exId, r } = REL_PAG, e = S.excursoes[exId] || r.excursao;
+  const passa = (s) => !filtro || s === filtro;
+  const online = r.online.filter((o) => passa(o.situacao));
+  const outros = r.outros.filter((o) => passa(o.situacao));
+  const conta = (s) => r.online.filter((o) => o.situacao === s).length + r.outros.filter((o) => o.situacao === s).length;
+  const t = r.totais;
+  const zap = (tel, nome, valorC) => {
+    const d = soDig(tel);
+    return d.length >= 10 && valorC > 0 ? `<a class="ic" style="display:inline-grid;place-items:center;color:#1d9a55" title="Cobrar no WhatsApp" target="_blank" rel="noopener"
+      href="https://wa.me/55${d}?text=${encodeURIComponent(`Olá, ${String(nome).split(" ")[0]}! Passando para lembrar do valor em aberto de ${brlC(valorC)} da excursão ${e.destino} (${fData(e.dataSaida)}). Qualquer dúvida estou à disposição.`)}"><i class="fa-brands fa-whatsapp"></i></a>` : "";
+  };
+  $("#modalBody").innerHTML = `
+    ${r.falhasAsaas ? `<div class="alerta" style="margin:0 0 10px"><i class="fa-solid fa-triangle-exclamation"></i> O Asaas não respondeu para ${r.falhasAsaas} compra(s); para elas aparece o que o sistema recebeu pelo webhook.</div>` : ""}
+    <div class="rel-cards">
+      <div class="rel-card ok"><small>Recebido no Asaas</small><strong>${brlC(t.online.pagoCent)}</strong></div>
+      <div class="rel-card"><small>Em aberto no Asaas</small><strong>${brlC(t.online.abertoCent)}</strong></div>
+      <div class="rel-card ruim"><small>Vencido no Asaas</small><strong>${brlC(t.online.vencidoCent)}</strong></div>
+      <div class="rel-card"><small>Fora do Asaas: recebido / a receber</small><strong>${brlC(t.outros.pagoCent)}</strong><small>a receber ${brlC(t.outros.abertoCent)}</small></div>
+    </div>
+    <div class="rel-filtros">${[["", "Todos"], ["pago", `Pagos (${conta("pago")})`], ["parcial", `Parciais (${conta("parcial")})`], ["aguardando", `Não pagaram nada (${conta("aguardando")})`], ["vencido", `Vencidos (${conta("vencido")})`], ["cancelado", `Cancelados (${conta("cancelado")})`]]
+      .map(([k, n]) => `<button type="button" data-filtro="${k}" class="${k === filtro ? "on" : ""}">${n}</button>`).join("")}</div>
+    <h4 class="sub"><i class="fa-solid fa-cart-shopping"></i> Compras online (Asaas) · ${online.length}</h4>
+    ${online.length ? `<div class="rel-scroll"><table class="rel-tabela">
+      <thead><tr><th>Comprador / viajantes</th><th>Forma</th><th class="n">Total</th><th class="n">Pago</th><th class="n">Em aberto</th><th>Situação</th><th>Próx. venc.</th><th></th></tr></thead>
+      <tbody>${online.map((o) => `<tr>
+        <td><strong>${esc(o.titular.nome)}</strong> <small class="muted">#${esc(o.codigo)}</small><br><small class="muted">${o.viajantes.map((v) => esc(v.nome)).join(", ")}</small></td>
+        <td>${esc(o.formaTxt)}${o.fonte === "sistema" ? `<br><small class="muted" title="Dados do sistema (Asaas sem resposta ou pedido encerrado)">sistema</small>` : ""}</td>
+        <td class="n">${brlC(o.totalCent)}</td><td class="n">${brlC(o.pagoCent)}</td><td class="n">${brlC(o.abertoCent)}</td>
+        <td>${pillSit(o.situacao)}<br><small class="muted">${o.parcelas.filter((x) => x.situacao === "paga").length}/${o.parcelas.length} parcela(s)</small></td>
+        <td>${o.proxima ? fData(o.proxima.vencimento) : "—"}</td>
+        <td>${o.situacao === "cancelado" ? "" : zap(o.titular.whatsapp, o.titular.nome, o.abertoCent)}</td></tr>`).join("")}</tbody></table></div>`
+    : `<p class="muted">Nenhuma compra online${filtro ? " nesta situação" : ""}.</p>`}
+    <h4 class="sub"><i class="fa-solid fa-users"></i> Outros viajantes (Financeiro do sistema) · ${outros.length}</h4>
+    ${outros.length ? `<div class="rel-scroll"><table class="rel-tabela">
+      <thead><tr><th>Viajante</th><th>Forma</th><th class="n">Valor</th><th class="n">Pago</th><th class="n">Em aberto</th><th>Situação</th><th></th></tr></thead>
+      <tbody>${outros.map((o) => `<tr>
+        <td><strong>${esc(o.nome)}</strong>${o.colo ? ` <span class="pill pill-yellow">colo</span>` : ""}</td>
+        <td>${esc(o.formaPagamento || "—")}</td><td class="n">${brlC(o.valorCent)}</td><td class="n">${brlC(o.pagoCent)}</td><td class="n">${brlC(o.abertoCent)}</td>
+        <td>${pillSit(o.situacao)}</td><td>${zap(o.telefone, o.nome, o.abertoCent)}</td></tr>`).join("")}</tbody></table></div>`
+    : `<p class="muted">Nenhum viajante${filtro ? " nesta situação" : ""}.</p>`}
+    <small class="muted">Consultado em ${fDataHora(r.geradoEm)}.</small>`;
+  $$("[data-filtro]", $("#modalBody")).forEach((b) => b.addEventListener("click", () => desenharPagamentos(b.dataset.filtro)));
+  const foot = $("#modalFoot");
+  foot.innerHTML = "";
+  [{ html: "Fechar", acao: fecharModal },
+   { html: `<i class="fa-solid fa-rotate"></i> Atualizar`, acao: () => relatorioPagamentos(exId, filtro) },
+   { html: `<i class="fa-solid fa-file-excel"></i> XLSX`, acao: (ev) => exportarRelatorio("xlsx", ev.currentTarget, folhasPagamentos(filtro)) },
+   { html: `<i class="fa-solid fa-file-pdf"></i> PDF`, classe: "btn-primary", acao: (ev) => exportarRelatorio("pdf", ev.currentTarget, folhasPagamentos(filtro)) }
+  ].forEach((b) => { const el = document.createElement("button"); el.className = "btn " + (b.classe || "btn-light"); el.innerHTML = b.html; el.addEventListener("click", b.acao); foot.appendChild(el); });
+}
+
+function folhasPagamentos(filtro = "") {
+  const { exId, r } = REL_PAG, e = S.excursoes[exId] || r.excursao;
+  const passa = (s) => !filtro || s === filtro;
+  const sit = (s) => SIT_PAG[s]?.[0] || s;
+  const linhas = [];
+  r.online.filter((o) => passa(o.situacao)).forEach((o) => o.viajantes.forEach((v, i) => linhas.push([
+    v.nome, i === 0 ? "Titular" : `Dependente de ${o.titular.nome.split(" ")[0]}`, "Asaas (online)", `#${o.codigo}`, o.formaTxt,
+    brlC(v.valorCent), i === 0 ? brlC(o.totalCent) : "", i === 0 ? brlC(o.pagoCent) : "", i === 0 ? brlC(o.abertoCent) : "",
+    sit(o.situacao), o.proxima ? fData(o.proxima.vencimento) : "", i === 0 ? o.titular.whatsapp : ""])));
+  r.outros.filter((o) => passa(o.situacao)).forEach((o) => linhas.push([
+    o.nome, "", "Sistema", "", o.formaPagamento || "", brlC(o.valorCent), brlC(o.valorCent), brlC(o.pagoCent), brlC(o.abertoCent), sit(o.situacao), "", o.telefone]));
+  const parcelas = [];
+  r.online.filter((o) => passa(o.situacao)).forEach((o) => o.parcelas.forEach((x) => parcelas.push([
+    o.titular.nome, `#${o.codigo}`, `${x.numero}/${o.parcelas.length}`, x.forma, brlC(x.valorCent), fData(x.vencimento),
+    { paga: "Paga", aberta: "Em aberto", vencida: "Vencida", estornada: "Estornada", cancelada: "Cancelada" }[x.situacao] || x.situacao, x.pagaEm ? fData(x.pagaEm) : ""])));
+  const t = r.totais;
+  return {
+    titulo: `Pagamentos ${e.destino} ${fData(e.dataSaida)}`, sub: `Asaas consultado em ${fDataHora(r.geradoEm)}${filtro ? ` · filtro: ${sit(filtro)}` : ""}`,
+    sheets: [
+      { nome: "Quem pagou", colunas: ["Viajante", "Compra", "Origem", "Pedido", "Forma", "Valor do viajante", "Total da compra", "Pago", "Em aberto", "Situação", "Próx. vencimento", "WhatsApp"], linhas },
+      { nome: "Parcelas Asaas", colunas: ["Comprador", "Pedido", "Parcela", "Forma", "Valor", "Vencimento", "Situação", "Paga em"], linhas: parcelas },
+      { nome: "Totais", colunas: ["Descrição", "Valor"], linhas: [
+        ["Asaas — compras ativas", String(t.online.pedidos)], ["Asaas — total vendido", brlC(t.online.totalCent)], ["Asaas — recebido", brlC(t.online.pagoCent)],
+        ["Asaas — em aberto", brlC(t.online.abertoCent)], ["Asaas — vencido", brlC(t.online.vencidoCent)],
+        ["Sistema — viajantes", String(t.outros.viajantes)], ["Sistema — previsto", brlC(t.outros.totalCent)], ["Sistema — recebido", brlC(t.outros.pagoCent)], ["Sistema — a receber", brlC(t.outros.abertoCent)]] }
+    ]
+  };
+}
+
+/* =========================================================
    VALORES / PAGAMENTOS
 ========================================================= */
-function valorPadrao(exId, colo) {
+/** Valor de um viajante: colo, criança de até 5 anos com poltrona ou valor cheio */
+function valorPadrao(exId, colo, idade = null) {
   const ex = S.excursoes[exId];
   if (!ex) return 0;
-  if (colo) return num(ex.valorColo);
-  const v0 = veiculosDe(ex)[0]?.[1];
-  return v0 ? Math.round(precoPoltrona(v0) * 100) / 100 : 0;
+  return R.reais(R.precoDeCent(ex, { colo, idade }));
 }
 const pagoDe = (p) => Object.values(p?.pagamentos || {}).reduce((s, x) => s + num(x.valor), 0);
 function statusPag(p) {
@@ -2389,7 +2686,7 @@ function viewFinanceiro() {
 
   $("#workspace").innerHTML = `
   <section class="panel">
-    ${toolbar("Financeiro da excursão", "fa-sack-dollar", tbBtn("btnIrVia", "fa-users", "Viajantes") + tbBtn("btnVendaFin", "fa-cart-shopping", "Venda online") + tbBtn("btnLinkFin", "fa-link", "Link de inscrição"))}
+    ${toolbar("Financeiro da excursão", "fa-sack-dollar", tbBtn("btnIrVia", "fa-users", "Viajantes") + tbBtn("btnRelCustos", "fa-file-invoice-dollar", "Custos") + tbBtn("btnRelPag", "fa-money-check-dollar", "Quem pagou (Asaas)") + tbBtn("btnVendaFin", "fa-cart-shopping", "Venda online") + tbBtn("btnLinkFin", "fa-link", "Link de inscrição"))}
     <div class="subbar">${sel}
       <input type="search" id="finBusca" class="search" placeholder="Buscar viajante..." value="${esc(S.finBusca)}">
       <select id="finFiltro" class="search" style="flex:0 0 170px">
@@ -2429,6 +2726,8 @@ function viewFinanceiro() {
   $("#btnIrVia").onclick = () => irPara("viajantes", exId);
   $("#btnLinkFin").onclick = () => mostrarLink(exId);
   $("#btnVendaFin").onclick = () => painelVenda(exId);
+  $("#btnRelCustos").onclick = () => relatorioCustos(exId);
+  $("#btnRelPag").onclick = () => relatorioPagamentos(exId);
   $("#finFiltro").onchange = (e) => { S.finFiltro = e.target.value; render(); };
   $("#finBusca").addEventListener("input", (e) => {
     S.finBusca = e.target.value; const pos = e.target.selectionStart; render();
@@ -2574,7 +2873,7 @@ function analisarPlanilha(XLSX, wb, exId) {
     vistos.add(chave);
     out.push({
       nome, docTipo: !docNumero && colo ? "CERTIDAO" : /cnh/i.test(cab[m.doc] || "") ? "CNH" : "RG", docNumero, telefone, colo,
-      valor: precos.length ? precos[precos.length - 1] : valorPadrao(exId, colo), faixa, _rotulo: precos.length ? semAcento(faixa.replace(/R\$\s*[\d.,]+/gi, "")) : "", formaPagamento: String(cel(l, "forma") ?? "").trim(),
+      valor: precos.length ? precos[precos.length - 1] : valorPadrao(exId, colo, idadeCol), faixa, _rotulo: precos.length ? semAcento(faixa.replace(/R\$\s*[\d.,]+/gi, "")) : "", formaPagamento: String(cel(l, "forma") ?? "").trim(),
       obs, poltrona: !colo && poltrona && poltrona <= capV1 ? poltrona : null, quitado, idade: idadeCol, criadoEm, dup
     });
   });
