@@ -47,7 +47,6 @@ export async function clienteAsaas(t, externalReference) {
     await asaas("PUT", `/customers/${existente.id}`, dados).catch(() => {});
     id = existente.id;
   } else id = (await asaas("POST", "/customers", dados)).id;
-  await ligarWhatsapp(id);
   return id;
 }
 
@@ -63,7 +62,25 @@ export async function ligarWhatsapp(customer) {
     const mudar = lista.filter((n) => n && !n.deleted && n.enabled !== false && n.whatsappEnabledForCustomer !== true)
       .map((n) => ({ id: n.id, whatsappEnabledForCustomer: true }));
     if (mudar.length) await asaas("PUT", "/notifications/batch", { customer, notifications: mudar });
-  } catch (e) { console.warn("Asaas: não foi possível ligar o WhatsApp do cliente", e.message); }
+    return { ok: true, total: lista.length, ligadas: mudar.length, em: Date.now() };
+  } catch (e) {
+    console.warn("Asaas: não foi possível ligar o WhatsApp do cliente", e.message);
+    return { ok: false, erro: String(e.message || e).slice(0, 300), em: Date.now() };
+  }
+}
+
+/** Situação das notificações do cliente no Asaas (para o diagnóstico no sistema) */
+export async function notificacoesCliente(customer) {
+  const [cli, lista] = await Promise.all([
+    asaas("GET", `/customers/${customer}`),
+    asaas("GET", `/customers/${customer}/notifications`).then((r) => r?.data || [])
+  ]);
+  return {
+    nome: cli?.name || "", celular: cli?.mobilePhone || "", telefone: cli?.phone || "", email: cli?.email || "",
+    notificacoesDesligadas: cli?.notificationDisabled === true,
+    eventos: lista.filter((n) => n && !n.deleted).map((n) => ({ evento: n.event, dias: n.scheduleOffset ?? null, ativa: n.enabled !== false,
+      whatsapp: n.whatsappEnabledForCustomer === true, email: n.emailEnabledForCustomer === true, sms: n.smsEnabledForCustomer === true }))
+  };
 }
 
 /** Cancela no Asaas a cobrança (ou o parcelamento inteiro) de um pedido. Ignora erros. */

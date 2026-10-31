@@ -6,7 +6,7 @@
 // A 1ª pessoa é o titular (é quem paga e recebe a cobrança).
 import { db } from "./_lib/firebase.js";
 import { enviar, lerCorpo, soMetodo, tratarErro, ErroUsuario } from "./_lib/http.js";
-import { asaas, clienteAsaas, cancelarCobranca, ErroAsaas } from "./_lib/asaas.js";
+import { asaas, clienteAsaas, cancelarCobranca, ErroAsaas, ligarWhatsapp } from "./_lib/asaas.js";
 import { clienteDoToken } from "./_lib/cliente.js";
 import {
   carregarExcursao, situacaoVenda, lerCupom, usarCupom, reservarPoltronas, liberarPoltronas, notificar, R
@@ -147,6 +147,7 @@ export default async function handler(req, res) {
 
     /* ---- Asaas ---- */
     const customer = await clienteAsaas({ ...titular, endereco: { ...titular.endereco, cep: R.soDig(titular.endereco.cep) }, whatsapp: R.soDig(titular.whatsapp) }, `cpf-${titular.cpf}`);
+    const whatsapp = await ligarWhatsapp(customer);   // antes da cobrança, para a mensagem de "cobrança criada" ir pelo WhatsApp
     const nomes = pessoas.map((p) => p.nome.split(" ")[0]).join(", ");
     const cobranca = {
       customer, billingType: forma, dueDate: vencimento, externalReference: pedidoId,
@@ -166,7 +167,7 @@ export default async function handler(req, res) {
     if (!pg) pg = await asaas("POST", "/payments", cobranca);
     desfazer.push(() => cancelarCobranca({ payment: pg.id, installment: pg.installment }));
     await d.ref(`pedidos/${own}/${exId}/${pedidoId}/asaas`).set({
-      customer, payment: pg.id, installment: pg.installment || null, invoiceUrl: pg.invoiceUrl, bankSlipUrl: pg.bankSlipUrl || null
+      customer, payment: pg.id, installment: pg.installment || null, invoiceUrl: pg.invoiceUrl, bankSlipUrl: pg.bankSlipUrl || null, whatsapp
     });
     desfazer = [];
 

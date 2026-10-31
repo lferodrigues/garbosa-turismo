@@ -1388,6 +1388,8 @@ async function painelVenda(exId, own = dono(exId), recemCriada = false, exDados 
             ${p.status === "aguardando" ? `<button class="ic danger" data-ped-cancel="${esc(pid)}" title="Cancelar pedido e liberar poltronas"><i class="fa-solid fa-ban"></i></button>` : ""}
           </span></div>
         ${p.motivo ? `<small class="muted">${esc(p.motivo)}</small>` : ""}
+        ${p.asaas?.customer ? `<div class="pedido-top"><small class="${p.asaas.whatsapp?.ok === false ? "txt-erro" : "muted"}"><i class="fa-brands fa-whatsapp"></i> ${p.asaas.whatsapp?.ok === false ? `WhatsApp no Asaas falhou: ${esc(p.asaas.whatsapp.erro || "")}` : p.asaas.whatsapp?.ok ? "WhatsApp ligado no Asaas" : "WhatsApp no Asaas não verificado"}</small>
+          <button type="button" class="btn btn-light btn-sm" data-ped-wpp="${esc(pid)}"><i class="fa-solid fa-stethoscope"></i> Verificar WhatsApp</button></div>` : ""}
       </div>`;
     }).join("")}</div>` : `<p class="vazio">Nenhuma compra pelo link ainda.</p>`}`, [
     { html: ativa ? `<i class="fa-solid fa-lock"></i> Encerrar vendas` : `<i class="fa-solid fa-lock-open"></i> Abrir vendas`, acao: async () => {
@@ -1428,6 +1430,7 @@ async function painelVenda(exId, own = dono(exId), recemCriada = false, exDados 
   $$("[data-cup-del]").forEach((b) => b.addEventListener("click", () => confirmar(`Excluir o cupom <strong>${esc(b.dataset.cupDel)}</strong>? Quem já comprou com ele não é afetado.`, async () => {
     await remove(ref(db, `excursoes/${own}/${exId}/cupons/${b.dataset.cupDel}`)); toast("Cupom excluído"); painelVenda(exId, own);
   })));
+  $$("[data-ped-wpp]").forEach((b) => b.addEventListener("click", () => diagnosticoWhatsapp(exId, own, b.dataset.pedWpp)));
   $$("[data-ped-cancel]").forEach((b) => b.addEventListener("click", () => confirmar(
     "Cancelar este pedido? A cobrança no Asaas é cancelada, as poltronas são liberadas e os viajantes saem da lista.", async () => {
       const r = await fetch("/api/pedido-cancelar", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${await auth.currentUser.getIdToken()}` }, body: JSON.stringify({ pedido: b.dataset.pedCancel }) });
@@ -1436,6 +1439,48 @@ async function painelVenda(exId, own = dono(exId), recemCriada = false, exDados 
       toast("Pedido cancelado e poltronas liberadas");
       painelVenda(exId, own);
     }, "Cancelar pedido")));
+}
+
+const EVENTOS_ASAAS = {
+  PAYMENT_CREATED: "Cobrança criada (envia o boleto / Pix)", PAYMENT_UPDATED: "Cobrança alterada", PAYMENT_DUEDATE_WARNING: "Lembrete de vencimento",
+  SEND_LINHA_DIGITAVEL: "Linha digitável no dia do vencimento", PAYMENT_OVERDUE: "Cobrança vencida", PAYMENT_RECEIVED: "Pagamento recebido (recibo)",
+  PAYMENT_PARTIALLY_RECEIVED: "Pagamento parcial"
+};
+/** Liga de novo o WhatsApp do cliente no Asaas e mostra como ficou */
+async function diagnosticoWhatsapp(exId, own, pedidoId) {
+  const voltar = { html: `<i class="fa-solid fa-arrow-left"></i> Voltar aos pedidos`, acao: () => painelVenda(exId, own) };
+  abrirModal("WhatsApp do cliente no Asaas", `<div class="empty"><i class="fa-solid fa-spinner fa-spin"></i><p>Consultando o Asaas…</p></div>`, [voltar], true);
+  let r;
+  try {
+    const resp = await fetch("/api/asaas-whatsapp", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${await auth.currentUser.getIdToken()}` }, body: JSON.stringify({ pedido: pedidoId }) });
+    r = await resp.json().catch(() => ({}));
+    if (!resp.ok) throw new Error(r.erro || `Erro ${resp.status}`);
+  } catch (err) {
+    $("#modalBody").innerHTML = `<div class="alerta"><i class="fa-solid fa-triangle-exclamation"></i> ${esc(err.message)}</div>`;
+    return;
+  }
+  const cel = soDig(r.celular);
+  const criada = r.eventos.find((x) => x.evento === "PAYMENT_CREATED");
+  const problemas = [
+    !cel ? "O cliente está sem <strong>celular</strong> no Asaas — o WhatsApp só vai para o campo celular." : cel.length < 10 ? "O celular do cliente no Asaas parece incompleto (falta o DDD)." : "",
+    r.notificacoesDesligadas ? "As notificações deste cliente estão <strong>desativadas</strong> no Asaas (cadastro do cliente → Notificações)." : "",
+    !criada ? "O Asaas não tem o aviso de <strong>cobrança criada</strong> para este cliente." : !criada.ativa ? "O aviso de <strong>cobrança criada</strong> está desligado para este cliente no Asaas." : ""
+  ].filter(Boolean);
+  $("#modalBody").innerHTML = `
+    <div class="dl">
+      ${linha("Cliente", esc(r.nome))}
+      ${linha("Celular no Asaas", cel ? esc(r.celular) : `<span class="txt-erro">não cadastrado</span>`)}
+      ${linha("E-mail", esc(r.email || "—"))}
+    </div>
+    ${problemas.length ? `<div class="alerta"><i class="fa-solid fa-triangle-exclamation"></i> ${problemas.join("<br>")}</div>`
+      : `<div class="regra"><i class="fa-solid fa-circle-check"></i> Pelo sistema está tudo certo: o WhatsApp está ligado nos avisos deste cliente${r.ligadas ? ` (${r.ligadas} aviso(s) foram ligados agora)` : ""}.
+        Se mesmo assim a mensagem não chega, o envio por WhatsApp precisa ser <strong>habilitado na conta do Asaas</strong> (Configurações da conta → Notificações) — sem isso o Asaas não envia, mesmo com a opção marcada.</div>`}
+    <div class="rel-scroll"><table class="rel-tabela">
+      <thead><tr><th>Aviso do Asaas</th><th>Ativo</th><th>WhatsApp</th><th>E-mail</th><th>SMS</th></tr></thead>
+      <tbody>${r.eventos.map((x) => `<tr><td>${esc(EVENTOS_ASAAS[x.evento] || x.evento)}${x.dias !== null ? ` <small class="muted">(${x.dias} dia(s))</small>` : ""}</td>
+        <td>${x.ativa ? "✅" : "—"}</td><td>${x.whatsapp ? "✅" : "❌"}</td><td>${x.email ? "✅" : "—"}</td><td>${x.sms ? "✅" : "—"}</td></tr>`).join("")}</tbody>
+    </table></div>
+    <small class="muted">Avisos já enviados não são reenviados. Para mandar de novo esta cobrança, use o botão do WhatsApp no pedido (envia o link de pagamento) ou "Reenviar notificação" na cobrança dentro do Asaas.</small>`;
 }
 
 function formCupom(exId, own, codigo = null) {
