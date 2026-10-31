@@ -1,6 +1,6 @@
 // Área do viajante: histórico de viagens, parcelas pagas e em aberto, meus dados
-import * as R from "./venda-regras.js?v=15";
-import { aoMudarSessao, telaAcesso, formPerfil, lerPerfil, salvarPerfil, sair, api, esc } from "./conta-viajante.js?v=15";
+import * as R from "./venda-regras.js?v=16";
+import { aoMudarSessao, telaAcesso, formPerfil, lerPerfil, salvarPerfil, sair, api, esc } from "./conta-viajante.js?v=16";
 
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
@@ -118,6 +118,7 @@ async function detalhe(pedido) {
       <div class="card-fin verde"><small>Pago</small><strong>${R.brl(v.pagoCent)}</strong></div>
       <div class="card-fin vermelho"><small>Em aberto</small><strong>${R.brl(v.abertoCent)}</strong></div>
     </div>
+    ${v.grupo ? `<a class="btn btn-block btn-zap" target="_blank" rel="noopener" href="${esc(v.grupo)}"><i class="fa-brands fa-whatsapp"></i> Entrar no grupo da excursão</a>` : ""}
     ${prox?.link ? `<a class="btn btn-primary btn-block" target="_blank" rel="noopener" href="${esc(prox.link)}"><i class="fa-solid fa-lock"></i> Pagar ${prox.numero > 1 || v.parcelas > 1 ? `a parcela ${prox.numero}` : "agora"} · ${R.brl(prox.valorCent)}</a>` : ""}
 
     <h3 class="cp-sub"><i class="fa-solid fa-list-ol"></i> Parcelas · ${esc(v.formaTxt)}</h3>

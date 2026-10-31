@@ -1,6 +1,6 @@
 // Página pública de compra: viajantes → poltronas → pagamento no Asaas
-import * as R from "./venda-regras.js?v=15";
-import { aoMudarSessao, telaAcesso, formPerfil, lerPerfil, salvarPerfil, paraPerfil, sair, api as apiConta } from "./conta-viajante.js?v=15";
+import * as R from "./venda-regras.js?v=16";
+import { aoMudarSessao, telaAcesso, formPerfil, lerPerfil, salvarPerfil, paraPerfil, sair, api as apiConta } from "./conta-viajante.js?v=16";
 
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
@@ -506,6 +506,23 @@ async function reservar() {
   }
 }
 
+/** Boleto: mostra "Baixar o boleto"; ao baixar, a página segue sozinha para o grupo do WhatsApp */
+function fimBoleto(r, grupo) {
+  $("#gerando").classList.add("hidden");
+  $$(".cp-etapa, .cp-passos").forEach((el) => el.classList.add("hidden"));
+  $("#fimTitulo").textContent = `Pedido #${r.pedido} registrado!`;
+  const baixar = $("#fimBaixar");
+  baixar.href = r.boleto || r.url;
+  $("#fimGrupo").href = grupo;
+  baixar.addEventListener("click", () => {
+    baixar.innerHTML = `<i class="fa-solid fa-circle-check"></i> Boleto aberto · indo para o grupo…`;
+    setTimeout(() => { location.href = grupo; }, 1500);
+  });
+  const fim = $("#fimBoleto");
+  fim.classList.remove("hidden");
+  fim.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
 $("#btnPagar").addEventListener("click", async () => {
   if (RESERVA) return reservar();
   msg(3, "");
@@ -521,6 +538,8 @@ $("#btnPagar").addEventListener("click", async () => {
     const r = await apiConta("/api/pedido", corpo);
     try { sessionStorage.removeItem(CHAVE); } catch { /* ignora */ }
     await guardarNaConta().catch((err) => console.warn("perfil", err));
+    const grupo = R.linkGrupoWhatsapp(r.grupo);
+    if (r.forma === "BOLETO" && grupo) return fimBoleto(r, grupo);
     $("#gerando p").innerHTML = `<strong>Pedido #${esc(r.pedido)} criado!</strong><span>Abrindo a página de pagamento do Asaas…</span>`;
     location.href = r.url;
   } catch (e) {

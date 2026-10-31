@@ -6,12 +6,14 @@
 // A 1ª pessoa é o titular (é quem paga e recebe a cobrança).
 import { db } from "./_lib/firebase.js";
 import { enviar, lerCorpo, soMetodo, tratarErro, ErroUsuario } from "./_lib/http.js";
-import { asaas, clienteAsaas, cancelarCobranca } from "./_lib/asaas.js";
+import { asaas, clienteAsaas, cancelarCobranca, ErroAsaas } from "./_lib/asaas.js";
 import { clienteDoToken } from "./_lib/cliente.js";
 import {
   carregarExcursao, situacaoVenda, lerCupom, usarCupom, reservarPoltronas, liberarPoltronas, notificar, R
 } from "./_lib/venda.js";
 
+/** Endereço público do site (Vercel: SITE_URL; padrão garbosaturismo.com.br) */
+const siteUrl = () => String(process.env.SITE_URL || "https://garbosaturismo.com.br").replace(/\/+$/, "");
 const texto = (v, max) => String(v ?? "").replace(/\s+/g, " ").trim().slice(0, max);
 
 function limparPessoa(p) {
@@ -151,7 +153,17 @@ export default async function handler(req, res) {
       description: `${ex.destino} — saída ${R.fData(ex.dataSaida)}${agencia ? ` · ${agencia}` : ""} · ${pessoas.length} viajante(s): ${nomes}${pedido.cupom ? ` · cupom ${pedido.cupom}` : ""}`.slice(0, 480),
       ...(parcelas > 1 ? { installmentCount: parcelas, totalValue: R.reais(conta.totalCent) } : { value: R.reais(conta.totalCent) })
     };
-    const pg = await asaas("POST", "/payments", cobranca);
+    // Pix e cartão: depois de pagar, o Asaas leva o cliente para a página de obrigado (que abre o grupo do WhatsApp).
+    // O domínio precisa ser o mesmo cadastrado no Asaas; se ele recusar, tenta de novo sem o redirecionamento.
+    let pg;
+    if (forma !== "BOLETO") {
+      try { pg = await asaas("POST", "/payments", { ...cobranca, callback: { successUrl: `${siteUrl()}/sistema/obrigado.html?p=${pedidoId}`, autoRedirect: true } }); }
+      catch (e) {
+        if (!(e instanceof ErroAsaas) || e.status >= 500) throw e;
+        console.warn("Asaas recusou a cobrança com redirecionamento; tentando sem:", e.message);
+      }
+    }
+    if (!pg) pg = await asaas("POST", "/payments", cobranca);
     desfazer.push(() => cancelarCobranca({ payment: pg.id, installment: pg.installment }));
     await d.ref(`pedidos/${own}/${exId}/${pedidoId}/asaas`).set({
       customer, payment: pg.id, installment: pg.installment || null, invoiceUrl: pg.invoiceUrl, bankSlipUrl: pg.bankSlipUrl || null
@@ -162,7 +174,8 @@ export default async function handler(req, res) {
       tipo: "venda", titulo: "Nova compra online",
       texto: `${titular.nome} comprou ${pessoas.length} lugar(es) em ${ex.destino} · ${R.brl(conta.totalCent)} (${formaTxt}). Aguardando pagamento.`
     });
-    enviar(res, 200, { ok: true, pedido: curto, url: pg.invoiceUrl, totalCent: conta.totalCent });
+    const grupo = R.linkGrupoWhatsapp(ex.grupoWhatsapp);
+    enviar(res, 200, { ok: true, pedido: curto, pedidoId, url: pg.invoiceUrl, boleto: pg.bankSlipUrl || null, forma, totalCent: conta.totalCent, grupo: grupo || null });
   } catch (e) {
     for (const f of desfazer.reverse()) { try { await f(); } catch (err) { console.error("desfazer", err); } }
     tratarErro(res, e);

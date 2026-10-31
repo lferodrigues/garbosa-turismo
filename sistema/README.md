@@ -40,6 +40,17 @@ Todas as páginas exportam **XLSX** e **PDF** (o PDF de poltronas desenha o mapa
 - A regra fica em `sistema/js/venda-regras.js` (`custosVeiculo`, `precoDeCent`) e é a mesma no sistema, no link de inscrição,
   na reserva e na venda online (o servidor recalcula pela idade na data da saída).
 
+## Grupo do WhatsApp da excursão
+No cadastro da excursão, botão **Adicionar link do grupo do WhatsApp** (link de convite `https://chat.whatsapp.com/...`).
+Depois da compra online o cliente vai direto para o grupo:
+- **Pix e cartão**: a cobrança é criada com `callback.successUrl` → depois de pagar, o Asaas leva para `sistema/obrigado.html?p={pedido}`,
+  que mostra a confirmação e abre o grupo em 5 segundos. O domínio precisa ser o mesmo cadastrado no Asaas
+  (*Minha conta → Informações → site*); se o Asaas recusar, a cobrança é criada sem o redirecionamento (o link continua em *Minhas viagens*).
+  Outro domínio: variável `SITE_URL` na Vercel.
+- **Boleto**: a página de compra mostra **Baixar o boleto**; ao tocar, o boleto abre e a página segue para o grupo.
+- O link também aparece em **Minhas viagens**. Ele não é mostrado na página pública da excursão — só para quem comprou.
+- API: `GET /api/pedido-grupo?p={pedido}`.
+
 ## Relatórios da excursão
 Ícone 📄 **Relatórios** na lista de excursões, ou os botões **Custos** e **Quem pagou (Asaas)** no Financeiro. Os dois exportam XLSX e PDF.
 - **Custos e valores**: ônibus/transporte, ingressos e cada produto (unitário, até 5 anos, quantidade e total) por veículo e somados,
