@@ -130,6 +130,14 @@
             ".write": "(auth != null && root.child('excursoes').child($uid).child($excursaoId).child('colaboradores').child(auth.uid).exists())",
             ".validate": "newData.isString() && newData.val().length <= 1500"
           },
+          "valorFinal": {
+            ".write": "(auth != null && root.child('excursoes').child($uid).child($excursaoId).child('colaboradores').child(auth.uid).exists())",
+            ".validate": "newData.isNumber() && newData.val() > 0 && newData.val() <= 100000"
+          },
+          "valorFinalInfantil": {
+            ".write": "(auth != null && root.child('excursoes').child($uid).child($excursaoId).child('colaboradores').child(auth.uid).exists())",
+            ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 100000"
+          },
           "cupons": {
             ".write": "(auth != null && root.child('excursoes').child($uid).child($excursaoId).child('colaboradores').child(auth.uid).exists())",
             "$codigo": {

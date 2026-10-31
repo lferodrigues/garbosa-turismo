@@ -943,7 +943,7 @@ function detalhes(tipo, id) {
       <h4 class="sub">Veículos</h4>
       ${veiculosDe(e).map(([, v], i) => `<div class="veic-card"><i class="fa-solid ${veic(v.tipo).icone}"></i>
         <div><strong>Veículo ${i + 1}: ${esc(veic(v.tipo).nome)}</strong><small>Transporte ${brl(v.valorTransporte)} · Ingressos e produtos ${brl(custosV(v, e).somaItens)}</small></div>
-        <span class="preco">${brl(precoPoltrona(v, e))}<small>/poltrona</small></span></div>`).join("")}`,
+        <span class="preco">${brl(precoPoltrona(v, e))}<small>/poltrona${custosV(v, e).manual ? " · valor à mão" : ""}</small></span></div>`).join("")}`,
       [{ html: "Fechar", acao: fecharModal },
        { html: `<i class="fa-solid fa-users"></i> Viajantes`, acao: () => { fecharModal(); irPara("viajantes", id); } },
        { html: `<i class="fa-solid fa-couch"></i> Poltronas`, classe: "btn-primary", acao: () => { fecharModal(); irPara("poltronas", id); } }]);
@@ -1076,6 +1076,12 @@ function formExcursao(id = null, viagemId = null) {
       <label>Valor para criança de colo (R$)<input type="number" step="0.01" min="0" name="valorColo" value="${esc(e.valorColo ?? 0)}"></label>
       <small class="muted" style="align-self:end">Criança de colo não ocupa poltrona e paga só este valor.</small>
       <div class="calc-box span2" id="exCalc"></div>
+      <label class="check span2"><input type="checkbox" name="valorManual" id="exManual" ${R.valorFinalManual(e) ? "checked" : ""}> Definir o valor final à mão (em vez do valor gerado pelo sistema)</label>
+      <div class="span2 form-grid manual-box ${R.valorFinalManual(e) ? "" : "hidden"}" id="exManualBox">
+        <label>Valor final por pessoa (R$)<input type="number" step="0.01" min="0.01" name="valorFinal" id="exValorFinal" value="${esc(e.valorFinal ?? "")}" placeholder="Ex.: 299,90"></label>
+        <label>Criança até 5 anos com poltrona (R$)<input type="number" step="0.01" min="0" name="valorFinalInfantil" value="${esc(e.valorFinalInfantil ?? "")}" placeholder="Em branco: mesmo valor"></label>
+        <small class="muted span2">É este valor que vale na compra online, na reserva, no link de inscrição e no cadastro de viajantes. O leito, os opcionais e o valor de colo continuam sendo somados/cobrados à parte. Desmarque para voltar ao valor do sistema.</small>
+      </div>
       <div class="section-label span2"><i class="fa-solid fa-square-plus"></i> Opcionais</div>
       <small class="muted span2">Itens que o viajante escolhe se quer (passeio extra, almoço, camisa…). O valor do opcional é somado ao valor de quem escolher, na compra online, na reserva e na escolha de poltrona. Não entra no rateio.</small>
       <div class="span2" id="exOpcionais"></div>
@@ -1112,7 +1118,10 @@ function formExcursao(id = null, viagemId = null) {
     const d = lerForm(f);
     lerProdutos();
     return {
-      d, ex: { valorColo: num(d.valorColo), ingresso: { valor: d.ingValor === "" ? null : num(d.ingValor), valorInfantil: d.ingInfantil === "" ? null : num(d.ingInfantil) },
+      d, ex: { valorColo: num(d.valorColo),
+        valorFinal: d.valorManual && d.valorFinal !== "" && num(d.valorFinal) > 0 ? num(d.valorFinal) : null,
+        valorFinalInfantil: d.valorManual && d.valorFinal !== "" && d.valorFinalInfantil !== "" ? num(d.valorFinalInfantil) : null,
+        ingresso: { valor: d.ingValor === "" ? null : num(d.ingValor), valorInfantil: d.ingInfantil === "" ? null : num(d.ingInfantil) },
         produtos: Object.fromEntries(prods.map((p, i) => [p.id, { nome: p.nome || "Produto", valor: num(p.valor), valorInfantil: p.valorInfantil === "" ? null : num(p.valorInfantil), ordem: i }])) }
     };
   };
@@ -1123,7 +1132,8 @@ function formExcursao(id = null, viagemId = null) {
       linha(`${esc(i.nome)} <small class="muted">${brl(i.valor)} × ${c.cap}</small>`, brl(i.total))).join("");
     $("#exCalc").innerHTML = `${linha("Transporte", brl(c.transporte))}${linhasItens}
       ${linha("<strong>Custo total do veículo</strong>", brl(c.custoTotal))}${linha(`Rateio (${esc(c.nome)})`, `÷ ${c.div}`)}
-      <div class="calc-total"><span>Valor por poltrona</span><strong>${brl(c.porPoltrona)}</strong></div>
+      ${c.manual ? linha("Valor gerado pelo sistema", `<s class="muted">${brl(c.calculado)}</s>`) : ""}
+      <div class="calc-total"><span>${c.manual ? "Valor final (definido à mão)" : "Valor por poltrona"}</span><strong>${brl(c.porPoltrona)}</strong></div>
       ${c.porPoltronaInfantil !== c.porPoltrona ? linha("Criança até 5 anos (com poltrona)", brl(c.porPoltronaInfantil)) : ""}
       ${linha("Criança de colo", brl(ex.valorColo))}`;
   };
@@ -1205,6 +1215,11 @@ function formExcursao(id = null, viagemId = null) {
     calc();
   };
   f.addEventListener("input", calc);
+  $("#exManual").addEventListener("change", () => {
+    $("#exManualBox").classList.toggle("hidden", !$("#exManual").checked);
+    if ($("#exManual").checked) { if (!$("#exValorFinal").value) $("#exValorFinal").value = arred(R.custosVeiculo(exTemp().ex, { tipo: f.elements.tipo.value, valorTransporte: num(f.elements.valorTransporte.value) }).calculado); $("#exValorFinal").focus(); }
+    calc();
+  });
   $("#exViagem").addEventListener("change", aplicarViagem);
   if ($("#exOwner") && !id) $("#exOwner").addEventListener("change", () => { $("#exViagem").innerHTML = opcoesViagens("", $("#exOwner").value); });
   if ($("#btnAddColab")) {
@@ -1230,13 +1245,15 @@ async function salvarExcursao(id, vk, colabs = {}, colabsAntes = {}) {
   const precos = FORM_EX_TEMP ? FORM_EX_TEMP() : {};
   if ($$("#exProdutos [data-f=nome]").some((el) => !el.value.trim())) return toast("Dê um nome para cada produto (ou remova a linha vazia).", "erro");
   if (precos.opcionaisVazios) return toast("Dê um título para cada opcional (ou remova a linha).", "erro");
+  if (d.valorManual && !(num(d.valorFinal) > 0)) return toast("Digite o valor final por pessoa (ou desmarque \"Definir o valor final à mão\").", "erro");
   const grupoWhatsapp = R.linkGrupoWhatsapp(d.grupoWhatsapp);
   if (d.grupoWhatsapp && !grupoWhatsapp) return toast("Link do grupo inválido. Use o link de convite do grupo (https://chat.whatsapp.com/...).", "erro");
   const capNovo = veic(d.tipo).cap;
   const veiculo = { tipo: d.tipo, valorTransporte: num(d.valorTransporte), valorIngressos: arred(num(precos.ingresso?.valor) * capNovo), viagemId: d.viagemId || null };
   const ing = precos.ingresso && (precos.ingresso.valor !== null || precos.ingresso.valorInfantil !== null) ? precos.ingresso : null;
   const info = { grupoWhatsapp: grupoWhatsapp || null, ingresso: ing, produtos: Object.keys(precos.produtos || {}).length ? precos.produtos : null,
-    opcionais: Object.keys(precos.opcionais || {}).length ? precos.opcionais : null, destino: d.destino, dataSaida: d.dataSaida, horaSaida: d.horaSaida, dataRetorno: d.dataRetorno || d.dataSaida, horaRetorno: d.horaRetorno, localSaida: d.localSaida, valorColo: num(d.valorColo),
+    opcionais: Object.keys(precos.opcionais || {}).length ? precos.opcionais : null,
+    valorFinal: precos.valorFinal ?? null, valorFinalInfantil: precos.valorFinalInfantil ?? null, destino: d.destino, dataSaida: d.dataSaida, horaSaida: d.horaSaida, dataRetorno: d.dataRetorno || d.dataSaida, horaRetorno: d.horaRetorno, localSaida: d.localSaida, valorColo: num(d.valorColo),
     descricao: d.descricao || null, folder: FOLDER_FORM || null, publicarSite: !!d.publicarSite, venda: { ativa: !!d.vendaAtiva, primeiraParcela: d.primeiraParcela || null, maxParcelas: Math.min(6, Math.max(1, parseInt(d.maxParcelas, 10) || 1)) } };
   const podeColab = !id || souDono(id);
   try {
