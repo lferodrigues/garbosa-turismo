@@ -55,6 +55,7 @@ export default async function handler(req, res) {
         horaRetorno: ex.horaRetorno || "", localSaida: ex.localSaida || "", descricao: ex.descricao || "",
         folder: ex.folder?.caminho ? { caminho: ex.folder.caminho, raw: ex.folder.raw || "" } : null,
         whatsappCertidao: WHATSAPP_CERTIDAO, max: MAX, idadeColo: R.IDADE_COLO, valorColoCent: R.centavos(ex.valorColo),
+        opcionais: R.opcionaisDe(ex),
         veiculos: await veiculosComOcupacao(own, exId, ex)
       });
     }
@@ -74,7 +75,7 @@ export default async function handler(req, res) {
         const vid = porDoc.get(R.normDoc(doc));
         if (!vid) return;
         const v = viajantes[vid], a = assentoDe[vid] || null;
-        encontrados.push({ i, vid, nome: abreviar(v.nome), poltrona: a ? rotulo(a) : v.colo ? "colo" : "", assento: a, colo: v.colo === true, podeAlterar: v.origem === "poltrona" });
+        encontrados.push({ i, vid, nome: abreviar(v.nome), poltrona: a ? rotulo(a) : v.colo ? "colo" : "", assento: a, colo: v.colo === true, podeAlterar: v.origem === "poltrona", opcionais: Object.keys(v.opcionais || {}) });
       });
       return enviar(res, 200, { encontrados });
     }
@@ -84,7 +85,8 @@ export default async function handler(req, res) {
       nome: texto(p?.nome, 120), docTipo: p?.docTipo === "CERTIDAO" ? "CERTIDAO" : "RG", docNumero: texto(p?.docNumero, 30),
       colo: p?.colo === true, nascimento: texto(p?.nascimento, 10), com: Number.isInteger(p?.com) ? p.com : -1,
       vid: /^[\w-]{1,40}$/.test(p?.vid || "") ? p.vid : "", manter: p?.manter === true,
-      assento: p?.assento ? { vk: texto(p.assento.vk, 40), n: parseInt(p.assento.n, 10) } : null
+      assento: p?.assento ? { vk: texto(p.assento.vk, 40), n: parseInt(p.assento.n, 10) } : null,
+      opcionais: R.opcionaisValidos(ex, (Array.isArray(p?.opcionais) ? p.opcionais : []).slice(0, 30).map((x) => texto(x, 40)))
     }));
     if (!pessoas.length) throw new ErroUsuario("Informe quem vai viajar.");
     if (pessoas.length > MAX) throw new ErroUsuario(`No máximo ${MAX} pessoas por vez.`);
@@ -150,21 +152,22 @@ export default async function handler(req, res) {
     const upd = {}, agora = Date.now();
     for (const p of ativos) {
       const base = `viajantes/${own}/${exId}/${p.vid}`;
-      const valor = R.reais(R.precoDeCent(ex, { colo: p.colo, idade: p.colo ? p.idade : null }) + R.extraAssentoCent(ex, p.assento));
+      const opcCent = R.opcionaisCent(ex, p.opcionais);
+      const valor = R.reais(R.precoDeCent(ex, { colo: p.colo, idade: p.colo ? p.idade : null }) + R.extraAssentoCent(ex, p.assento) + opcCent);
       const obs = [p.existente ? "Alterado pelo link de poltrona" : "Escolheu a poltrona pelo link",
         p.colo ? `colo de ${primeiro(p.responsavel)}` : "",
         p.docTipo === "CERTIDAO" ? "certidão será enviada pelo WhatsApp" : ""].filter(Boolean).join(" · ").slice(0, 300);
       const dados = {
         nome: p.nome, docTipo: p.docTipo, docNumero: p.docNumero, colo: p.colo,
         nascimento: p.colo ? p.nascimento : p.existente?.nascimento || "", idade: p.colo ? p.idade : p.existente?.idade ?? null,
-        responsavel: p.colo ? p.responsavel : null, obs
+        responsavel: p.colo ? p.responsavel : null, opcionais: R.opcionaisRegistro(ex, p.opcionais), obs
       };
       if (!p.existente) {
         upd[base] = { ...dados, telefone: "", valor, origem: "poltrona", criadoEm: agora };
       } else {
         for (const [k, v] of Object.entries(dados)) upd[`${base}/${k}`] = v;
-        // valor muda se virou/deixou de ser colo ou se entrou/saiu do leito
-        const antes = R.extraAssentoCent(ex, assentoDe[p.vid]), depois = R.extraAssentoCent(ex, p.assento);
+        // valor muda se virou/deixou de ser colo, entrou/saiu do leito ou trocou os opcionais
+        const antes = R.extraAssentoCent(ex, assentoDe[p.vid]) + R.opcionaisGuardadosCent(p.existente), depois = R.extraAssentoCent(ex, p.assento) + opcCent;
         if ((p.existente.colo === true) !== p.colo) upd[`${base}/valor`] = valor;
         else if (antes !== depois) upd[`${base}/valor`] = R.reais(R.centavos(p.existente.valor) - antes + depois);
         upd[`${base}/alteradoEm`] = agora;
@@ -184,7 +187,8 @@ export default async function handler(req, res) {
       ok: true,
       poltronas: pessoas.map((p) => ({
         nome: p.nome, poltrona: p.manter ? (assentoDe[p.vid] ? rotulo(assentoDe[p.vid]) : "colo") : rotulo(p.assento),
-        colo: p.colo, certidao: !p.manter && p.docTipo === "CERTIDAO", alterado: !!p.existente && !p.manter, mantido: p.manter
+        colo: p.colo, certidao: !p.manter && p.docTipo === "CERTIDAO", alterado: !!p.existente && !p.manter, mantido: p.manter,
+        opcionais: Object.values((p.manter ? p.existente?.opcionais : R.opcionaisRegistro(ex, p.opcionais)) || {}).map((o) => o.titulo)
       }))
     });
   } catch (e) {

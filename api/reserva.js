@@ -23,7 +23,8 @@ function limpar(p) {
     email: texto(p?.email, 120).toLowerCase(), whatsapp: R.mascaraTel(p?.whatsapp), colo: p?.colo === true,
     endereco: { cep: R.mascaraCep(e.cep), rua: texto(e.rua, 120), numero: texto(e.numero, 20), complemento: texto(e.complemento, 60),
       bairro: texto(e.bairro, 80), cidade: texto(e.cidade, 80), uf: texto(e.uf, 2).toUpperCase() },
-    assento: p?.assento && typeof p.assento === "object" ? { vk: texto(p.assento.vk, 40), n: parseInt(p.assento.n, 10) } : null
+    assento: p?.assento && typeof p.assento === "object" ? { vk: texto(p.assento.vk, 40), n: parseInt(p.assento.n, 10) } : null,
+    opcionais: (Array.isArray(p?.opcionais) ? p.opcionais : []).slice(0, 30).map((x) => texto(x, 40)).filter(Boolean),
   };
 }
 
@@ -39,7 +40,7 @@ export default async function handler(req, res) {
         folder: ex.folder?.caminho ? { caminho: ex.folder.caminho, raw: ex.folder.raw || "" } : null };
       if (!sit.ativa) return enviar(res, 200, { ...base, ativa: false, motivo: sit.motivo });
       return enviar(res, 200, { ...base, ativa: true, hoje: R.hojeBR(), valorCent: R.precoPessoaCent(ex), valorColoCent: R.centavos(ex.valorColo),
-        valorInfantilCent: R.precoInfantilCent(ex), idadeInfantil: R.IDADE_INFANTIL,
+        valorInfantilCent: R.precoInfantilCent(ex), idadeInfantil: R.IDADE_INFANTIL, opcionais: R.opcionaisDe(ex),
         veiculos: await veiculosComOcupacao(own, exId, ex) });
     }
 
@@ -86,7 +87,8 @@ export default async function handler(req, res) {
       upd[`viajantes/${own}/${exId}/${vids[i]}`] = {
         nome: p.nome, docTipo: p.rg ? "RG" : "CERTIDAO", docNumero: p.rg || "", telefone: p.whatsapp, idade: R.idadeEm(p.nascimento, ex.dataSaida), colo: p.colo,
         cpf: p.cpf ? R.mascaraCpf(p.cpf) : "", rg: p.rg, nascimento: p.nascimento, email: p.email, endereco: p.endereco,
-        valor: R.reais(R.precoDeCent(ex, { colo: p.colo, idade: R.idadeEm(p.nascimento, ex.dataSaida) }) + R.extraAssentoCent(ex, p.assento)), formaPagamento: "A combinar", origem: "reserva",
+        valor: R.reais(R.precoDeCent(ex, { colo: p.colo, idade: R.idadeEm(p.nascimento, ex.dataSaida) }) + R.extraAssentoCent(ex, p.assento) + R.opcionaisCent(ex, p.opcionais)),
+        opcionais: R.opcionaisRegistro(ex, p.opcionais), formaPagamento: "A combinar", origem: "reserva",
         responsavel: i === 0 ? null : pessoas[0].nome,
         obs: `Reserva pelo link${p.assento ? ` · poltrona ${rotulo(p.assento)}` : " · colo"}${i ? ` · com ${pessoas[0].nome.split(" ")[0]}` : ""}`.slice(0, 300),
         consentimentoLgpd: true, criadoEm: Date.now()

@@ -196,6 +196,33 @@ export function extraPoltronaCent(tipo, n) {
 }
 /** Acréscimo da poltrona escolhida ({vk, n}) numa excursão */
 export const extraAssentoCent = (ex, a) => (a ? extraPoltronaCent(ex?.veiculos?.[a.vk]?.tipo, a.n) : 0);
+/* ---------- opcionais da excursão (passeio, almoço, camisa…) ---------- */
+/** Opcionais cadastrados na excursão: [{ id, titulo, descricao, valorCent }] na ordem da agência */
+export function opcionaisDe(ex) {
+  return Object.entries(ex?.opcionais || {})
+    .filter(([, o]) => o && String(o.titulo || "").trim())
+    .sort((a, b) => (a[1].ordem ?? 0) - (b[1].ordem ?? 0))
+    .map(([id, o]) => ({ id, titulo: String(o.titulo).trim(), descricao: String(o.descricao || "").trim(), valorCent: Math.max(0, centavos(o.valor)) }));
+}
+/** Só os ids que existem na excursão, sem repetir (o que o viajante escolheu) */
+export function opcionaisValidos(ex, ids) {
+  const existe = new Set(opcionaisDe(ex).map((o) => o.id));
+  return [...new Set((Array.isArray(ids) ? ids : []).map(String))].filter((id) => existe.has(id));
+}
+/** Soma (centavos) dos opcionais escolhidos */
+export function opcionaisCent(ex, ids) {
+  const set = new Set(opcionaisValidos(ex, ids));
+  return opcionaisDe(ex).filter((o) => set.has(o.id)).reduce((s, o) => s + o.valorCent, 0);
+}
+/** Fotografia dos opcionais escolhidos para guardar no viajante: { id: { titulo, valor } } */
+export function opcionaisRegistro(ex, ids) {
+  const set = new Set(opcionaisValidos(ex, ids));
+  const sel = opcionaisDe(ex).filter((o) => set.has(o.id));
+  return sel.length ? Object.fromEntries(sel.map((o) => [o.id, { titulo: o.titulo.slice(0, 80), valor: reais(o.valorCent) }])) : null;
+}
+/** Soma (centavos) do que está guardado no viajante */
+export const opcionaisGuardadosCent = (v) => Object.values(v?.opcionais || {}).reduce((s, o) => s + Math.max(0, centavos(o?.valor)), 0);
+
 /** Ordem de leitura das poltronas na planta (para listas) */
 export const numerosDaPlanta = (planta) => planta.flatMap((p) => p.linhas.flatMap((l) => [...(l.esq || []), ...(l.dir || [])]));
 
@@ -271,13 +298,14 @@ export function calcularItens(pessoas, { valorCent, valorColoCent = 0, valorInfa
   const infCent = valorInfantilCent ?? valorCent;
   const cheio = (p) => (p.colo ? valorColoCent : p.infantil ? infCent : valorCent);
   const itens = pessoas.map((p) => {
-    if (p.colo) return { valorCent: valorColoCent, cupom: false, colo: true, infantil: false, extraCent: 0 };
+    const opcCent = Math.max(0, Math.round(p.opcionaisCent || 0));
+    if (p.colo) return { valorCent: valorColoCent + opcCent, cupom: false, colo: true, infantil: false, extraCent: 0, opcionaisCent: opcCent };
     const base = cheio(p), infantil = !!p.infantil, extraCent = Math.max(0, Math.round(p.extraCent || 0));
-    if (cupons > 0 && cupom.valorCent < base) { cupons--; return { valorCent: cupom.valorCent + extraCent, cupom: true, colo: false, infantil, extraCent }; }
-    return { valorCent: base + extraCent, cupom: false, colo: false, infantil, extraCent };
+    if (cupons > 0 && cupom.valorCent < base) { cupons--; return { valorCent: cupom.valorCent + extraCent + opcCent, cupom: true, colo: false, infantil, extraCent, opcionaisCent: opcCent }; }
+    return { valorCent: base + extraCent + opcCent, cupom: false, colo: false, infantil, extraCent, opcionaisCent: opcCent };
   });
   const totalCent = itens.reduce((s, i) => s + i.valorCent, 0);
-  const cheioCent = pessoas.reduce((s, p, i) => s + cheio(p) + itens[i].extraCent, 0);
+  const cheioCent = pessoas.reduce((s, p, i) => s + cheio(p) + itens[i].extraCent + itens[i].opcionaisCent, 0);
   return { itens, totalCent, descontoCent: cheioCent - totalCent, comCupom: itens.filter((i) => i.cupom).length };
 }
 

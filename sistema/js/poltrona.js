@@ -1,6 +1,7 @@
 // Página pública: escolher a poltrona sem pagamento e sem login
 import * as R from "./venda-regras.js?v=18";
 import { htmlOnibus } from "./mapa-onibus.js?v=1";
+import { htmlOpcionais, ligarOpcionais, resumoOpcionais } from "./opcionais-ui.js?v=1";
 
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
@@ -14,7 +15,7 @@ const S = { pessoas: [], ativo: 0, veic: null };
  * + quando o documento já estava cadastrado: vid, existente { nome, poltrona, podeAlterar },
  *   manter (fica como está) ou original (poltrona de antes, enquanto altera)
  */
-const nova = (colo = false) => ({ id: "p" + seq++, nome: "", docTipo: colo ? "CERTIDAO" : "RG", docNumero: "", colo, nascimento: "", com: "", assento: null });
+const nova = (colo = false) => ({ id: "p" + seq++, nome: "", docTipo: colo ? "CERTIDAO" : "RG", docNumero: "", colo, nascimento: "", com: "", assento: null, opcionais: [] });
 const precisaPoltrona = (p) => !p.colo && !p.manter;
 const adultos = () => S.pessoas.filter((p) => !p.colo);
 const nomeCurto = (p) => primeiro(p.nome) || `Pessoa ${S.pessoas.indexOf(p) + 1}`;
@@ -105,6 +106,7 @@ function renderLista() {
           <label>Vai no colo de<select data-c="com">${opcoesColo(p)}</select></label>
           ${campoDoc(p)}
           <p class="cp-nota span2" data-idade></p>
+          ${htmlOpcionais(EX.opcionais, p.opcionais)}
         </div>
       </fieldset>`;
     return `
@@ -113,6 +115,7 @@ function renderLista() {
         <div class="form-grid">
           <label class="span2">Nome completo<input data-c="nome" value="${esc(p.nome)}" maxlength="120" autocomplete="${i ? "off" : "name"}"></label>
           ${campoDoc(p)}
+          ${htmlOpcionais(EX.opcionais, p.opcionais)}
         </div>
       </fieldset>`;
   }).join("");
@@ -120,6 +123,7 @@ function renderLista() {
   $$(".cp-pessoa").forEach((fs) => {
     const p = S.pessoas.find((x) => x.id === fs.dataset.id);
     if (p.colo) mostrarIdade(p, fs);
+    ligarOpcionais(fs, (ids) => { p.opcionais = ids; });
     $$("[data-c]", fs).forEach((el) => el.addEventListener(el.tagName === "SELECT" || el.type === "date" ? "change" : "input", () => {
       p[el.dataset.c] = el.value;
       fs.classList.remove("erro");
@@ -191,6 +195,7 @@ function alterar(p) {
   p.colo = !!p.existente?.colo;
   p.original = p.existente?.assento || null;
   p.assento = p.original;
+  p.opcionais = [...(p.existente?.opcionais || [])];
 }
 function popup(p, achado) {
   return new Promise((ok) => {
@@ -345,7 +350,7 @@ function corpoPessoa(p) {
   return {
     nome: p.nome, docTipo: p.docTipo, docNumero: p.docNumero, vid: p.vid || undefined,
     colo: p.colo, nascimento: p.colo ? p.nascimento : "", com: p.colo ? S.pessoas.findIndex((a) => a.id === p.com) : undefined,
-    assento: p.colo ? null : p.assento
+    assento: p.colo ? null : p.assento, opcionais: resumoOpcionais(EX.opcionais, p.opcionais).ids
   };
 }
 async function salvar(n) {
@@ -371,7 +376,7 @@ $("#btnSalvar").addEventListener("click", () => salvar(2));
 
 function mostrarResumo(lista, nadaMudou = false) {
   $("#etapa3 h2").textContent = nadaMudou ? "Tudo certo, nada mudou!" : lista.some((x) => x.alterado) ? "Cadastro atualizado!" : "Poltrona garantida!";
-  $("#resumo").innerHTML = lista.map((x) => `<div class="cp-linha"><span>${esc(x.nome)}${x.colo ? ` <em class="cp-tag colo">colo</em>` : ""}${x.certidao ? ` <em class="cp-tag colo">certidão</em>` : ""}${x.alterado ? ` <em class="cp-tag polt">alterado</em>` : ""}${x.mantido ? ` <em class="cp-tag cupom">já estava</em>` : ""}</span><strong>${x.poltrona === "colo" ? "No colo" : `Poltrona ${esc(x.poltrona)}`}</strong></div>`).join("");
+  $("#resumo").innerHTML = lista.map((x) => `<div class="cp-linha"><span>${esc(x.nome)}${x.colo ? ` <em class="cp-tag colo">colo</em>` : ""}${x.certidao ? ` <em class="cp-tag colo">certidão</em>` : ""}${x.alterado ? ` <em class="cp-tag polt">alterado</em>` : ""}${x.mantido ? ` <em class="cp-tag cupom">já estava</em>` : ""}${(x.opcionais || []).map((t) => ` <em class="cp-tag opc">+ ${esc(t)}</em>`).join("")}</span><strong>${x.poltrona === "colo" ? "No colo" : `Poltrona ${esc(x.poltrona)}`}</strong></div>`).join("");
   const cert = lista.filter((x) => x.certidao);
   $("#certidao").classList.toggle("hidden", !cert.length);
   if (cert.length) {

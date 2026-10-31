@@ -21,6 +21,7 @@ export default async function handler(req, res) {
       valorInfantilCent: R.precoInfantilCent(ex), idadeInfantil: R.IDADE_INFANTIL,
       venda: { maxParcelas: Math.min(R.MAX_PARCELAS, parseInt(ex.venda.maxParcelas, 10) || 1), primeiraParcela: ex.venda.primeiraParcela || "" },
       temCupom: Object.values(ex.cupons || {}).some((c) => c && c.ativo !== false),
+      opcionais: R.opcionaisDe(ex),
       veiculos: await veiculosComOcupacao(own, exId, ex)
     });
   } catch (e) { tratarErro(res, e); }
