@@ -159,6 +159,8 @@ test("Pix pede ao Asaas para voltar à página de obrigado, que leva ao grupo; b
   assert.equal(ob.statusCode, 200);
   assert.equal(ob.body.grupo, "https://chat.whatsapp.com/GrupoHopi12345");
   assert.equal(ob.body.destino, "Hopi Hari");
+  assert.ok(ob.body.fatura, "a página de obrigado recebe o link para baixar o comprovante");
+  assert.equal(ob.body.forma, "PIX"); assert.equal(ob.body.parcelas, 1);
   const nada = await chamar(grupoApi, { method: "GET", query: { p: "naoexiste123" } });
   assert.equal(nada.statusCode, 404);
 });

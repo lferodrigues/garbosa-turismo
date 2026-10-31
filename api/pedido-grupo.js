@@ -15,7 +15,9 @@ export default async function handler(req, res) {
     const grupo = R.linkGrupoWhatsapp((await (await db()).ref(`excursoes/${own}/${exId}/grupoWhatsapp`).get()).val());
     enviar(res, 200, {
       codigo: pedidoId.slice(-6).toUpperCase(), destino: ped.excursao?.destino || "", dataSaida: ped.excursao?.dataSaida || "",
-      agencia: ped.excursao?.agencia || "", nome: String(ped.titular?.nome || "").split(" ")[0], status: ped.status, grupo: grupo || null
+      agencia: ped.excursao?.agencia || "", nome: String(ped.titular?.nome || "").split(" ")[0], status: ped.status, grupo: grupo || null,
+      // para o botão "Baixar": fatura/comprovante do Asaas (e o boleto, quando for boleto)
+      fatura: ped.asaas?.invoiceUrl || null, boleto: ped.asaas?.bankSlipUrl || null, forma: ped.forma || "", parcelas: ped.parcelas || 1
     });
   } catch (e) { tratarErro(res, e); }
 }
