@@ -1,6 +1,7 @@
 import { auth, db, ADMIN_EMAIL, authSecundario } from "./firebase.js?v=8";
-import { baixarXLSX, baixarPDF, baixarPDFPoltronas, carregarXLSX } from "./exportar.js?v=8";
-import * as R from "./venda-regras.js?v=16";
+import { baixarXLSX, baixarPDF, baixarPDFPoltronas, carregarXLSX } from "./exportar.js?v=9";
+import * as R from "./venda-regras.js?v=18";
+import { htmlOnibus } from "./mapa-onibus.js?v=1";
 import {
   onAuthStateChanged, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword,
   sendPasswordResetEmail, updateProfile,
@@ -22,7 +23,7 @@ const VEICULOS = {
   onibus42: { nome: "Ônibus 42 lugares",       cap: 42, div: 29, icone: "fa-bus" },
   onibus46: { nome: "Ônibus 46 lugares",       cap: 46, div: 32, icone: "fa-bus" },
   onibus50: { nome: "Ônibus 50 lugares",       cap: 50, div: 35, icone: "fa-bus" },
-  onibus64: { nome: "Ônibus 64 lugares",       cap: 64, div: 40, icone: "fa-bus" }
+  onibus64: { nome: "Ônibus Double Decker 60 lugares", cap: 60, div: 40, icone: "fa-bus" } // código antigo mantido (era o de 64)
 };
 const DOCS = { RG: "RG", CNH: "CNH", CERTIDAO: "Certidão de Nascimento" };
 const TIPOS = { agencia: "Agência de turismo", transportadora: "Transporte / Fretamento", admin: "Administrador" };
@@ -1909,17 +1910,6 @@ function formViajante(exId, pid = null) {
 /* =========================================================
    POLTRONAS
 ========================================================= */
-function layoutAssentos(cap) {
-  const linhas = [];
-  if (cap <= 20) {               // vans: 2 + 1
-    for (let n = 1; n <= cap; n += 3) linhas.push({ esq: [n, n + 1].filter((x) => x <= cap), dir: [n + 2].filter((x) => x <= cap) });
-  } else {                        // ônibus: 2 + 2 (padrão 1 2 | 4 3)
-    const cheias = Math.floor(cap / 4), resto = cap % 4;
-    for (let r = 0; r < cheias; r++) { const b = r * 4 + 1; linhas.push({ esq: [b, b + 1], dir: [b + 3, b + 2] }); }
-    if (resto) { const b = cheias * 4 + 1; const s = Array.from({ length: resto }, (_, i) => b + i); linhas.push({ esq: s.slice(0, 2), dir: s.slice(2).reverse(), wc: resto <= 2 }); }
-  }
-  return linhas;
-}
 function nomesPorPoltrona(exId, vk) {
   const nomes = {};
   Object.entries((S.poltronas[exId] || {})[vk] || {}).forEach(([n, pid]) => { const p = S.viajantes[exId]?.[pid]; if (p) nomes[n] = p.nome; });
@@ -1944,20 +1934,7 @@ function viewPoltronas() {
     return `<div class="seat ${pid ? "ocupada" : ""} ${pid && pid === S.passSel ? "sel" : ""}" data-seat="${n}" ${pid ? `draggable="true" data-pid="${pid}"` : ""} title="${esc(nome || "Poltrona " + n + " livre")}">
       <span class="sn">${n}</span>${pid ? `<span class="snome">${esc(nome.split(" ")[0])}</span><button class="seat-x" data-x="${n}" title="Liberar">×</button>` : ""}</div>`;
   };
-  const linhas = layoutAssentos(vv.cap);
-  const bus = `
-    <div class="bus ${vv.cap <= 20 ? "bus-van" : ""}">
-      <div class="bus-front"><span class="driver"><i class="fa-solid fa-dharmachakra"></i> Motorista</span><span class="door">Porta</span></div>
-      <div class="bus-body">
-        ${linhas.map((l) => `<div class="bus-row">
-          <div class="side">${l.esq.map(seat).join("")}</div>
-          <div class="aisle"></div>
-          <div class="side">${l.dir.map(seat).join("")}${l.wc ? `<div class="wc">WC</div>` : ""}</div>
-        </div>`).join("")}
-        <div class="corredor-label">CORREDOR</div>
-      </div>
-      ${vv.cap > 20 && !linhas.some((l) => l.wc) ? `<div class="bus-back">Toalete</div>` : ""}
-    </div>`;
+  const bus = htmlOnibus(R.plantaVeiculo(v.tipo, vv.cap), seat, vv.cap);
   const numerada = Array.from({ length: vv.cap }, (_, i) => i + 1).map((n) => `<li><span>${n}</span>${esc(nomes[mapa[n]] || "")}</li>`).join("");
 
   $("#workspace").innerHTML = `
@@ -2074,7 +2051,7 @@ function viewPoltronas() {
       { nome: "Todos os viajantes", colunas: COLS_POLT, linhas: linhasPoltronas(exId) }
     ],
     pdf: () => baixarPDFPoltronas(titulo, sub,
-      porVeiculo.map(({ i, x, nm, cap }) => ({ titulo: `${vs.length > 1 ? `Veículo ${i + 1} · ` : ""}${veic(x.tipo).nome}`, cap, layout: layoutAssentos(cap), nomes: nm })),
+      porVeiculo.map(({ i, x, nm, cap }) => ({ titulo: `${vs.length > 1 ? `Veículo ${i + 1} · ` : ""}${veic(x.tipo).nome}`, cap, planta: R.plantaVeiculo(x.tipo, cap), nomes: nm })),
       { colunas: COLS_POLT, linhas: linhasPoltronas(exId) })
   };
 }

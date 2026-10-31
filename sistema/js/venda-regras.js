@@ -10,7 +10,8 @@ export const VEICULOS = {
   onibus42: { nome: "Ônibus 42 lugares",       cap: 42, div: 29 },
   onibus46: { nome: "Ônibus 46 lugares",       cap: 46, div: 32 },
   onibus50: { nome: "Ônibus 50 lugares",       cap: 50, div: 35 },
-  onibus64: { nome: "Ônibus 64 lugares",       cap: 64, div: 40 }
+  // "onibus64" ficou como código interno: as excursões que já usavam o antigo de 64 passam para o Double Decker 60
+  onibus64: { nome: "Ônibus Double Decker 60 lugares", cap: 60, div: 40 }
 };
 
 export const MAX_PARCELAS = 6;
@@ -162,6 +163,32 @@ export function layoutAssentos(cap) {
   }
   return linhas;
 }
+
+/**
+ * Planta do veículo para desenhar o mapa: lista de pisos.
+ * Piso: { titulo, frente:[rótulos], linhas:[{ esq, dir, notaEsq, notaDir, largo, wc }], fundo }
+ * esq/dir = números das poltronas; notaEsq/notaDir = texto no lugar das poltronas; largo = poltrona da direita ocupa 2 lugares.
+ */
+export function plantaVeiculo(tipo, cap = VEICULOS[tipo]?.cap || 0) {
+  if (tipo === "onibus64" && cap === 60) {
+    // Double Decker Super Luxo 60 lugares (mapa Michelon, carro 2300)
+    const sup = [
+      { esq: [1, 2], dir: [4, 3] }, { esq: [5, 6], dir: [7, 8] }, { esq: [9, 10], dir: [11, 12] },
+      { esq: [13, 14], notaDir: "Entrada · escada" }, { esq: [15, 16], notaDir: "Geladeira · cafeteira · armário" }
+    ];
+    for (let b = 17; b <= 45; b += 4) sup.push({ esq: [b, b + 1], dir: [b + 3, b + 2] });
+    const inf = [{ notaEsq: "Sala de estar · geladeira", notaDir: "Escada" }, { notaEsq: "Banheiro", notaDir: "Entrada" }];
+    for (const b of [49, 52, 55, 58]) inf.push({ esq: [b, b + 1], dir: [b + 2], largo: true });
+    return [
+      { titulo: "Piso superior", frente: [], linhas: sup, fundo: "Bebedouro · geladeira" },
+      { titulo: "Piso inferior", frente: ["Motorista"], linhas: inf, fundo: "Bebedouro · lixeira" }
+    ];
+  }
+  const linhas = layoutAssentos(cap);
+  return [{ titulo: "", frente: ["Motorista", "Porta"], linhas, fundo: cap > 20 && !linhas.some((l) => l.wc) ? "Toalete" : "" }];
+}
+/** Ordem de leitura das poltronas na planta (para listas) */
+export const numerosDaPlanta = (planta) => planta.flatMap((p) => p.linhas.flatMap((l) => [...(l.esq || []), ...(l.dir || [])]));
 
 /** Primeiro vencimento do boleto: a data escolhida pela agência, ou hoje + 3 dias se ela já passou */
 export function primeiroVencimento(venda, hoje) {

@@ -1,5 +1,6 @@
 // Página pública: escolher a poltrona sem pagamento e sem login
-import * as R from "./venda-regras.js?v=17";
+import * as R from "./venda-regras.js?v=18";
+import { htmlOnibus } from "./mapa-onibus.js?v=1";
 
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
@@ -326,13 +327,7 @@ function desenhar(v) {
     if (ocup.has(n)) return `<span class="seat reservada" aria-label="Poltrona ${n} reservada"><span class="sn">${n}</span></span>`;
     return `<button type="button" class="seat livre" data-n="${n}" aria-label="Poltrona ${n} disponível"><span class="sn">${n}</span></button>`;
   };
-  const linhas = R.layoutAssentos(v.cap);
-  return `<div class="bus ${v.cap <= 20 ? "bus-van" : ""}">
-    <div class="bus-front"><span class="driver"><i class="fa-solid fa-dharmachakra"></i> Motorista</span><span class="door">Porta</span></div>
-    <div class="bus-body">${linhas.map((l) => `<div class="bus-row"><div class="side">${l.esq.map(seat).join("")}</div><div class="aisle"></div><div class="side">${l.dir.map(seat).join("")}${l.wc ? `<div class="wc">WC</div>` : ""}</div></div>`).join("")}
-      <div class="corredor-label">CORREDOR</div></div>
-    ${v.cap > 20 && !linhas.some((l) => l.wc) ? `<div class="bus-back">Toalete</div>` : ""}
-  </div>`;
+  return htmlOnibus(R.plantaVeiculo(v.tipo, v.cap), seat, v.cap);
 }
 function escolher(vk, n) {
   const dono = S.pessoas.find((p) => precisaPoltrona(p) && p.assento?.vk === vk && p.assento.n === n);

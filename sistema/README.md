@@ -68,7 +68,7 @@ Depois da compra online o cliente vai direto para o grupo:
 | Ônibus 42 | 29 |
 | Ônibus 46 | 32 |
 | Ônibus 50 | 35 |
-| Ônibus 64 | 40 |
+| Ônibus Double Decker 60 (código `onibus64`) | 40 |
 
 ## Valor final da transportadora
 `custo = chofer + diesel + gastos adicionais` → `valor final = custo × (1 + margem/100)`

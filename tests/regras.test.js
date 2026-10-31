@@ -67,3 +67,16 @@ test("rotas internas dizem qual variável falta na Vercel; páginas públicas n�
   assert.match(a.b.erro, /GITHUB_TOKEN/);
   assert.doesNotMatch(b.b.erro, /GITHUB_TOKEN/);
 });
+
+test("Double Decker 60: dois pisos com todas as poltronas de 1 a 60, sem repetir", async () => {
+  const R = await import("../sistema/js/venda-regras.js");
+  assert.equal(R.VEICULOS.onibus64.cap, 60);
+  const planta = R.plantaVeiculo("onibus64");
+  assert.deepEqual(planta.map((p) => p.titulo), ["Piso superior", "Piso inferior"]);
+  const nums = R.numerosDaPlanta(planta);
+  assert.equal(nums.length, 60);
+  assert.deepEqual([...nums].sort((a, b) => a - b), Array.from({ length: 60 }, (_, i) => i + 1));
+  assert.deepEqual(planta[0].linhas[0], { esq: [1, 2], dir: [4, 3] });
+  assert.deepEqual(planta[1].linhas.at(-1), { esq: [58, 59], dir: [60], largo: true });
+  assert.equal(R.plantaVeiculo("onibus46").length, 1);
+});
