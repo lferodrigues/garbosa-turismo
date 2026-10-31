@@ -5,7 +5,7 @@ import { db } from "./_lib/firebase.js";
 import { enviar, soMetodo, tratarErro, ErroUsuario } from "./_lib/http.js";
 import { parcelasDoPedido } from "./_lib/parcelas.js";
 import { clienteDoToken } from "./_lib/cliente.js";
-import { R } from "./_lib/venda.js";
+import { R, cancelarSeApagadoNoAsaas } from "./_lib/venda.js";
 
 function resumo(pedidoId, p) {
   const ex = p.excursao || {};
@@ -31,7 +31,10 @@ export default async function handler(req, res) {
       const lista = [];
       for (const [pid, ref] of Object.entries(idx)) {
         const p = (await d.ref(`pedidos/${ref.own}/${ref.exId}/${pid}`).get()).val();
-        if (p) lista.push(resumo(pid, p));
+        if (!p) continue;
+        // cobrança apagada no Asaas e pedido ainda "aguardando": acerta antes de mostrar (não aparece fatura fantasma)
+        await cancelarSeApagadoNoAsaas({ pedidoId: pid, own: ref.own, exId: ref.exId, ped: p });
+        lista.push(resumo(pid, p));
       }
       lista.sort((a, b) => (b.dataSaida || "").localeCompare(a.dataSaida || "") || (b.criadoEm || 0) - (a.criadoEm || 0));
       return enviar(res, 200, { hoje: R.hojeBR(), viagens: lista });
@@ -41,6 +44,7 @@ export default async function handler(req, res) {
     if (!ref) throw new ErroUsuario("Compra não encontrada na sua conta.", 404);
     const p = (await d.ref(`pedidos/${ref.own}/${ref.exId}/${pedidoId}`).get()).val();
     if (!p) throw new ErroUsuario("Compra não encontrada.", 404);
+    await cancelarSeApagadoNoAsaas({ pedidoId, own: ref.own, exId: ref.exId, ped: p });
     const { parcelas, fonte } = await parcelasDoPedido(p);
     const pagoCent = parcelas.filter((x) => x.situacao === "paga").reduce((s, x) => s + x.valorCent, 0);
     const abertoCent = parcelas.filter((x) => x.situacao === "aberta" || x.situacao === "vencida").reduce((s, x) => s + x.valorCent, 0);

@@ -1,8 +1,10 @@
-// POST /api/pedido-cancelar { pedido } — a agência (ou colaborador/admin) cancela uma compra online sem pagamento.
+// POST /api/pedido-cancelar { pedido }            — a agência (ou colaborador/admin) cancela uma compra online sem pagamento.
+// POST /api/pedido-cancelar { pedido, excluir: true } — a agência excluiu a compra/um viajante dela no sistema:
+//      encerra o pedido em qualquer situação (apaga no Asaas o que não foi pago, libera poltronas, tira os viajantes).
 // Autenticação: cabeçalho Authorization: Bearer <token do Firebase do usuário logado no sistema>.
 import { auth, db, ADMIN_EMAIL } from "./_lib/firebase.js";
 import { enviar, lerCorpo, soMetodo, tratarErro, ErroUsuario } from "./_lib/http.js";
-import { lerPedido, desfazerPedido, notificar } from "./_lib/venda.js";
+import { lerPedido, desfazerPedido, encerrarPedido, notificar, R } from "./_lib/venda.js";
 
 export default async function handler(req, res) {
   if (!soMetodo(req, res, "POST")) return;
@@ -16,8 +18,15 @@ export default async function handler(req, res) {
     const ex = (await (await db()).ref(`excursoes/${info.own}/${info.exId}`).get()).val() || {};
     const pode = u.uid === info.own || !!ex.colaboradores?.[u.uid] || (u.email || "").toLowerCase() === ADMIN_EMAIL;
     if (!pode) throw new ErroUsuario("Sem permissão para esta excursão.", 403);
+    const quem = u.name || u.email || "agência";
+    if (lerCorpo(req).excluir === true) {
+      const { pagoCent } = await encerrarPedido(info, `Excluído no sistema por ${quem}`);
+      await notificar(info.own, ex, info.exId, { tipo: "venda", titulo: "Compra online excluída",
+        texto: `A compra de ${info.ped.titular?.nome} foi encerrada no sistema e no Asaas.${pagoCent ? ` Já tinham sido pagos ${R.brl(pagoCent)}: faça o estorno pelo Asaas se for devolver.` : ""}`, link: `#/financeiro/${info.exId}` });
+      return enviar(res, 200, { ok: true, pagoCent });
+    }
     if (info.ped.status !== "aguardando") throw new ErroUsuario("Só dá para cancelar compras sem nenhum pagamento. Para as demais, faça o estorno pelo Asaas.", 409);
-    await desfazerPedido(info, "cancelado", `Cancelado por ${u.name || u.email || "agência"}`);
+    await desfazerPedido(info, "cancelado", `Cancelado por ${quem}`);
     await notificar(info.own, ex, info.exId, { tipo: "venda", titulo: "Compra online cancelada",
       texto: `O pedido de ${info.ped.titular?.nome} foi cancelado e as poltronas foram liberadas.`, link: `#/poltronas/${info.exId}` });
     enviar(res, 200, { ok: true });

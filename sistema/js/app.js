@@ -997,7 +997,11 @@ function viewExcursoes() {
     if (b.dataset.a === "rel") menuRelatorios(id);
     if (b.dataset.a === "link") mostrarLink(id, own);
     if (b.dataset.a === "venda") painelVenda(id, own);
-    if (b.dataset.a === "del") confirmar(`Excluir a excursão <strong>${esc(S.excursoes[id].destino)}</strong> com todos os viajantes, pagamentos e o mapa de poltronas? O link de inscrição também deixa de funcionar.`, async () => {
+    if (b.dataset.a === "del") confirmar(`Excluir a excursão <strong>${esc(S.excursoes[id].destino)}</strong> com todos os viajantes, pagamentos e o mapa de poltronas? O link de inscrição também deixa de funcionar.${viajantesEx(id).some(([, x]) => x.origem === "venda") ? "<br><br>As <strong>compras online</strong> desta excursão também são canceladas no Asaas (parcelas ainda não pagas)." : ""}`, async () => {
+      const pedidos = [...new Set(viajantesEx(id).filter(([, x]) => x.origem === "venda" && x.pedido).map(([, x]) => x.pedido))];
+      for (const ped of pedidos) {
+        try { await encerrarCompraOnline(ped); } catch (e) { return falha(e); } // não apaga a excursão se o Asaas recusar
+      }
       const upd = { [`excursoes/${own}/${id}`]: null, [`viajantes/${own}/${id}`]: null, [`poltronas/${own}/${id}`]: null, [`inscricoes/${id}`]: null };
       Object.keys(S.excursoes[id].colaboradores || {}).forEach((uid) => { upd[`compartilhadas/${uid}/${id}`] = null; });
       if ((await get(ref(db, `site/excursoes/${id}`)).catch(() => null))?.exists()) upd[`site/excursoes/${id}`] = null;
@@ -1920,16 +1924,42 @@ function viewViajantes() {
   $$("[data-a]").forEach((b) => b.addEventListener("click", () => {
     const pid = b.dataset.id, p = S.viajantes[exId][pid];
     if (b.dataset.a === "edit") formViajante(exId, pid);
-    if (b.dataset.a === "del") confirmar(`Excluir o viajante <strong>${esc(p.nome)}</strong>?`, async () => {
-      const upd = { [`viajantes/${own}/${exId}/${pid}`]: null };
-      const pos = poltronaDe(exId, pid);
-      if (pos) upd[`poltronas/${own}/${exId}/${pos.vk}/${pos.n}`] = null;
-      await update(ref(db), upd);
-      toast("Viajante excluído");
-    });
+    if (b.dataset.a === "del") excluirViajante(exId, pid);
   }));
   S.exportar = { titulo: `Viajantes ${ex.destino} ${fData(ex.dataSaida)}`, sub: `${tituloEx(ex)} · ${lista.length} viajante(s) · ${occ}/${cap} poltronas`,
     sheets: [{ nome: "Viajantes", colunas: COLS_PASS, linhas: linhasPassageiros(exId) }] };
+}
+
+/** Encerra a compra online no servidor (cancela/apaga no Asaas, libera poltronas, tira os viajantes dela) */
+async function encerrarCompraOnline(pedidoId) {
+  const r = await fetch("/api/pedido-cancelar", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${await auth.currentUser.getIdToken()}` },
+    body: JSON.stringify({ pedido: pedidoId, excluir: true }) });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok && r.status !== 404) throw new Error(d.erro || "Não foi possível cancelar a compra no Asaas.");
+  return d;
+}
+/** Excluir viajante (Viajantes e Financeiro). Se veio de compra online, a compra inteira é encerrada também no Asaas. */
+function excluirViajante(exId, pid) {
+  const own = dono(exId), p = S.viajantes[exId]?.[pid];
+  if (!p) return;
+  if (p.origem === "venda" && p.pedido) {
+    const juntos = viajantesEx(exId).filter(([, x]) => x.pedido === p.pedido).map(([, x]) => x.nome);
+    return confirmar(`<strong>${esc(p.nome)}</strong> veio de uma <strong>compra online</strong>${juntos.length > 1 ? ` com ${juntos.length} viajantes (${juntos.map(esc).join(", ")})` : ""}.
+      <br><br>Excluir vai <strong>cancelar a cobrança no Asaas</strong> (as parcelas ainda não pagas), liberar as poltronas e tirar ${juntos.length > 1 ? "todos eles" : "o viajante"} da lista. O cliente deixa de ver a fatura em aberto.
+      <br><small class="muted">Se algo já foi pago, o estorno continua sendo feito pelo Asaas.</small>`, async () => {
+      try {
+        const d = await encerrarCompraOnline(p.pedido);
+        toast(d.pagoCent ? `Compra encerrada. Já tinham sido pagos ${brl(R.reais(d.pagoCent))} — estorne pelo Asaas se for devolver.` : "Compra cancelada no sistema e no Asaas", d.pagoCent ? "erro" : "ok");
+      } catch (e) { falha(e); }
+    }, "Excluir e cancelar no Asaas");
+  }
+  confirmar(`Excluir o viajante <strong>${esc(p.nome)}</strong>?`, async () => {
+    const upd = { [`viajantes/${own}/${exId}/${pid}`]: null };
+    const pos = poltronaDe(exId, pid);
+    if (pos) upd[`poltronas/${own}/${exId}/${pos.vk}/${pos.n}`] = null;
+    await update(ref(db), upd);
+    toast("Viajante excluído");
+  });
 }
 
 function formViajante(exId, pid = null) {
@@ -2858,6 +2888,7 @@ function viewFinanceiro() {
             <button class="ic" title="Registrar pagamento" data-a="pag" data-id="${pid}"><i class="fa-solid fa-plus"></i></button>
             ${saldo > 0 ? `<button class="ic" title="Marcar como pago (quitar)" data-a="quitar" data-id="${pid}"><i class="fa-solid fa-check-double"></i></button>` : ""}
             <button class="ic" title="Histórico e valor" data-a="hist" data-id="${pid}"><i class="fa-solid fa-clock-rotate-left"></i></button>
+            <button class="ic danger" title="Excluir viajante${p.origem === "venda" ? " (cancela no Asaas)" : ""}" data-a="delv" data-id="${pid}"><i class="fa-solid fa-trash"></i></button>
             ${saldo > 0 && tel.length >= 10 ? `<a class="ic" style="display:inline-grid;place-items:center;color:#1d9a55" title="Cobrar no WhatsApp" target="_blank" rel="noopener"
               href="https://wa.me/55${tel}?text=${encodeURIComponent(`Olá, ${p.nome.split(" ")[0]}! Passando para lembrar do saldo de ${brl(saldo)} da excursão ${ex.destino} (${fData(ex.dataSaida)}). Qualquer dúvida estou à disposição.`)}"><i class="fa-brands fa-whatsapp"></i></a>` : ""}
           </td></tr>`;
@@ -2879,6 +2910,7 @@ function viewFinanceiro() {
     const pid = b.dataset.id;
     if (b.dataset.a === "pag") formPagamento(exId, pid);
     if (b.dataset.a === "hist") historicoPagamentos(exId, pid);
+    if (b.dataset.a === "delv") excluirViajante(exId, pid);
     if (b.dataset.a === "quitar") {
       const p = S.viajantes[exId][pid], saldo = Math.max(0, num(p.valor) - pagoDe(p));
       confirmar(`Registrar pagamento de <strong>${brl(saldo)}</strong> e marcar <strong>${esc(p.nome)}</strong> como pago?`,

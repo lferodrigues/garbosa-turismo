@@ -134,6 +134,14 @@ notificacoes/{uid}/{id}            avisos do sino
 6. **Pix ou cartão não pagos até o dia seguinte**: o pedido expira, a cobrança é cancelada e as poltronas são liberadas.
    **Boleto vencido**: a agência é avisada e pode cobrar pelo WhatsApp ou cancelar o pedido no painel.
 
+7. **Excluir no sistema = cancelar no Asaas**: ao excluir um viajante de compra online (em Viajantes ou no Financeiro) ou a excursão,
+   a compra inteira é encerrada pela `/api/pedido-cancelar` (`excluir: true`): sem pagamento, a cobrança é cancelada no Asaas;
+   com parcela paga, só as parcelas em aberto são apagadas (o pago se estorna pelo Asaas). Poltronas liberadas, viajantes removidos,
+   pedido "cancelado" — o cliente não vê mais fatura em aberto em Minhas viagens.
+8. **Apagar no Asaas = cancelar no sistema**: quando todas as cobranças de um pedido sem pagamento são apagadas no Asaas
+   (webhook `PAYMENT_DELETED`), o pedido é cancelado e as poltronas liberadas. Pedidos que ficaram presos antes disso se
+   acertam sozinhos quando o cliente abre Minhas viagens (`cancelarSeApagadoNoAsaas`; com o Asaas fora do ar nada muda).
+
 Regras: o boleto só oferece as parcelas que vencem **antes da saída**; toda parcela tem no mínimo R$ 5,00;
 o servidor recalcula preço, cupom, parcelas e poltronas — o navegador só mostra.
 
