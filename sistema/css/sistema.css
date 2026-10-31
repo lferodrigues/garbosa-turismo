@@ -1140,3 +1140,4 @@ input:-webkit-autofill{-webkit-text-fill-color:#fff;-webkit-box-shadow:0 0 0 40p
 .cp-selo-vagas.ultimas{background:#FFD54A;color:#5a4200}
 .cp-selo-vagas.esgotado{background:#e2463a;color:#fff}
 .pill-ultimas{background:#fff3c4;color:#7a5a00}.pill-esgotado{background:#fdecec;color:#a52a2a}
+.manual-box{padding:12px;margin:0;background:#fffbea;border:1px solid #f3e3a3;border-radius:12px}

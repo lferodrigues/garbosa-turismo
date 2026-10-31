@@ -128,14 +128,24 @@ export function custosVeiculo(ex, v) {
   if (legado) itens.unshift({ id: "ingresso", nome: "Ingressos (valor total)", valor: n2(v.valorIngressos) / (cap || 1), valorInfantil: n2(v.valorIngressos) / (cap || 1), qtd: cap, total: n2(v.valorIngressos), totalInfantil: n2(v.valorIngressos), legado: true });
   const somaItens = itens.reduce((s, i) => s + i.total, 0);
   const somaInfantil = itens.reduce((s, i) => s + i.totalInfantil, 0);
+  const calculado = (transporte + somaItens) / div, calculadoInfantil = (transporte + somaInfantil) / div;
+  // valor final digitado à mão pela agência substitui o gerado pelo sistema
+  const manual = valorFinalManual(ex);
   return {
     nome: cat.nome, cap, div, transporte, itens, somaItens, custoTotal: transporte + somaItens,
-    porPoltrona: (transporte + somaItens) / div,
-    porPoltronaInfantil: (transporte + somaInfantil) / div
+    porPoltrona: manual ? manual.valor : calculado,
+    porPoltronaInfantil: manual ? manual.infantil : calculadoInfantil,
+    calculado, calculadoInfantil, manual: !!manual
   };
 }
+/** Valor final à mão: { valor, infantil } (em reais) ou null quando o sistema calcula */
+export function valorFinalManual(ex) {
+  if (!temValor(ex?.valorFinal) || n2(ex.valorFinal) <= 0) return null;
+  const valor = n2(ex.valorFinal);
+  return { valor, infantil: temValor(ex.valorFinalInfantil) && n2(ex.valorFinalInfantil) >= 0 ? n2(ex.valorFinalInfantil) : valor };
+}
 
-/** Valor por pessoa (centavos) no 1º veículo — mesmo cálculo do sistema */
+/** Valor por pessoa (centavos) no 1º veículo — mesmo cálculo do sistema (ou o valor final digitado à mão) */
 export function precoPessoaCent(ex) {
   const v0 = veiculosDe(ex)[0]?.[1];
   return v0 ? Math.round(custosVeiculo(ex, v0).porPoltrona * 100) : 0;

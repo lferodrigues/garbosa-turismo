@@ -106,3 +106,17 @@ test("selo automático: últimas vagas faltando 30% ou menos, esgotado quando lo
   assert.equal(R.seloVagas(0, 0), "");
   assert.equal(R.seloDosVeiculos([{ cap: 46, ocupadas: Array(40) }, { cap: 15, ocupadas: Array(15) }]), "ultimas"); // faltam 6 de 61
 });
+
+test("valor final à mão substitui o gerado pelo sistema (e criança em branco = mesmo valor)", async () => {
+  const R = await import("../sistema/js/venda-regras.js");
+  const ex = { veiculos: { v1: { tipo: "onibus46", valorTransporte: 3200, ordem: 0 } }, ingresso: { valor: 50, valorInfantil: 25 }, valorColo: 10 };
+  const auto = R.precoPessoaCent(ex);
+  assert.equal(auto, 17188); // (3200 + 50×46) ÷ 32 = 171,875
+  assert.equal(R.precoPessoaCent({ ...ex, valorFinal: 199.9 }), 19990);
+  assert.equal(R.precoInfantilCent({ ...ex, valorFinal: 199.9 }), 19990);
+  assert.equal(R.precoInfantilCent({ ...ex, valorFinal: 199.9, valorFinalInfantil: 120 }), 12000);
+  assert.equal(R.precoDeCent({ ...ex, valorFinal: 199.9 }, { colo: true }), 1000);       // colo continua o valor de colo
+  assert.equal(R.precoPessoaCent({ ...ex, valorFinal: null }), auto);                    // sem valor à mão volta ao sistema
+  const c = R.custosVeiculo({ ...ex, valorFinal: 199.9 }, ex.veiculos.v1);
+  assert.equal(c.manual, true); assert.equal(Math.round(c.calculado * 100), auto);
+});

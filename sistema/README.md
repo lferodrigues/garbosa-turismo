@@ -35,6 +35,10 @@ Todas as páginas exportam **XLSX** e **PDF** (o PDF de poltronas desenha o mapa
   Cada item tem o **valor unitário** e o valor **até 5 anos** (em branco = mesmo valor).
 - **Criança até 5 anos completos que ocupa poltrona**: mesmo cálculo usando os valores "até 5 anos" dos itens.
 - **Criança de colo**: não ocupa poltrona e paga só o *Valor para criança de colo*.
+- **Valor final à mão**: no cadastro da excursão, a caixa *Definir o valor final à mão* troca o valor gerado pelo sistema
+  pelo digitado (`valorFinal`; criança até 5 anos com poltrona em `valorFinalInfantil`, em branco = mesmo valor).
+  Vale para todos os veículos, na compra online, na reserva, no link de inscrição e no cadastro de viajantes.
+  Leito, opcionais e colo continuam à parte. Desmarcar volta ao cálculo automático. (`R.valorFinalManual`)
 - Excursões antigas (com o "valor total dos ingressos" no veículo) continuam com o mesmo preço até serem editadas;
   ao editar, o total é convertido para valor unitário (total ÷ lotação).
 - A regra fica em `sistema/js/venda-regras.js` (`custosVeiculo`, `precoDeCent`) e é a mesma no sistema, no link de inscrição,
