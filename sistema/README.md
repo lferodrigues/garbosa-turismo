@@ -217,8 +217,9 @@ asaasEventos/{id}                      eventos do webhook já processados (só s
   Sem nenhuma marcada, o banner fica com os slides fixos do HTML. Campo `banner` em `site/excursoes/{id}` (**republicar as regras**).
 - **Destinos em destaque**: as marcadas com ⭐ (botão de estrela no Administrar site); sem nenhuma marcada, aparecem as primeiras do catálogo —
   sempre com os selos Promoção / Últimas vagas / Esgotado.
-- **Selo automático**: excursões do sistema ganham sozinhas **Últimas vagas** quando faltam 30% ou menos das poltronas
-  (contadas no mapa de poltronas, todos os veículos) e **Esgotado** quando todas estão ocupadas. "Esgotado" marcado à mão continua valendo;
+- **Selo automático**: excursões do sistema — e itens do catálogo cujo botão leva a uma excursão do sistema — ganham sozinhas
+  **Últimas vagas** quando faltam 30% ou menos das poltronas (ocupadas = o maior entre poltronas marcadas no mapa e viajantes
+  cadastrados que não são de colo, somando todos os veículos; `vagasDaExcursao`) e **Esgotado** quando todas estão ocupadas. "Esgotado" marcado à mão continua valendo;
   nos outros casos o automático tem prioridade sobre o selo manual. O catálogo e os destaques consultam `GET /api/venda?vagas=1`
   (cache de 1 minuto); as páginas de compra, reserva e poltrona mostram o mesmo selo no topo, e a tela Viajantes do painel também.
   Regra em `venda-regras.js` (`seloVagas`, `PCT_ULTIMAS`).
