@@ -1764,7 +1764,7 @@ function formSite(id = null) {
         <option value="">— Sem selo —</option>
         ${Object.entries(STATUS_SITE).map(([k, s]) => `<option value="${k}" ${x.status === k ? "selected" : ""}>${s.nome}</option>`).join("")}
       </select><small class="muted">Esgotado: o cartão fica em preto e branco e o botão vira "Esgotado", sem link.
-        Excursões do sistema ganham sozinhas "Últimas vagas" (faltando 30% ou menos das poltronas) e "Esgotado" (todas ocupadas) — o selo daqui vale enquanto isso não acontece.</small></label>
+        Excursões do sistema (ou com o botão levando a uma excursão do sistema) ganham sozinhas "Últimas vagas" (faltando 30% ou menos das poltronas) e "Esgotado" (todas ocupadas) — o selo daqui vale enquanto isso não acontece.</small></label>
       <label class="span2">Descrição<textarea name="descricao" rows="3" maxlength="600">${esc(x.descricao)}</textarea></label>
       <div class="section-label span2"><i class="fa-solid fa-link"></i> Para onde o botão leva</div>
       <label class="span2">Excursão do sistema (abre a página de compra ou de inscrição)<select name="exLink" id="sExLink">
@@ -1789,7 +1789,9 @@ function formSite(id = null) {
       if (!link) return toast("Escolha uma excursão do sistema ou informe o endereço do botão.", "erro");
       const dados = { titulo: d.titulo, categoria: d.categoria, local: d.local, data: d.data, botao: d.botao || "Saiba mais", descricao: d.descricao,
         imagem: foto.caminho, imagemRaw: foto.raw || "", link, ativo: !!d.ativo, destaque: !!d.destaque, banner: !!d.banner, atualizadoEm: Date.now(), status: STATUS_SITE[d.status] ? d.status : null,
-        origem: x.origem || "site", owner: x.owner || U.uid, ordem: x.ordem ?? Date.now(), criadoEm: x.criadoEm || Date.now(), ...(x.exId ? { exId: x.exId } : {}) };
+        origem: x.origem || "site", owner: x.owner || U.uid, ordem: x.ordem ?? Date.now(), criadoEm: x.criadoEm || Date.now(),
+        // vínculo com a excursão do sistema (selo automático de vagas); endereço próprio = sem vínculo
+        ...(ex ? { exId: d.exLink } : x.origem === "sistema" && x.exId ? { exId: x.exId } : {}) };
       try {
         await set(id ? ref(db, `site/excursoes/${id}`) : push(ref(db, "site/excursoes")), dados);
         toast(id ? "Excursão do site atualizada" : "Excursão adicionada ao site"); fecharModal();
@@ -1885,9 +1887,10 @@ const linhasPoltronas = (exId) => linhasPassageiros(exId).map((l) => l.slice(0, 
 function seloVagasEx(exId) {
   const ex = S.excursoes[exId], mapa = S.poltronas[exId] || {};
   if (!ex) return "";
-  const ocup = veiculosDe(ex).reduce((s, [vk, v]) => s + Object.entries(mapa[vk] || {}).filter(([n, pid]) => pid && Number(n) <= veic(v.tipo).cap).length, 0);
+  const marcadas = veiculosDe(ex).reduce((s, [vk, v]) => s + Object.entries(mapa[vk] || {}).filter(([n, pid]) => pid && Number(n) <= veic(v.tipo).cap).length, 0);
+  const ocup = Math.max(marcadas, ocupantes(exId).length); // marcadas no mapa ou viajantes cadastrados (o maior)
   const selo = R.seloVagas(capacidadeEx(ex), ocup);
-  return selo ? `<span class="pill pill-${selo}" title="Selo automático no site: ${ocup} poltronas marcadas no mapa">${selo === "esgotado" ? "Esgotado" : "Últimas vagas"}</span>` : "";
+  return selo ? `<span class="pill pill-${selo}" title="Selo automático no site: ${ocup} poltronas ocupadas">${selo === "esgotado" ? "Esgotado" : "Últimas vagas"}</span>` : "";
 }
 
 function viewViajantes() {

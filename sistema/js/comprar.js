@@ -162,9 +162,10 @@ function restaurar() {
 /** Selo automático no topo: "Últimas vagas" (faltando 30% ou menos) ou "Esgotado" */
 function mostrarSeloVagas(h1) {
   document.querySelector(".cp-selo-vagas")?.remove();
-  const selo = R.seloDosVeiculos(EX.veiculos);
+  // o servidor já conta poltronas marcadas e viajantes cadastrados (EX.vagas); páginas antigas: só o mapa
+  const selo = EX.vagas ? EX.vagas.selo : R.seloDosVeiculos(EX.veiculos);
   if (!selo || !h1) return;
-  const livres = EX.veiculos.reduce((s, v) => s + v.cap - v.ocupadas.length, 0);
+  const livres = EX.vagas ? EX.vagas.livres : EX.veiculos.reduce((s, v) => s + v.cap - v.ocupadas.length, 0);
   h1.insertAdjacentHTML("afterend", `<span class="cp-selo-vagas ${selo}">${selo === "esgotado"
     ? '<i class="fa-solid fa-ban"></i> Esgotado'
     : `<i class="fa-solid fa-fire"></i> Últimas vagas · ${livres} poltrona${livres > 1 ? "s" : ""} livre${livres > 1 ? "s" : ""}`}</span>`);

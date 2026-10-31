@@ -326,3 +326,17 @@ test("cobrança apagada direto no Asaas: webhook cancela o pedido; pedido já tr
   await chamar(minhas, { method: "GET", headers: { authorization: "Bearer tok-cli" } });
   assert.equal(db.dump().pedidos[OWN][EX][pid].status, "aguardando");
 });
+
+test("selo de vagas: item do catálogo cadastrado à mão com link para a excursão e viajantes sem poltrona marcada contam", async () => {
+  // item feito à mão pelo admin (origem "site", sem exId, dono = admin), com o botão levando à compra da excursão
+  await db.ref("site/excursoes").set({ frei: { titulo: "Show do Frei Gilson", link: `sistema/comprar.html?e=${EX}`, owner: "uidAdmin", origem: "site" } });
+  // 33 viajantes cadastrados (2 deles de colo), nenhum posicionado no mapa
+  const vs = Object.fromEntries(Array.from({ length: 35 }, (_, i) => [`via${i}`, { nome: `Pessoa ${i}`, colo: i < 2 }]));
+  await db.ref(`viajantes/${OWN}/${EX}`).set(vs);
+  await db.ref(`poltronas/${OWN}/${EX}`).set(null);
+  const r = await chamar(venda, { method: "GET", query: { vagas: "1" } });
+  assert.deepEqual(r.body.frei, { selo: "ultimas", livres: 13, cap: 46 });
+  // a página de compra recebe a mesma conta
+  const g = await chamar(venda, { method: "GET", query: { e: EX } });
+  assert.deepEqual(g.body.vagas, { selo: "ultimas", livres: 13, cap: 46 });
+});
