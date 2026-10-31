@@ -527,18 +527,17 @@ async function reservar() {
   }
 }
 
-/** Boleto: mostra "Baixar o boleto"; ao baixar, a página segue sozinha para o grupo do WhatsApp */
+/** Boleto: tela final com "Baixar o boleto" e "Entrar no grupo oficial" (a página não sai sozinha) */
 function fimBoleto(r, grupo) {
   $("#gerando").classList.add("hidden");
   $$(".cp-etapa, .cp-passos").forEach((el) => el.classList.add("hidden"));
   $("#fimTitulo").textContent = `Pedido #${r.pedido} registrado!`;
   const baixar = $("#fimBaixar");
   baixar.href = r.boleto || r.url;
-  $("#fimGrupo").href = grupo;
-  baixar.addEventListener("click", () => {
-    baixar.innerHTML = `<i class="fa-solid fa-circle-check"></i> Boleto aberto · indo para o grupo…`;
-    setTimeout(() => { location.href = grupo; }, 1500);
-  });
+  $("#fimGrupo").classList.toggle("hidden", !grupo);
+  if (grupo) $("#fimGrupo").href = grupo;
+  baixar.addEventListener("click", () => { baixar.innerHTML = `<i class="fa-solid fa-circle-check"></i> Boleto aberto (baixe de novo se precisar)`; });
+  $("#fimParcelas").classList.toggle("hidden", !(r.parcelas > 1));
   const fim = $("#fimBoleto");
   fim.classList.remove("hidden");
   fim.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -560,7 +559,7 @@ $("#btnPagar").addEventListener("click", async () => {
     try { sessionStorage.removeItem(CHAVE); } catch { /* ignora */ }
     await guardarNaConta().catch((err) => console.warn("perfil", err));
     const grupo = R.linkGrupoWhatsapp(r.grupo);
-    if (r.forma === "BOLETO" && grupo) return fimBoleto(r, grupo);
+    if (r.forma === "BOLETO") return fimBoleto({ ...r, parcelas: corpo.parcelas }, grupo);
     $("#gerando p").innerHTML = `<strong>Pedido #${esc(r.pedido)} criado!</strong><span>Abrindo a página de pagamento do Asaas…</span>`;
     location.href = r.url;
   } catch (e) {

@@ -58,10 +58,11 @@ No cadastro da excursão, seção **Opcionais** → **Adicionar opcional**: tít
 No cadastro da excursão, botão **Adicionar link do grupo do WhatsApp** (link de convite `https://chat.whatsapp.com/...`).
 Depois da compra online o cliente vai direto para o grupo:
 - **Pix e cartão**: a cobrança é criada com `callback.successUrl` → depois de pagar, o Asaas leva para `sistema/obrigado.html?p={pedido}`,
-  que mostra a confirmação e abre o grupo em 5 segundos. O domínio precisa ser o mesmo cadastrado no Asaas
+  que mostra a confirmação com **Baixar o comprovante** e **Entrar no grupo oficial** (sem sair sozinha). O domínio precisa ser o mesmo cadastrado no Asaas
   (*Minha conta → Informações → site*); se o Asaas recusar, a cobrança é criada sem o redirecionamento (o link continua em *Minhas viagens*).
   Outro domínio: variável `SITE_URL` na Vercel.
-- **Boleto**: a página de compra mostra **Baixar o boleto**; ao tocar, o boleto abre e a página segue para o grupo.
+- **Boleto**: a página de compra termina numa tela com **Baixar o boleto** e **Entrar no grupo oficial da excursão** (não sai sozinha);
+  no parcelado avisa que as próximas parcelas chegam no WhatsApp 5 dias antes de cada vencimento.
 - O link também aparece em **Minhas viagens**. Ele não é mostrado na página pública da excursão — só para quem comprou.
 - API: `GET /api/pedido-grupo?p={pedido}`.
 
