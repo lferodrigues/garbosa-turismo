@@ -234,8 +234,8 @@ export function opcionaisRegistro(ex, ids) {
 export const opcionaisGuardadosCent = (v) => Object.values(v?.opcionais || {}).reduce((s, o) => s + Math.max(0, centavos(o?.valor)), 0);
 
 /* ---------- selo automático de vagas ---------- */
-export const PCT_ULTIMAS = 0.3;   // "Últimas vagas" quando faltarem 30% ou menos das poltronas
-/** "esgotado" (sem poltrona livre), "ultimas" (faltando 30% ou menos) ou "" */
+export const PCT_ULTIMAS = 0.4;   // "Últimas vagas" quando faltarem 40% ou menos das poltronas
+/** "esgotado" (sem poltrona livre), "ultimas" (faltando 40% ou menos) ou "" */
 export function seloVagas(cap, ocupadas) {
   cap = Number(cap) || 0; ocupadas = Number(ocupadas) || 0;
   if (cap <= 0) return "";

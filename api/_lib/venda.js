@@ -37,17 +37,14 @@ export async function veiculosComOcupacao(own, exId, ex) {
  * ocupa poltrona (não colo) — vale o maior dos dois, para contar também quem ainda não foi posicionado no mapa.
  */
 export async function vagasDaExcursao(own, exId, ex) {
-  const d = await db();
-  const [pol, vs] = await Promise.all([d.ref(`poltronas/${own}/${exId}`).get(), d.ref(`viajantes/${own}/${exId}`).get()]);
-  const mapa = pol.val() || {};
-  let cap = 0, marcadas = 0;
+  // ocupadas = poltronas marcadas no mapa (todos os veículos); viajantes sem poltrona marcada não contam
+  const mapa = (await (await db()).ref(`poltronas/${own}/${exId}`).get()).val() || {};
+  let cap = 0, ocupadas = 0;
   for (const [vk, v] of R.veiculosDe(ex)) {
     const c = R.VEICULOS[v.tipo]?.cap || 0;
     cap += c;
-    marcadas += Object.entries(mapa[vk] || {}).filter(([n, pid]) => pid && Number(n) <= c).length;
+    ocupadas += Object.entries(mapa[vk] || {}).filter(([n, pid]) => pid && Number(n) <= c).length;
   }
-  const cadastrados = Object.values(vs.val() || {}).filter((v) => v && v.nome && v.colo !== true).length;
-  const ocupadas = Math.max(marcadas, cadastrados);
   return { selo: R.seloVagas(cap, ocupadas), livres: Math.max(0, cap - ocupadas), cap };
 }
 

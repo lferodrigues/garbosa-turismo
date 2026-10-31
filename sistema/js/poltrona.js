@@ -1,5 +1,5 @@
 // Página pública: escolher a poltrona sem pagamento e sem login
-import * as R from "./venda-regras.js?v=18";
+import * as R from "./venda-regras.js?v=19";
 import { htmlOnibus } from "./mapa-onibus.js?v=1";
 import { htmlOpcionais, ligarOpcionais, resumoOpcionais } from "./opcionais-ui.js?v=1";
 
@@ -56,10 +56,10 @@ async function carregar() {
   mostrar("#pagina");
 }
 
-/** Selo automático no topo: "Últimas vagas" (faltando 30% ou menos) ou "Esgotado" */
+/** Selo automático no topo: "Últimas vagas" (faltando 40% ou menos) ou "Esgotado" */
 function mostrarSeloVagas(h1) {
   document.querySelector(".cp-selo-vagas")?.remove();
-  // o servidor já conta poltronas marcadas e viajantes cadastrados (EX.vagas); páginas antigas: só o mapa
+  // o servidor conta as poltronas marcadas no mapa (EX.vagas)
   const selo = EX.vagas ? EX.vagas.selo : R.seloDosVeiculos(EX.veiculos);
   if (!selo || !h1) return;
   const livres = EX.vagas ? EX.vagas.livres : EX.veiculos.reduce((s, v) => s + v.cap - v.ocupadas.length, 0);
