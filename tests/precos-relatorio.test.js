@@ -182,3 +182,24 @@ test("se o Asaas recusar o redirecionamento (domínio não cadastrado), a compra
   assert.equal(corpos[1].callback, undefined);
   assert.equal(r.body.grupo, null);
 });
+
+test("cliente do Asaas recebe a cobrança também pelo WhatsApp (ligado antes de criar a cobrança)", async () => {
+  const ordem = [];
+  let lote = null;
+  usarFetch(async (url, op) => {
+    const ok = (o) => ({ ok: true, status: 200, text: async () => JSON.stringify(o) });
+    if (url.includes("/customers?")) return ok({ data: [] });
+    if (url.endsWith("/customers")) return ok({ id: "cus_9" });
+    if (url.endsWith("/customers/cus_9/notifications")) return ok({ data: [
+      { id: "not_1", event: "PAYMENT_CREATED", enabled: true, whatsappEnabledForCustomer: false },
+      { id: "not_2", event: "PAYMENT_OVERDUE", enabled: true, whatsappEnabledForCustomer: true },
+      { id: "not_3", event: "PAYMENT_RECEIVED", enabled: false, whatsappEnabledForCustomer: false }] });
+    if (url.endsWith("/notifications/batch")) { ordem.push("whatsapp"); lote = JSON.parse(op.body); return ok({}); }
+    if (url.endsWith("/payments") && op.method === "POST") { ordem.push("cobranca"); return ok({ id: "pay_9", invoiceUrl: "https://asaas/i/9", bankSlipUrl: "https://asaas/b/9" }); }
+    return ok({});
+  });
+  const r = await chamar(pedido, { method: "POST", headers: { authorization: "Bearer tok-cli" }, body: { e: EX, pessoas: [pessoa(0, { assento: { vk: "v1", n: 5 } })], aceite: true, forma: "BOLETO", parcelas: 1 } });
+  assert.equal(r.statusCode, 200, JSON.stringify(r.body));
+  assert.deepEqual(ordem, ["whatsapp", "cobranca"]);
+  assert.deepEqual(lote, { customer: "cus_9", notifications: [{ id: "not_1", whatsappEnabledForCustomer: true }] });
+});
