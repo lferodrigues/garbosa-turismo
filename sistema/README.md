@@ -40,6 +40,16 @@ Todas as páginas exportam **XLSX** e **PDF** (o PDF de poltronas desenha o mapa
 - A regra fica em `sistema/js/venda-regras.js` (`custosVeiculo`, `precoDeCent`) e é a mesma no sistema, no link de inscrição,
   na reserva e na venda online (o servidor recalcula pela idade na data da saída).
 
+## Opcionais da excursão
+No cadastro da excursão, seção **Opcionais** → **Adicionar opcional**: título, descrição e valor (ex.: passeio de barco, almoço, camisa).
+- O viajante marca os que quiser na **compra online**, na **reserva** e na **escolha rápida de poltrona**; o valor de cada opcional
+  marcado é somado ao valor dele (e à cobrança no Asaas). Não entra no rateio do veículo e não tem desconto de cupom.
+- No **Cadastrar/Editar viajante** do painel há as mesmas caixinhas (marcar/desmarcar soma/tira do "Valor a pagar").
+- A lista de viajantes mostra um selo com cada opcional, e a planilha/PDF ganham a coluna **Opcionais**.
+- O link de inscrição antigo (`inscricao.html`) não oferece opcionais (o valor dele é travado pelas regras do banco).
+- Banco: `excursoes/{uid}/{exId}/opcionais/{id}` = `{ titulo, descricao, valor, ordem }`; no viajante, `opcionais/{id}` = `{ titulo, valor }`.
+  Não precisa republicar as regras. Regras de preço em `venda-regras.js` (`opcionaisDe`, `opcionaisCent`).
+
 ## Grupo do WhatsApp da excursão
 No cadastro da excursão, botão **Adicionar link do grupo do WhatsApp** (link de convite `https://chat.whatsapp.com/...`).
 Depois da compra online o cliente vai direto para o grupo:

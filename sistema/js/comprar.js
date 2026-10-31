@@ -1,6 +1,7 @@
 // Página pública de compra: viajantes → poltronas → pagamento no Asaas
 import * as R from "./venda-regras.js?v=18";
 import { htmlOnibus } from "./mapa-onibus.js?v=1";
+import { htmlOpcionais, ligarOpcionais, resumoOpcionais } from "./opcionais-ui.js?v=1";
 import { aoMudarSessao, telaAcesso, formPerfil, lerPerfil, salvarPerfil, paraPerfil, sair, api as apiConta } from "./conta-viajante.js?v=16";
 
 const $ = (s, el = document) => el.querySelector(s);
@@ -161,12 +162,13 @@ function restaurar() {
 let seq = 0;
 function novaPessoa(titular = false) {
   return { uid: `p${Date.now()}${seq++}`, titular, nome: "", cpf: "", rg: "", nascimento: "", email: "", whatsapp: "", colo: false, mesmoContato: !titular,
-    endereco: { cep: "", rua: "", numero: "", complemento: "", bairro: "", cidade: "", uf: "" }, assento: null };
+    endereco: { cep: "", rua: "", numero: "", complemento: "", bairro: "", cidade: "", uf: "" }, assento: null, opcionais: [] };
 }
 /** Dados como serão enviados: dependente com "mesmo contato" herda e-mail, WhatsApp e endereço do titular */
 function efetiva(p) {
   const t = S.pessoas[0];
-  const base = { nome: p.nome, cpf: p.cpf, rg: p.rg, nascimento: p.nascimento, colo: !p.titular && p.colo && podeColo(p), assento: p.assento };
+  const base = { nome: p.nome, cpf: p.cpf, rg: p.rg, nascimento: p.nascimento, colo: !p.titular && p.colo && podeColo(p), assento: p.assento,
+    opcionais: resumoOpcionais(EX.opcionais, p.opcionais).ids };
   return p.titular || !p.mesmoContato
     ? { ...base, email: p.email, whatsapp: p.whatsapp, endereco: { ...p.endereco } }
     : { ...base, email: t.email, whatsapp: t.whatsapp, endereco: { ...t.endereco } };
@@ -194,6 +196,7 @@ function cardPessoa(p, i) {
       <div class="cp-colo ${podeColo(p) ? "" : "hidden"}" data-colo-wrap>
         <label class="check"><input type="checkbox" data-c="colo" ${p.colo ? "checked" : ""}> Vai no colo (não ocupa poltrona)</label>
       </div>
+      ${htmlOpcionais(EX.opcionais, p.opcionais || [])}
       ${p.titular ? "" : `<label class="check span2"><input type="checkbox" data-c="mesmoContato" ${p.mesmoContato ? "checked" : ""}> Usar e-mail, WhatsApp e endereço ${RESERVA ? "do responsável" : "do titular"}</label>`}
       <div class="span2 form-grid cp-contato ${!p.titular && p.mesmoContato ? "hidden" : ""}" data-contato>
         ${campo(p, "email", "E-mail", 'type="email" autocomplete="' + (p.titular ? "email" : "off") + '"')}
@@ -220,6 +223,7 @@ function renderPessoas() {
       if (el.dataset.c === "endereco.cep") el.addEventListener("change", () => buscarCep(p, fs));
     });
     atualizarOpcionais(p, fs);
+    ligarOpcionais(fs, (ids) => { p.opcionais = ids; renderResumo1(); salvar(); });
   });
   $$("[data-rem]").forEach((b) => b.addEventListener("click", () => {
     S.pessoas = S.pessoas.filter((p) => p.uid !== b.dataset.rem);
@@ -281,7 +285,8 @@ function leitoTexto() {
   return v ? `Poltrona leito (piso inferior, ${R.VEICULOS[v.tipo].leito.de}–${R.VEICULOS[v.tipo].leito.ate}): + ${R.brl(R.centavos(R.VEICULOS[v.tipo].leito.extra))}` : "";
 }
 function conta() {
-  const pessoas = S.pessoas.map((p) => ({ colo: !ocupaPoltrona(p), infantil: ocupaPoltrona(p) && R.ehInfantil(idade(p)), extraCent: extraDe(p) }));
+  const pessoas = S.pessoas.map((p) => ({ colo: !ocupaPoltrona(p), infantil: ocupaPoltrona(p) && R.ehInfantil(idade(p)), extraCent: extraDe(p),
+    opcionaisCent: resumoOpcionais(EX.opcionais, p.opcionais).cent }));
   const cupom = S.cupom ? { ok: true, valorCent: S.cupom.valorCent, porCompra: S.cupom.porCompra, restam: S.cupom.restam ?? Infinity } : null;
   return R.calcularItens(pessoas, { valorCent: EX.valorCent, valorColoCent: EX.valorColoCent, valorInfantilCent: EX.valorInfantilCent ?? EX.valorCent, cupom });
 }
@@ -293,8 +298,9 @@ function tabelaResumo(comPoltrona) {
     const nome = p.nome.trim() || (p.titular ? "Titular" : `Dependente ${i}`);
     const tags = [it.colo ? `<em class="cp-tag colo">colo</em>` : "", it.infantil ? `<em class="cp-tag colo">até ${R.IDADE_INFANTIL} anos</em>` : "", it.cupom ? `<em class="cp-tag cupom">cupom</em>` : "",
       comPoltrona && p.assento ? `<em class="cp-tag polt">poltrona ${veicNome(p.assento.vk)}${p.assento.n}</em>` : "",
-      it.extraCent ? `<em class="cp-tag colo">leito + ${R.brl(it.extraCent)}</em>` : ""].join("");
-    return `<div class="cp-linha"><span>${i + 1}. ${esc(nome)} ${tags}</span><strong>${it.cupom ? `<s>${R.brl((it.infantil ? (EX.valorInfantilCent ?? EX.valorCent) : EX.valorCent) + it.extraCent)}</s> ` : ""}${R.brl(it.valorCent)}</strong></div>`;
+      it.extraCent ? `<em class="cp-tag colo">leito + ${R.brl(it.extraCent)}</em>` : "",
+      ...resumoOpcionais(EX.opcionais, p.opcionais).titulos.map((t) => `<em class="cp-tag opc">+ ${esc(t)}</em>`)].join("");
+    return `<div class="cp-linha"><span>${i + 1}. ${esc(nome)} ${tags}</span><strong>${it.cupom ? `<s>${R.brl((it.infantil ? (EX.valorInfantilCent ?? EX.valorCent) : EX.valorCent) + it.extraCent + it.opcionaisCent)}</s> ` : ""}${R.brl(it.valorCent)}</strong></div>`;
   }).join("");
   const desc = c.descontoCent > 0
     ? `<div class="cp-linha desconto"><span><i class="fa-solid fa-tag"></i> Cupom ${esc(S.cupom.codigo)} (${c.comCupom} pessoa${c.comCupom > 1 ? "s" : ""})</span><strong>− ${R.brl(c.descontoCent)}</strong></div>` : "";

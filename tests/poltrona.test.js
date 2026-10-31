@@ -134,3 +134,17 @@ test("poltrona leito do Double Decker soma R$ 20 no valor do viajante", async ()
   assert.equal(r.statusCode, 200, JSON.stringify(r.body));
   assert.equal(db.dump().viajantes[OWN][EX][vid].valor, ana.valor);
 });
+
+test("opcionais na escolha rápida: somam no valor e podem ser trocados depois", async () => {
+  await db.ref(`excursoes/${OWN}/${EX}/opcionais`).set({ o1: { titulo: "Camisa", valor: 40, ordem: 0 }, o2: { titulo: "Lanche", valor: 15, ordem: 1 } });
+  assert.equal((await chamar({ method: "GET", query: { e: EX } })).body.opcionais.length, 2);
+  let r = await salvar([{ nome: "Ana Paula Souza", docTipo: "RG", docNumero: "MG-9.999.999", assento: { vk: "v1", n: 4 }, opcionais: ["o1"] }]);
+  assert.equal(r.statusCode, 200, JSON.stringify(r.body));
+  const vid = (await chamar({ method: "POST", body: { acao: "conferir", e: EX, docs: ["9999999"] } })).body.encontrados[0].vid;
+  let v = db.dump().viajantes[OWN][EX][vid];
+  assert.equal(v.valor, 140); assert.deepEqual(Object.keys(v.opcionais), ["o1"]);
+  r = await salvar([{ vid, nome: "Ana Paula Souza", docTipo: "RG", docNumero: "9999999", assento: { vk: "v1", n: 4 }, opcionais: ["o2"] }]);
+  assert.equal(r.statusCode, 200, JSON.stringify(r.body));
+  v = db.dump().viajantes[OWN][EX][vid];
+  assert.equal(v.valor, 115); assert.deepEqual(Object.keys(v.opcionais), ["o2"]);
+});

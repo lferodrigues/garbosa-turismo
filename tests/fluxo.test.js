@@ -226,3 +226,22 @@ test("Minhas viagens: lista as compras da conta e mostra as parcelas do Asaas", 
   r = await chamar(minhas, { method: "GET", headers: { authorization: "Bearer tok-cli" }, query: { pedido: pid } });
   assert.equal(r.body.fonte, "sistema"); assert.equal(r.body.parcelasLista.length, 3);
 });
+
+test("opcionais: aparecem na venda e somam no valor de quem escolheu (cobrança e viajante)", async () => {
+  await db.ref(`excursoes/${OWN}/${EX}/opcionais`).set({
+    o1: { titulo: "Passeio de barco", descricao: "Saída 14h", valor: 45, ordem: 0 },
+    o2: { titulo: "Almoço", valor: 30.5, ordem: 1 }
+  });
+  const g = await chamar(venda, { method: "GET", query: { e: EX } });
+  assert.deepEqual(g.body.opcionais.map((o) => [o.id, o.titulo, o.valorCent]), [["o1", "Passeio de barco", 4500], ["o2", "Almoço", 3050]]);
+  const r = await comprar([
+    pessoa(0, { assento: { vk: "v1", n: 9 }, opcionais: ["o1", "o2", "o1", "inventado"] }),
+    pessoa(1, { assento: { vk: "v1", n: 10 } })
+  ], { cupom: "", forma: "PIX", parcelas: 1 });
+  assert.equal(r.statusCode, 200, JSON.stringify(r.body));
+  assert.equal(r.body.totalCent, valorCheio * 2 + 7550);
+  const vs = Object.values(db.dump().viajantes[OWN][EX]).filter((v) => v.origem === "venda");
+  const a = vs.find((v) => v.opcionais), b = vs.find((v) => !v.opcionais);
+  assert.deepEqual(a.opcionais, { o1: { titulo: "Passeio de barco", valor: 45 }, o2: { titulo: "Almoço", valor: 30.5 } });
+  assert.equal(Math.round((a.valor - b.valor) * 100), 7550);
+});

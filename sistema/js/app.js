@@ -1039,6 +1039,8 @@ function formExcursao(id = null, viagemId = null) {
   const ingLegado = !e.ingresso && num(v0.valorIngressos) > 0 && capV0 ? arred(num(v0.valorIngressos) / capV0) : 0;
   const ingAtual = e.ingresso ? { ...e.ingresso } : ingLegado ? { valor: ingLegado } : {};
   const prods = R.itensDe({ produtos: e.produtos }).map((x) => ({ id: x.id, nome: x.nome, valor: e.produtos[x.id].valor ?? "", valorInfantil: e.produtos[x.id].valorInfantil ?? "" }));
+  const opcs = Object.entries(e.opcionais || {}).sort((a, b) => (a[1].ordem ?? 0) - (b[1].ordem ?? 0))
+    .map(([oid, o]) => ({ id: oid, titulo: o.titulo || "", descricao: o.descricao || "", valor: o.valor ?? "" }));
   abrirModal(id ? "Editar excursão" : "Cadastrar excursão", `
     <form id="fEx" class="form-grid">
       ${ehAdmin() ? `<label class="span2">Agência responsável<select name="owner" id="exOwner" ${id ? "disabled" : ""}>${opcoesAgenciaDona(ownerPadrao)}</select></label>` : ""}
@@ -1074,6 +1076,10 @@ function formExcursao(id = null, viagemId = null) {
       <label>Valor para criança de colo (R$)<input type="number" step="0.01" min="0" name="valorColo" value="${esc(e.valorColo ?? 0)}"></label>
       <small class="muted" style="align-self:end">Criança de colo não ocupa poltrona e paga só este valor.</small>
       <div class="calc-box span2" id="exCalc"></div>
+      <div class="section-label span2"><i class="fa-solid fa-square-plus"></i> Opcionais</div>
+      <small class="muted span2">Itens que o viajante escolhe se quer (passeio extra, almoço, camisa…). O valor do opcional é somado ao valor de quem escolher, na compra online, na reserva e na escolha de poltrona. Não entra no rateio.</small>
+      <div class="span2" id="exOpcionais"></div>
+      <div class="span2"><button type="button" class="btn btn-light btn-sm" id="btnAddOpc"><i class="fa-solid fa-plus"></i> Adicionar opcional</button></div>
       <div class="section-label span2"><i class="fa-solid fa-cart-shopping"></i> Venda online (Asaas)</div>
       <label class="check span2"><input type="checkbox" name="vendaAtiva" id="exVendaAtiva" ${e.venda?.ativa || !id ? "checked" : ""}> Vender pela internet com cartão em até 6x, Pix e boleto parcelado</label>
       <label>Início do parcelamento (1º vencimento do boleto)<input type="date" name="primeiraParcela" id="exPrimeira" value="${esc(e.venda?.primeiraParcela || "")}"></label>
@@ -1139,7 +1145,38 @@ function formExcursao(id = null, viagemId = null) {
     renderProdutos(); calc();
     $("#exProdutos .prod-row:last-child [data-f=nome]").focus();
   });
-  FORM_EX_TEMP = () => { const t = exTemp(); return t.ex; };
+  const lerOpcionais = () => {
+    $$("#exOpcionais .opc-row").forEach((row) => {
+      const o = opcs.find((x) => x.id === row.dataset.id);
+      if (o) { o.titulo = $("[data-f=titulo]", row).value.trim(); o.descricao = $("[data-f=descricao]", row).value.trim(); o.valor = $("[data-f=valor]", row).value; }
+    });
+  };
+  const renderOpcionais = () => {
+    $("#exOpcionais").innerHTML = opcs.length ? opcs.map((o, i) => `<div class="opc-row" data-id="${esc(o.id)}">
+      <span class="opc-num">${i + 1}</span>
+      <input data-f="titulo" value="${esc(o.titulo)}" placeholder="Título (ex.: Passeio de barco)" maxlength="80" aria-label="Título do opcional">
+      <span class="input-prefix opc-valor"><b>R$</b><input data-f="valor" type="number" step="0.01" min="0" value="${esc(o.valor)}" placeholder="0,00" aria-label="Valor do opcional"></span>
+      <button type="button" class="ic danger" data-rmo="${esc(o.id)}" title="Remover opcional"><i class="fa-solid fa-trash"></i></button>
+      <textarea data-f="descricao" rows="2" maxlength="400" placeholder="Descrição: o que inclui, horário, observações…" aria-label="Descrição do opcional">${esc(o.descricao)}</textarea>
+    </div>`).join("") : `<small class="muted">Nenhum opcional cadastrado.</small>`;
+    $$("[data-rmo]", $("#exOpcionais")).forEach((b) => b.addEventListener("click", () => {
+      lerOpcionais();
+      opcs.splice(opcs.findIndex((x) => x.id === b.dataset.rmo), 1);
+      renderOpcionais();
+    }));
+  };
+  $("#btnAddOpc").addEventListener("click", () => {
+    lerOpcionais();
+    opcs.push({ id: "o" + Date.now().toString(36), titulo: "", descricao: "", valor: "" });
+    renderOpcionais();
+    $("#exOpcionais .opc-row:last-child [data-f=titulo]").focus();
+  });
+  FORM_EX_TEMP = () => {
+    const t = exTemp();
+    lerOpcionais();
+    const opcionais = Object.fromEntries(opcs.filter((o) => o.titulo).map((o, i) => [o.id, { titulo: o.titulo.slice(0, 80), descricao: o.descricao.slice(0, 400) || null, valor: num(o.valor), ordem: i }]));
+    return { ...t.ex, opcionais, opcionaisVazios: opcs.some((o) => !o.titulo && (o.descricao || o.valor !== "")) };
+  };
   const chips = () => {
     $("#colabChips").innerHTML = Object.entries(colabs).map(([uid, c]) => `<span class="chip"><strong>@${esc(c.instagram)}</strong><small>${esc(c.nome)} · ${esc(c.empresa || "")}</small>
       ${gerenciaColab ? `<button type="button" data-rm="${uid}" title="Remover">×</button>` : ""}</span>`).join("") || `<small class="muted">Nenhum colaborador.</small>`;
@@ -1175,7 +1212,7 @@ function formExcursao(id = null, viagemId = null) {
     $("#colabInsta").addEventListener("keydown", (ev) => { if (ev.key === "Enter") { ev.preventDefault(); addColab(); } });
   }
   if (viagemId) aplicarViagem();
-  renderProdutos(); calc(); chips();
+  renderProdutos(); renderOpcionais(); calc(); chips();
   $("#btnGrupoZap").addEventListener("click", () => { $("#btnGrupoZap").classList.add("hidden"); $("#grupoZapBox").classList.remove("hidden"); $("#exGrupo").focus(); });
   $("#btnGrupoRm").addEventListener("click", () => { $("#exGrupo").value = ""; $("#grupoZapBox").classList.add("hidden"); $("#btnGrupoZap").classList.remove("hidden"); });
   caixaFolder($("#exFolderBox"), () => FOLDER_FORM, (f) => { FOLDER_FORM = f; if (f && !$("#exPublicar").checked) $("#exPublicar").checked = true; }, () => f.elements.destino.value);
@@ -1192,12 +1229,14 @@ async function salvarExcursao(id, vk, colabs = {}, colabsAntes = {}) {
   if (d.publicarSite && !FOLDER_FORM) return toast("Adicione o folder para mostrar a excursão no catálogo do site.", "erro");
   const precos = FORM_EX_TEMP ? FORM_EX_TEMP() : {};
   if ($$("#exProdutos [data-f=nome]").some((el) => !el.value.trim())) return toast("Dê um nome para cada produto (ou remova a linha vazia).", "erro");
+  if (precos.opcionaisVazios) return toast("Dê um título para cada opcional (ou remova a linha).", "erro");
   const grupoWhatsapp = R.linkGrupoWhatsapp(d.grupoWhatsapp);
   if (d.grupoWhatsapp && !grupoWhatsapp) return toast("Link do grupo inválido. Use o link de convite do grupo (https://chat.whatsapp.com/...).", "erro");
   const capNovo = veic(d.tipo).cap;
   const veiculo = { tipo: d.tipo, valorTransporte: num(d.valorTransporte), valorIngressos: arred(num(precos.ingresso?.valor) * capNovo), viagemId: d.viagemId || null };
   const ing = precos.ingresso && (precos.ingresso.valor !== null || precos.ingresso.valorInfantil !== null) ? precos.ingresso : null;
-  const info = { grupoWhatsapp: grupoWhatsapp || null, ingresso: ing, produtos: Object.keys(precos.produtos || {}).length ? precos.produtos : null, destino: d.destino, dataSaida: d.dataSaida, horaSaida: d.horaSaida, dataRetorno: d.dataRetorno || d.dataSaida, horaRetorno: d.horaRetorno, localSaida: d.localSaida, valorColo: num(d.valorColo),
+  const info = { grupoWhatsapp: grupoWhatsapp || null, ingresso: ing, produtos: Object.keys(precos.produtos || {}).length ? precos.produtos : null,
+    opcionais: Object.keys(precos.opcionais || {}).length ? precos.opcionais : null, destino: d.destino, dataSaida: d.dataSaida, horaSaida: d.horaSaida, dataRetorno: d.dataRetorno || d.dataSaida, horaRetorno: d.horaRetorno, localSaida: d.localSaida, valorColo: num(d.valorColo),
     descricao: d.descricao || null, folder: FOLDER_FORM || null, publicarSite: !!d.publicarSite, venda: { ativa: !!d.vendaAtiva, primeiraParcela: d.primeiraParcela || null, maxParcelas: Math.min(6, Math.max(1, parseInt(d.maxParcelas, 10) || 1)) } };
   const podeColab = !id || souDono(id);
   try {
@@ -1797,9 +1836,10 @@ function semExcursao(titulo, icone) {
   if ($("#btnNovaEx")) $("#btnNovaEx").onclick = () => formExcursao();
 }
 function linhasPassageiros(exId) {
-  return viajantesEx(exId).map(([pid, p], i) => [i + 1, p.nome, DOCS[p.docTipo] || p.docTipo || "", p.docNumero || "", p.telefone || "", p.idade ?? "", p.colo ? "Sim" : "Não", p.colo ? "—" : rotuloPoltrona(exId, pid), brl(p.valor), brl(pagoDe(p)), statusPag(p).nome]);
+  return viajantesEx(exId).map(([pid, p], i) => [i + 1, p.nome, DOCS[p.docTipo] || p.docTipo || "", p.docNumero || "", p.telefone || "", p.idade ?? "", p.colo ? "Sim" : "Não", p.colo ? "—" : rotuloPoltrona(exId, pid), brl(p.valor), brl(pagoDe(p)), statusPag(p).nome,
+    Object.values(p.opcionais || {}).map((o) => `${o.titulo} (${brl(o.valor)})`).join(", ")]);
 }
-const COLS_PASS = ["#", "Nome completo", "Documento", "Número", "Telefone", "Idade", "Colo", "Poltrona", "Valor", "Pago", "Situação"];
+const COLS_PASS = ["#", "Nome completo", "Documento", "Número", "Telefone", "Idade", "Colo", "Poltrona", "Valor", "Pago", "Situação", "Opcionais"];
 // lista para o mapa de poltronas: sem valores em dinheiro (Valor, Pago e Situação de pagamento)
 const COLS_POLT = COLS_PASS.slice(0, 8);
 const linhasPoltronas = (exId) => linhasPassageiros(exId).map((l) => l.slice(0, 8));
@@ -1830,7 +1870,7 @@ function viewViajantes() {
       <thead><tr><th>#</th><th>Nome completo</th><th>Documento</th><th>Telefone</th><th>Idade</th><th>Pagamento</th><th>Poltrona</th><th></th></tr></thead>
       <tbody>${lista.map(([pid, p], i) => `<tr>
         <td>${i + 1}</td>
-        <td><strong>${esc(p.nome)}</strong>${p.colo ? ` <span class="pill pill-yellow">colo</span>` : ""}${p.origem === "link" ? ` <span class="pill pill-link" title="Cadastrado pelo link">link</span>` : ""}${p.origem === "planilha" ? ` <span class="pill" title="Importado de planilha">planilha</span>` : ""}${p.origem === "poltrona" ? ` <span class="pill pill-link" title="Escolheu a poltrona pelo link rápido (nome e RG)"><i class="fa-solid fa-chair"></i> poltrona</span>` : ""}${p.origem === "reserva" ? ` <span class="pill pill-link" title="Reservou a poltrona pelo link (pagamento a combinar)"><i class="fa-solid fa-couch"></i> reserva</span>` : ""}${p.origem === "venda" ? ` <span class="pill pill-online st-${STATUS_PEDIDO[p.statusVenda]?.cls || "pendente"}" title="Compra online (Asaas) — ${esc(STATUS_PEDIDO[p.statusVenda]?.nome || "")}"><i class="fa-solid fa-cart-shopping"></i> online</span>` : ""}${p.obs ? `<br><small class="muted">${esc(p.obs)}</small>` : ""}</td>
+        <td><strong>${esc(p.nome)}</strong>${p.colo ? ` <span class="pill pill-yellow">colo</span>` : ""}${p.origem === "link" ? ` <span class="pill pill-link" title="Cadastrado pelo link">link</span>` : ""}${p.origem === "planilha" ? ` <span class="pill" title="Importado de planilha">planilha</span>` : ""}${p.origem === "poltrona" ? ` <span class="pill pill-link" title="Escolheu a poltrona pelo link rápido (nome e RG)"><i class="fa-solid fa-chair"></i> poltrona</span>` : ""}${p.origem === "reserva" ? ` <span class="pill pill-link" title="Reservou a poltrona pelo link (pagamento a combinar)"><i class="fa-solid fa-couch"></i> reserva</span>` : ""}${p.origem === "venda" ? ` <span class="pill pill-online st-${STATUS_PEDIDO[p.statusVenda]?.cls || "pendente"}" title="Compra online (Asaas) — ${esc(STATUS_PEDIDO[p.statusVenda]?.nome || "")}"><i class="fa-solid fa-cart-shopping"></i> online</span>` : ""}${Object.values(p.opcionais || {}).map((o) => ` <span class="pill pill-opc" title="Opcional: ${esc(o.titulo)} (${brl(o.valor)})"><i class="fa-solid fa-square-plus"></i> ${esc(o.titulo)}</span>`).join("")}${p.obs ? `<br><small class="muted">${esc(p.obs)}</small>` : ""}</td>
         <td><small class="muted">${esc(DOCS[p.docTipo] || p.docTipo)}</small><br>${esc(p.docNumero)}</td>
         <td>${esc(p.telefone)}</td>
         <td>${esc(p.idade ?? "—")}</td>
@@ -1868,12 +1908,22 @@ function viewViajantes() {
 function formViajante(exId, pid = null) {
   const own = dono(exId);
   const p = pid ? S.viajantes[exId][pid] : {};
+  const ex = S.excursoes[exId] || {};
+  const opcsEx = R.opcionaisDe(ex);
+  const somaOpc = (ids) => R.reais(R.opcionaisCent(ex, ids));
+  const opcMarcados = () => $$("#pOpcs [data-opc-id]:checked").map((c) => c.dataset.opcId);
   const salvar = async (continuar) => {
     const f = $("#fPass");
     if (!f.reportValidity()) return;
     const d = lerForm(f);
     const dados = { nome: d.nome, docTipo: d.docTipo, docNumero: d.docNumero, telefone: d.telefone, idade: d.idade === "" ? null : (parseInt(d.idade, 10) || 0), colo: !!d.colo,
       valor: num(d.valor), formaPagamento: d.formaPagamento || null, obs: d.obs || null };
+    if (opcsEx.length || p.opcionais) {
+      // opcionais escolhidos (guarda título e valor); os que a agência já tirou da excursão continuam como estavam
+      const atuais = Object.fromEntries(Object.entries(p.opcionais || {}).filter(([oid]) => !opcsEx.some((o) => o.id === oid)));
+      const todos = { ...atuais, ...(R.opcionaisRegistro(ex, opcMarcados()) || {}) };
+      dados.opcionais = Object.keys(todos).length ? todos : null;
+    }
     try {
       if (pid) await update(ref(db, `viajantes/${own}/${exId}/${pid}`), dados);
       else await set(push(ref(db, `viajantes/${own}/${exId}`)), { ...dados, criadoEm: Date.now() });
@@ -1893,16 +1943,23 @@ function formViajante(exId, pid = null) {
       <label>Telefone<input name="telefone" data-mask="tel" inputmode="tel" required value="${esc(p.telefone)}" placeholder="(32) 99999-9999"></label>
       <label>Idade<input type="number" min="0" max="120" name="idade" id="pIdade" value="${esc(p.idade)}"></label>
       <label class="check span2"><input type="checkbox" name="colo" id="pColo" ${p.colo ? "checked" : ""}> Criança de colo (não ocupa poltrona)</label>
+      ${opcsEx.length ? `<div class="span2 opc-escolha" id="pOpcs"><span><i class="fa-solid fa-square-plus"></i> Opcionais</span>
+        ${opcsEx.map((o) => `<label class="check"><input type="checkbox" data-opc-id="${esc(o.id)}" ${p.opcionais?.[o.id] ? "checked" : ""}> ${esc(o.titulo)} <small class="muted">+ ${brl(R.reais(o.valorCent))}</small></label>`).join("")}</div>` : ""}
       <label>Valor a pagar (R$)<input type="number" step="0.01" min="0" name="valor" id="pValor" value="${esc(p.valor ?? valorPadrao(exId, !!p.colo, p.idade))}"></label>
       <label>Forma de pagamento<select name="formaPagamento"><option value="">—</option>${FORMAS.concat(p.formaPagamento && !FORMAS.includes(p.formaPagamento) ? [p.formaPagamento] : []).map((x) => `<option ${x === p.formaPagamento ? "selected" : ""}>${esc(x)}</option>`).join("")}</select></label>
       <label class="span2">Observação<input name="obs" value="${esc(p.obs)}" placeholder="Ex.: guia, poltrona preferida..."></label>
     </form>`, botoes);
   let valorMexido = !!pid;
   $("#pValor").addEventListener("input", () => { valorMexido = true; });
-  const recalc = () => { if (!valorMexido) $("#pValor").value = valorPadrao(exId, $("#pColo").checked, $("#pIdade").value); };
+  const recalc = () => { if (!valorMexido) $("#pValor").value = arred(valorPadrao(exId, $("#pColo").checked, $("#pIdade").value) + somaOpc(opcMarcados())); };
+  // marcar/desmarcar um opcional soma/tira o valor dele do "Valor a pagar"
+  $$("#pOpcs [data-opc-id]").forEach((c) => c.addEventListener("change", () => {
+    const o = opcsEx.find((x) => x.id === c.dataset.opcId);
+    $("#pValor").value = arred(num($("#pValor").value) + (c.checked ? 1 : -1) * R.reais(o.valorCent));
+  }));
   $("#pColo").addEventListener("change", recalc);
   $("#pIdade").addEventListener("input", recalc);
-  const sug = () => { if (!pid && $("#pIdade").value !== "" && num($("#pIdade").value) <= 5 && $("#pDoc").value === "CERTIDAO") { $("#pColo").checked = true; if (!valorMexido) $("#pValor").value = valorPadrao(exId, true); } };
+  const sug = () => { if (!pid && $("#pIdade").value !== "" && num($("#pIdade").value) <= 5 && $("#pDoc").value === "CERTIDAO") { $("#pColo").checked = true; if (!valorMexido) $("#pValor").value = arred(valorPadrao(exId, true) + somaOpc(opcMarcados())); } };
   $("#pIdade").addEventListener("change", sug);
   $("#pDoc").addEventListener("change", sug);
   $("#fPass").addEventListener("submit", (e) => { e.preventDefault(); salvar(!pid); });

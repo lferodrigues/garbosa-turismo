@@ -25,7 +25,8 @@ function limparPessoa(p) {
       cep: R.mascaraCep(e.cep), rua: texto(e.rua, 120), numero: texto(e.numero, 20), complemento: texto(e.complemento, 60),
       bairro: texto(e.bairro, 80), cidade: texto(e.cidade, 80), uf: texto(e.uf, 2).toUpperCase()
     },
-    assento: p?.assento && typeof p.assento === "object" ? { vk: texto(p.assento.vk, 40), n: parseInt(p.assento.n, 10) } : null
+    assento: p?.assento && typeof p.assento === "object" ? { vk: texto(p.assento.vk, 40), n: parseInt(p.assento.n, 10) } : null,
+    opcionais: (Array.isArray(p?.opcionais) ? p.opcionais : []).slice(0, 30).map((x) => texto(x, 40)).filter(Boolean),
   };
 }
 
@@ -78,7 +79,11 @@ export default async function handler(req, res) {
       if (usados.has(k)) throw new ErroUsuario("Duas pessoas escolheram a mesma poltrona.", 400, { etapa: "poltronas" });
       usados.add(k);
     }
-    pessoas.forEach((p) => { p.extraCent = R.extraAssentoCent(ex, p.assento); }); // leito: + R$ 20
+    pessoas.forEach((p) => {
+      p.extraCent = R.extraAssentoCent(ex, p.assento);                 // leito: + R$ 20
+      p.opcionais = R.opcionaisValidos(ex, p.opcionais);               // opcionais escolhidos
+      p.opcionaisCent = R.opcionaisCent(ex, p.opcionais);
+    });
 
     /* ---- valores ---- */
     const valorCent = R.precoPessoaCent(ex), valorColoCent = R.centavos(ex.valorColo), valorInfantilCent = R.precoInfantilCent(ex);
@@ -119,12 +124,12 @@ export default async function handler(req, res) {
       upd[`viajantes/${own}/${exId}/${vid}`] = {
         nome: p.nome, docTipo: p.rg ? "RG" : "CERTIDAO", docNumero: p.rg || "", telefone: p.whatsapp, idade, colo: p.colo,
         cpf: R.mascaraCpf(p.cpf), rg: p.rg, nascimento: p.nascimento, email: p.email, endereco: p.endereco,
-        valor: R.reais(item.valorCent), formaPagamento: formaTxt, origem: "venda", pedido: pedidoId, statusVenda: "aguardando",
+        valor: R.reais(item.valorCent), opcionais: R.opcionaisRegistro(ex, p.opcionais), formaPagamento: formaTxt, origem: "venda", pedido: pedidoId, statusVenda: "aguardando",
         responsavel: i === 0 ? null : titular.nome, cupom: item.cupom ? cupom.codigo : null,
-        obs: `Compra online #${curto}${i ? ` · dependente de ${titular.nome.split(" ")[0]}` : " · titular"}${item.cupom ? ` · cupom ${cupom.codigo}` : ""}${item.extraCent ? ` · leito + ${R.brl(item.extraCent)}` : ""}`.slice(0, 300),
+        obs: `Compra online #${curto}${i ? ` · dependente de ${titular.nome.split(" ")[0]}` : " · titular"}${item.cupom ? ` · cupom ${cupom.codigo}` : ""}${item.extraCent ? ` · leito + ${R.brl(item.extraCent)}` : ""}${item.opcionaisCent ? ` · opcionais + ${R.brl(item.opcionaisCent)}` : ""}`.slice(0, 300),
         consentimentoLgpd: true, criadoEm: Date.now()
       };
-      viajantesPed[vid] = { nome: p.nome, valorCent: item.valorCent, extraCent: item.extraCent || 0, cupom: item.cupom, colo: p.colo, infantil: !!item.infantil, assento: p.assento ? `${p.assento.vk}/${p.assento.n}` : null };
+      viajantesPed[vid] = { nome: p.nome, valorCent: item.valorCent, extraCent: item.extraCent || 0, opcionaisCent: item.opcionaisCent || 0, cupom: item.cupom, colo: p.colo, infantil: !!item.infantil, assento: p.assento ? `${p.assento.vk}/${p.assento.n}` : null };
     });
     const pedido = {
       criadoEm: Date.now(), status: "aguardando", clienteUid: cliente.uid,
@@ -133,7 +138,7 @@ export default async function handler(req, res) {
       cupom: cupom?.ok && conta.comCupom ? cupom.codigo : null, cupomPessoas: conta.comCupom,
       titular: { nome: titular.nome, cpf: titular.cpf, email: titular.email, whatsapp: titular.whatsapp },
       viajantes: viajantesPed,
-      dados: pessoas.map(({ infantil, extraCent, ...p }, i) => ({ ...p, vid: vids[i] }))
+      dados: pessoas.map(({ infantil, extraCent, opcionaisCent, ...p }, i) => ({ ...p, vid: vids[i] }))
     };
     upd[`pedidos/${own}/${exId}/${pedidoId}`] = pedido;
     upd[`pedidosIdx/${pedidoId}`] = { own, exId };
