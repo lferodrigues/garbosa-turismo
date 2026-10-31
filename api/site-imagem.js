@@ -59,5 +59,5 @@ export default async function handler(req, res) {
         : `O GitHub recusou o envio (${d.message || r.status}).`, 502);
     }
     enviar(res, 200, { ok: true, caminho, raw: `https://raw.githubusercontent.com/${repo}/${branch}/${caminho}` });
-  } catch (e) { tratarErro(res, e); }
+  } catch (e) { tratarErro(res, e, { interno: true }); }
 }

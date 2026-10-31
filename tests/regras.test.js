@@ -56,3 +56,14 @@ test("somar meses no fim do mês", () => {
   assert.equal(R.somarMeses("2027-01-31", 1), "2027-02-28");
   assert.equal(R.dividir(1000, 3).join(), "333,333,334");
 });
+
+test("rotas internas dizem qual variável falta na Vercel; páginas públicas não", async () => {
+  const { tratarErro } = await import("../api/_lib/http.js");
+  const { ErroConfig } = await import("../api/_lib/firebase.js");
+  const res = () => ({ h: {}, setHeader() {}, status(c) { this.c = c; return this; }, json(o) { this.b = o; } });
+  const a = res(), b = res();
+  tratarErro(a, new ErroConfig("GITHUB_TOKEN não configurada na Vercel."), { interno: true });
+  tratarErro(b, new ErroConfig("GITHUB_TOKEN não configurada na Vercel."));
+  assert.match(a.b.erro, /GITHUB_TOKEN/);
+  assert.doesNotMatch(b.b.erro, /GITHUB_TOKEN/);
+});

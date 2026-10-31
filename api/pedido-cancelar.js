@@ -21,5 +21,5 @@ export default async function handler(req, res) {
     await notificar(info.own, ex, info.exId, { tipo: "venda", titulo: "Compra online cancelada",
       texto: `O pedido de ${info.ped.titular?.nome} foi cancelado e as poltronas foram liberadas.`, link: `#/poltronas/${info.exId}` });
     enviar(res, 200, { ok: true });
-  } catch (e) { tratarErro(res, e); }
+  } catch (e) { tratarErro(res, e, { interno: true }); }
 }

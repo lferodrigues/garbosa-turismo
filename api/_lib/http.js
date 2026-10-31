@@ -23,9 +23,15 @@ export function soMetodo(req, res, ...metodos) {
   return false;
 }
 
-export function tratarErro(res, e) {
+/** interno: rota usada só por quem está logado no sistema — mostra qual configuração falta na Vercel */
+export function tratarErro(res, e, { interno = false } = {}) {
   if (e instanceof ErroUsuario) return enviar(res, e.status, { erro: e.message, ...e.extra });
-  if (e instanceof ErroConfig) { console.error("CONFIGURAÇÃO:", e.message); return enviar(res, 503, { erro: "A venda online ainda não foi configurada. Fale com a agência." }); }
+  if (e instanceof ErroConfig) {
+    console.error("CONFIGURAÇÃO:", e.message);
+    return enviar(res, 503, { erro: interno
+      ? `Configuração pendente na Vercel: ${e.message} Cadastre em Settings → Environment Variables e faça um Redeploy.`
+      : "A venda online ainda não foi configurada. Fale com a agência." });
+  }
   if (e instanceof ErroAsaas) { console.error("ASAAS:", e.status, JSON.stringify(e.detalhes)); return enviar(res, 502, { erro: `O Asaas recusou a cobrança: ${e.message}` }); }
   console.error(e);
   return enviar(res, 500, { erro: "Erro inesperado. Tente novamente em instantes." });
