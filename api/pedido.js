@@ -78,13 +78,14 @@ export default async function handler(req, res) {
     }
 
     /* ---- valores ---- */
-    const valorCent = R.precoPessoaCent(ex), valorColoCent = R.centavos(ex.valorColo);
+    const valorCent = R.precoPessoaCent(ex), valorColoCent = R.centavos(ex.valorColo), valorInfantilCent = R.precoInfantilCent(ex);
+    pessoas.forEach((p) => { p.infantil = !p.colo && R.ehInfantil(R.idadeEm(p.nascimento, ex.dataSaida)); });
     let cupom = null;
     if (body.cupom) {
       cupom = await lerCupom(exId, ex, body.cupom);
       if (cupom && !cupom.ok) throw new ErroUsuario(cupom.motivo, 400, { etapa: "cupom" });
     }
-    const conta = R.calcularItens(pessoas, { valorCent, valorColoCent, cupom });
+    const conta = R.calcularItens(pessoas, { valorCent, valorColoCent, valorInfantilCent, cupom });
     if (conta.totalCent < R.MIN_PARCELA * 100) throw new ErroUsuario("O valor da compra é menor que o mínimo aceito para pagamento online (R$ 5,00).");
     const opcoes = R.opcoesPagamento(ex.venda, ex.dataSaida, conta.totalCent);
     const forma = String(body.forma || "");
@@ -120,7 +121,7 @@ export default async function handler(req, res) {
         obs: `Compra online #${curto}${i ? ` · dependente de ${titular.nome.split(" ")[0]}` : " · titular"}${item.cupom ? ` · cupom ${cupom.codigo}` : ""}`.slice(0, 300),
         consentimentoLgpd: true, criadoEm: Date.now()
       };
-      viajantesPed[vid] = { nome: p.nome, valorCent: item.valorCent, cupom: item.cupom, colo: p.colo, assento: p.assento ? `${p.assento.vk}/${p.assento.n}` : null };
+      viajantesPed[vid] = { nome: p.nome, valorCent: item.valorCent, cupom: item.cupom, colo: p.colo, infantil: !!item.infantil, assento: p.assento ? `${p.assento.vk}/${p.assento.n}` : null };
     });
     const pedido = {
       criadoEm: Date.now(), status: "aguardando", clienteUid: cliente.uid,
@@ -129,7 +130,7 @@ export default async function handler(req, res) {
       cupom: cupom?.ok && conta.comCupom ? cupom.codigo : null, cupomPessoas: conta.comCupom,
       titular: { nome: titular.nome, cpf: titular.cpf, email: titular.email, whatsapp: titular.whatsapp },
       viajantes: viajantesPed,
-      dados: pessoas.map((p, i) => ({ ...p, vid: vids[i] }))
+      dados: pessoas.map(({ infantil, ...p }, i) => ({ ...p, vid: vids[i] }))
     };
     upd[`pedidos/${own}/${exId}/${pedidoId}`] = pedido;
     upd[`pedidosIdx/${pedidoId}`] = { own, exId };

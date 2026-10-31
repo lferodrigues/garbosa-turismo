@@ -76,12 +76,65 @@ export function idadeEm(nascimento, dataRef) {
 /** Veículos da excursão em ordem */
 export const veiculosDe = (ex) => Object.entries(ex?.veiculos || {}).sort((a, b) => (a[1].ordem || 0) - (b[1].ordem || 0));
 
-/** Valor por pessoa (centavos) = (transporte + ingressos) ÷ rateio do 1º veículo — mesmo cálculo do sistema */
+/* ---------- custos e valor por poltrona ----------
+ * Itens por pessoa da excursão: os ingressos (ex.ingresso) e os outros produtos (ex.produtos).
+ * Cada item tem valor unitário (adulto) e valor unitário para criança de até 5 anos completos.
+ * Total do item no veículo = valor unitário × lotação do veículo.
+ * Valor por poltrona = (transporte + soma dos itens) ÷ poltronas de rateio.
+ * Excursões antigas (sem ex.ingresso) usam o "valor total dos ingressos" gravado no veículo.
+ */
+export const IDADE_INFANTIL = 5;       // até 5 anos completos paga o valor infantil
+const n2 = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
+const temValor = (v) => v !== null && v !== undefined && v !== "" && Number.isFinite(Number(v));
+
+/** Ingressos + produtos: [{ id, nome, valor, valorInfantil }] (valorInfantil vazio = mesmo valor) */
+export function itensDe(ex) {
+  const itens = [];
+  if (ex?.ingresso && (temValor(ex.ingresso.valor) || temValor(ex.ingresso.valorInfantil))) {
+    const valor = n2(ex.ingresso.valor);
+    itens.push({ id: "ingresso", nome: "Ingressos", valor, valorInfantil: temValor(ex.ingresso.valorInfantil) ? n2(ex.ingresso.valorInfantil) : valor });
+  }
+  Object.entries(ex?.produtos || {})
+    .sort((a, b) => (a[1].ordem || 0) - (b[1].ordem || 0))
+    .forEach(([id, p]) => {
+      const valor = n2(p.valor);
+      itens.push({ id, nome: String(p.nome || "Produto"), valor, valorInfantil: temValor(p.valorInfantil) ? n2(p.valorInfantil) : valor });
+    });
+  return itens;
+}
+
+/** Conta completa de um veículo (em reais): transporte, itens × lotação, rateio e valores por poltrona */
+export function custosVeiculo(ex, v) {
+  const cat = VEICULOS[v?.tipo] || { nome: v?.tipo || "—", cap: 0, div: 1 };
+  const cap = cat.cap, div = cat.div || 1;
+  const transporte = n2(v?.valorTransporte);
+  const legado = !ex?.ingresso && n2(v?.valorIngressos) > 0;
+  const itens = itensDe(ex).map((i) => ({ ...i, qtd: cap, total: i.valor * cap, totalInfantil: i.valorInfantil * cap }));
+  if (legado) itens.unshift({ id: "ingresso", nome: "Ingressos (valor total)", valor: n2(v.valorIngressos) / (cap || 1), valorInfantil: n2(v.valorIngressos) / (cap || 1), qtd: cap, total: n2(v.valorIngressos), totalInfantil: n2(v.valorIngressos), legado: true });
+  const somaItens = itens.reduce((s, i) => s + i.total, 0);
+  const somaInfantil = itens.reduce((s, i) => s + i.totalInfantil, 0);
+  return {
+    nome: cat.nome, cap, div, transporte, itens, somaItens, custoTotal: transporte + somaItens,
+    porPoltrona: (transporte + somaItens) / div,
+    porPoltronaInfantil: (transporte + somaInfantil) / div
+  };
+}
+
+/** Valor por pessoa (centavos) no 1º veículo — mesmo cálculo do sistema */
 export function precoPessoaCent(ex) {
   const v0 = veiculosDe(ex)[0]?.[1];
-  if (!v0) return 0;
-  const div = VEICULOS[v0.tipo]?.div || 1;
-  return Math.round(((Number(v0.valorTransporte) || 0) + (Number(v0.valorIngressos) || 0)) / div * 100);
+  return v0 ? Math.round(custosVeiculo(ex, v0).porPoltrona * 100) : 0;
+}
+/** Valor (centavos) de criança de até 5 anos que ocupa poltrona */
+export function precoInfantilCent(ex) {
+  const v0 = veiculosDe(ex)[0]?.[1];
+  return v0 ? Math.round(custosVeiculo(ex, v0).porPoltronaInfantil * 100) : 0;
+}
+export const ehInfantil = (idade) => idade !== null && idade !== undefined && idade !== "" && Number(idade) >= 0 && Number(idade) <= IDADE_INFANTIL;
+/** Valor (centavos) de uma pessoa: colo, até 5 anos com poltrona ou valor cheio */
+export function precoDeCent(ex, { colo = false, idade = null } = {}) {
+  if (colo) return centavos(ex?.valorColo);
+  return ehInfantil(idade) ? precoInfantilCent(ex) : precoPessoaCent(ex);
 }
 
 /** Desenho das fileiras de poltronas (igual ao mapa do sistema) */
@@ -156,16 +209,20 @@ export function avaliarCupom(cupom, usos = 0, hoje = hojeBR()) {
  * Valor de cada pessoa da compra, na ordem em que foram cadastradas.
  * O cupom vale para as primeiras `porCompra` pessoas que ocupam poltrona; da seguinte em diante, valor cheio.
  * Crianças de colo pagam o valor de colo e não usam cupom.
+ * Crianças de até 5 anos com poltrona (p.infantil) pagam o valor infantil; o cupom só entra se for menor.
  */
-export function calcularItens(pessoas, { valorCent, valorColoCent = 0, cupom = null }) {
+export function calcularItens(pessoas, { valorCent, valorColoCent = 0, valorInfantilCent = null, cupom = null }) {
   let cupons = cupom?.ok ? Math.min(cupom.porCompra, cupom.restam) : 0;
+  const infCent = valorInfantilCent ?? valorCent;
+  const cheio = (p) => (p.colo ? valorColoCent : p.infantil ? infCent : valorCent);
   const itens = pessoas.map((p) => {
-    if (p.colo) return { valorCent: valorColoCent, cupom: false, colo: true };
-    if (cupons > 0 && cupom.valorCent < valorCent) { cupons--; return { valorCent: cupom.valorCent, cupom: true, colo: false }; }
-    return { valorCent, cupom: false, colo: false };
+    if (p.colo) return { valorCent: valorColoCent, cupom: false, colo: true, infantil: false };
+    const base = cheio(p), infantil = !!p.infantil;
+    if (cupons > 0 && cupom.valorCent < base) { cupons--; return { valorCent: cupom.valorCent, cupom: true, colo: false, infantil }; }
+    return { valorCent: base, cupom: false, colo: false, infantil };
   });
   const totalCent = itens.reduce((s, i) => s + i.valorCent, 0);
-  const cheioCent = pessoas.reduce((s, p) => s + (p.colo ? valorColoCent : valorCent), 0);
+  const cheioCent = pessoas.reduce((s, p) => s + cheio(p), 0);
   return { itens, totalCent, descontoCent: cheioCent - totalCent, comCupom: itens.filter((i) => i.cupom).length };
 }
 

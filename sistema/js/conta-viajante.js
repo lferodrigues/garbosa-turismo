@@ -7,7 +7,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getDatabase, ref, get, update } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 import { firebaseConfig } from "./firebase.js?v=8";
-import * as R from "./venda-regras.js?v=14";
+import * as R from "./venda-regras.js?v=15";
 
 const app = initializeApp(firebaseConfig, "viajante");
 export const auth = getAuth(app);

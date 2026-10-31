@@ -174,7 +174,7 @@
           ".write": "(auth != null && root.child('excursoes').child($uid).child($excursaoId).child('colaboradores').child(auth.uid).exists())",
           "$viajanteId": {
             ".write": "!data.exists() && newData.child('origem').val() === 'link' && root.child('inscricoes').child($excursaoId).child('owner').val() === $uid && root.child('inscricoes').child($excursaoId).child('ativa').val() === true",
-            ".validate": "newData.hasChildren(['nome']) && (data.exists() || newData.child('origem').val() !== 'link' || (!newData.hasChild('pagamentos') && newData.hasChildren(['docTipo', 'docNumero', 'telefone', 'idade', 'valor']) && ((newData.child('colo').val() === true && newData.child('valor').val() === root.child('inscricoes').child($excursaoId).child('valorColo').val()) || (newData.child('colo').val() !== true && newData.child('valor').val() === root.child('inscricoes').child($excursaoId).child('valor').val()))))",
+            ".validate": "newData.hasChildren(['nome']) && (data.exists() || newData.child('origem').val() !== 'link' || (!newData.hasChild('pagamentos') && newData.hasChildren(['docTipo', 'docNumero', 'telefone', 'idade', 'valor']) && ((newData.child('colo').val() === true && newData.child('valor').val() === root.child('inscricoes').child($excursaoId).child('valorColo').val()) || (newData.child('colo').val() !== true && (newData.child('valor').val() === root.child('inscricoes').child($excursaoId).child('valor').val() || (newData.child('idade').val() <= 5 && newData.child('valor').val() === root.child('inscricoes').child($excursaoId).child('valorInfantil').val()))))))",
             "nome": {
               ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 120"
             },

@@ -18,6 +18,7 @@ export default async function handler(req, res) {
       ...base, ativa: true, hoje: R.hojeBR(),
       valorCent: R.precoPessoaCent(ex),
       valorColoCent: R.centavos(ex.valorColo),
+      valorInfantilCent: R.precoInfantilCent(ex), idadeInfantil: R.IDADE_INFANTIL,
       venda: { maxParcelas: Math.min(R.MAX_PARCELAS, parseInt(ex.venda.maxParcelas, 10) || 1), primeiraParcela: ex.venda.primeiraParcela || "" },
       temCupom: Object.values(ex.cupons || {}).some((c) => c && c.ativo !== false),
       veiculos: await veiculosComOcupacao(own, exId, ex)

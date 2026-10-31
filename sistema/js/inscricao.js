@@ -37,20 +37,28 @@ async function carregar() {
   $("#iRetorno").textContent = `${fData(EX.dataRetorno)}${EX.horaRetorno ? " às " + EX.horaRetorno : ""}`;
   $("#iLocal").textContent = EX.localSaida || "A combinar";
   $("#iValor").textContent = brl(EX.valor);
-  $("#iColo").textContent = EX.valorColo > 0 ? `Criança de colo: ${brl(EX.valorColo)}` : "Criança de colo não paga";
+  $("#iColo").textContent = [
+    temInfantil() ? `Criança até 5 anos com poltrona: ${brl(EX.valorInfantil)}` : "",
+    EX.valorColo > 0 ? `Criança de colo: ${brl(EX.valorColo)}` : "Criança de colo não paga"
+  ].filter(Boolean).join(" · ");
   atualizarTotal();
   mostrar("#insc");
 }
 
-function atualizarTotal() {
-  const colo = $("#iColoChk").checked;
-  $("#iTotal").textContent = brl(colo ? EX.valorColo : EX.valor);
+/* Criança de até 5 anos completos com poltrona paga o valor infantil (quando a agência definiu um) */
+const temInfantil = () => typeof EX?.valorInfantil === "number" && EX.valorInfantil !== EX.valor;
+function valorInscricao() {
+  if ($("#iColoChk").checked) return EX.valorColo;
+  const idade = $("#iIdade").value;
+  return temInfantil() && idade !== "" && Number(idade) >= 0 && Number(idade) <= 5 ? EX.valorInfantil : EX.valor;
 }
+function atualizarTotal() { $("#iTotal").textContent = brl(valorInscricao()); }
 
 $("#iTel").addEventListener("input", (e) => { e.target.value = mascaraTel(e.target.value); });
 $("#iColoChk").addEventListener("change", atualizarTotal);
 const sugerirColo = () => { if ($("#iIdade").value !== "" && Number($("#iIdade").value) <= 5 && $("#iDocTipo").value === "CERTIDAO") { $("#iColoChk").checked = true; atualizarTotal(); } };
 $("#iIdade").addEventListener("change", sugerirColo);
+$("#iIdade").addEventListener("input", atualizarTotal);
 $("#iDocTipo").addEventListener("change", sugerirColo);
 
 $("#fInsc").addEventListener("submit", async (e) => {
@@ -72,7 +80,7 @@ $("#fInsc").addEventListener("submit", async (e) => {
     const k = push(ref(db, `viajantes/${EX.owner}/${exId}`)).key;
     await set(ref(db, `viajantes/${EX.owner}/${exId}/${k}`), {
       nome: nome.slice(0, 120), docTipo: $("#iDocTipo").value, docNumero: docNumero.slice(0, 30), telefone, idade: parseInt(idade, 10) || 0,
-      colo, valor: colo ? EX.valorColo : EX.valor, formaPagamento: $("#iForma").value || null, origem: "link", consentimentoLgpd: true, criadoEm: Date.now()
+      colo, valor: valorInscricao(), formaPagamento: $("#iForma").value || null, origem: "link", consentimentoLgpd: true, criadoEm: Date.now()
     });
     const upd = {};
     Object.keys(EX.notificar || {}).forEach((uid) => {
