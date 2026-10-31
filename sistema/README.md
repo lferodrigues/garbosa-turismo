@@ -179,6 +179,8 @@ asaasEventos/{id}                      eventos do webhook já processados (só s
 - No cadastro da excursão: **Adicionar folder** e a caixa **Mostrar no catálogo do site**; no painel 🛒 Venda online
   há a mesma caixa. Marcada, a excursão entra no catálogo com o folder e o botão **Comprar** (link de venda).
 - Se o banco não responder ou a lista estiver vazia, excursoes.html e o index mostram as excursões fixas.
+- **Status (selo)** no cadastro: *Promoção*, *Últimas vagas* ou *Esgotado* aparece no canto da foto no catálogo e nos destaques.
+  Esgotado deixa a foto em preto e branco e troca o botão por "Esgotado" (sem link). A venda online só fecha desmarcando *Vender pela internet* na excursão.
 - Banco: `site/excursoes/{id}` (leitura pública; escrita do admin ou da agência dona).
 - Vercel: variável **`GITHUB_TOKEN`** (token do GitHub com permissão *Contents: Read and write* no repositório).
 

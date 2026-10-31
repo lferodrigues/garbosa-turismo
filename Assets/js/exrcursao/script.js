@@ -17,6 +17,10 @@ document.addEventListener("DOMContentLoaded", function () {
     const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
     const linkSeguro = (l) => (/^(https?:\/\/|[\w./?=&%-]+$)/.test(l || "") && !/^javascript:/i.test(l) ? l : "#");
 
+    // selo escolhido no Garbosa System → Administrar site
+    const SELOS = { promocao: "Promoção", ultimas: "Últimas vagas", esgotado: "Esgotado" };
+    const selo = (x) => (SELOS[x.status] ? `<span class="selo selo-${x.status}">${SELOS[x.status]}</span>` : "");
+
     let excursoes = LISTA_FIXA;
     let paginaAtual = 0;
     const itensPorPagina = 6;
@@ -29,13 +33,13 @@ document.addEventListener("DOMContentLoaded", function () {
         if (!container) return;
 
         container.innerHTML = pagina.map((x) => `
-            <div class="card">
-                <img src="${esc(x.imagem)}" alt="${esc(x.titulo)}" loading="lazy" data-raw="${esc(x.imagemRaw || "")}">
+            <div class="card ${x.status === "esgotado" ? "card-esgotado" : ""}">
+                <div class="card-img">${selo(x)}<img src="${esc(x.imagem)}" alt="${esc(x.titulo)}" loading="lazy" data-raw="${esc(x.imagemRaw || "")}"></div>
                 <div class="card-content">
                     <h3>${esc(x.titulo)}</h3>
                     ${x.data || x.local ? `<p class="card-info">${esc([x.data, x.local].filter(Boolean).join(" · "))}</p>` : ""}
                     <p>${esc(x.descricao)}</p>
-                    <a class="btn-saiba" href="${esc(linkSeguro(x.link))}">${esc(x.botao || "Saiba mais")}</a>
+                    ${x.status === "esgotado" ? `<span class="btn-saiba btn-esgotado" aria-disabled="true">Esgotado</span>` : `<a class="btn-saiba" href="${esc(linkSeguro(x.link))}">${esc(x.botao || "Saiba mais")}</a>`}
                 </div>
             </div>`).join("") || `<p>Nenhuma excursão disponível no momento. Fale com a gente pelo WhatsApp!</p>`;
 

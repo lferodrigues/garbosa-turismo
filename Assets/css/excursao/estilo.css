@@ -276,3 +276,16 @@ body {
 /* link com cara de botão (catálogo dinâmico) e linha de data/local */
 a.btn-saiba{display:inline-block;text-decoration:none;text-align:center}
 .card-content .card-info{font-weight:600;opacity:.85;margin-bottom:4px}
+/* selos do Garbosa System: promoção, últimas vagas, esgotado */
+.card-img{position:relative}
+.card-img img{display:block}
+.selo{position:absolute;top:12px;right:12px;z-index:1;padding:5px 12px;border-radius:30px;font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:#fff;box-shadow:0 4px 12px rgba(0,0,0,.25)}
+.selo-promocao{background:#e53935}
+.selo-ultimas{background:#ff9800;animation:selo-pulsa 1.6s ease-in-out infinite}
+.selo-esgotado{background:#333}
+@keyframes selo-pulsa{50%{transform:scale(1.08)}}
+@media (prefers-reduced-motion:reduce){.selo-ultimas{animation:none}}
+.card-esgotado img{filter:grayscale(1);opacity:.75}
+.card-esgotado:hover{transform:none}
+.btn-saiba.btn-esgotado{display:inline-block;background:#e0e0e0;color:#666;border-color:#bbb;cursor:not-allowed}
+.btn-saiba.btn-esgotado:hover{background:#e0e0e0;color:#666}

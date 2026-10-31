@@ -483,6 +483,9 @@
           "atualizadoEm": {
             ".validate": "newData.isNumber()"
           },
+          "status": {
+            ".validate": "newData.isString() && newData.val().matches(/^(promocao|ultimas|esgotado)$/)"
+          },
           "$outro": {
             ".validate": false
           }
