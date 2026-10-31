@@ -1731,7 +1731,8 @@ function formSite(id = null) {
       <label class="span2">Status (selo no cartão do site)<select name="status">
         <option value="">— Sem selo —</option>
         ${Object.entries(STATUS_SITE).map(([k, s]) => `<option value="${k}" ${x.status === k ? "selected" : ""}>${s.nome}</option>`).join("")}
-      </select><small class="muted">Esgotado: o cartão fica em preto e branco e o botão vira "Esgotado", sem link.</small></label>
+      </select><small class="muted">Esgotado: o cartão fica em preto e branco e o botão vira "Esgotado", sem link.
+        Excursões do sistema ganham sozinhas "Últimas vagas" (faltando 30% ou menos das poltronas) e "Esgotado" (todas ocupadas) — o selo daqui vale enquanto isso não acontece.</small></label>
       <label class="span2">Descrição<textarea name="descricao" rows="3" maxlength="600">${esc(x.descricao)}</textarea></label>
       <div class="section-label span2"><i class="fa-solid fa-link"></i> Para onde o botão leva</div>
       <label class="span2">Excursão do sistema (abre a página de compra ou de inscrição)<select name="exLink" id="sExLink">
@@ -1847,6 +1848,15 @@ const linhasPoltronas = (exId) => linhasPassageiros(exId).map((l) => l.slice(0, 
 /* =========================================================
    VIAJANTES
 ========================================================= */
+/** Selo que o site mostra para a excursão (pelas poltronas marcadas no mapa) */
+function seloVagasEx(exId) {
+  const ex = S.excursoes[exId], mapa = S.poltronas[exId] || {};
+  if (!ex) return "";
+  const ocup = veiculosDe(ex).reduce((s, [vk, v]) => s + Object.entries(mapa[vk] || {}).filter(([n, pid]) => pid && Number(n) <= veic(v.tipo).cap).length, 0);
+  const selo = R.seloVagas(capacidadeEx(ex), ocup);
+  return selo ? `<span class="pill pill-${selo}" title="Selo automático no site: ${ocup} poltronas marcadas no mapa">${selo === "esgotado" ? "Esgotado" : "Últimas vagas"}</span>` : "";
+}
+
 function viewViajantes() {
   const sel = seletorExcursao();
   if (!sel) return semExcursao("Viajantes", "fa-users");
@@ -1859,7 +1869,7 @@ function viewViajantes() {
       tbBtn("btnNovoPass", "fa-user-plus", "Cadastrar viajante", "tool-accent") + tbBtn("btnImportar", "fa-file-arrow-up", "Importar planilha") +
       tbBtn("btnVendaOn", "fa-cart-shopping", "Venda online") + tbBtn("btnLinkInsc", "fa-link", "Link de inscrição") + tbBtn("btnVeicExtra", "fa-bus", "Inserir veículo") + tbBtn("btnIrPolt", "fa-couch", "Poltronas"))}
     <div class="subbar">${sel}
-      <div class="lotacao"><div class="lot-txt"><strong>${occ}</strong> de <strong>${cap}</strong> poltronas · ${lista.length - occ} de colo</div>
+      <div class="lotacao"><div class="lot-txt"><strong>${occ}</strong> de <strong>${cap}</strong> poltronas · ${lista.length - occ} de colo ${seloVagasEx(exId)}</div>
       <div class="bar"><span style="width:${pct}%" class="${occ > cap ? "red" : occ === cap ? "yellow" : ""}"></span></div></div>
     </div>
     ${occ > cap ? `<div class="alerta"><i class="fa-solid fa-triangle-exclamation"></i> A quantidade de viajantes (${occ}) passou a capacidade dos veículos (${cap}).

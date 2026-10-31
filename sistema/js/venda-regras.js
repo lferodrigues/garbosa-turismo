@@ -223,6 +223,20 @@ export function opcionaisRegistro(ex, ids) {
 /** Soma (centavos) do que está guardado no viajante */
 export const opcionaisGuardadosCent = (v) => Object.values(v?.opcionais || {}).reduce((s, o) => s + Math.max(0, centavos(o?.valor)), 0);
 
+/* ---------- selo automático de vagas ---------- */
+export const PCT_ULTIMAS = 0.3;   // "Últimas vagas" quando faltarem 30% ou menos das poltronas
+/** "esgotado" (sem poltrona livre), "ultimas" (faltando 30% ou menos) ou "" */
+export function seloVagas(cap, ocupadas) {
+  cap = Number(cap) || 0; ocupadas = Number(ocupadas) || 0;
+  if (cap <= 0) return "";
+  const livres = cap - ocupadas;
+  if (livres <= 0) return "esgotado";
+  return livres <= Math.floor(cap * PCT_ULTIMAS) ? "ultimas" : "";
+}
+/** Mesma regra a partir da lista de veículos das APIs ({ cap, ocupadas:[n] }) */
+export const seloDosVeiculos = (veiculos) =>
+  seloVagas((veiculos || []).reduce((s, v) => s + (v.cap || 0), 0), (veiculos || []).reduce((s, v) => s + (v.ocupadas?.length || 0), 0));
+
 /** Ordem de leitura das poltronas na planta (para listas) */
 export const numerosDaPlanta = (planta) => planta.flatMap((p) => p.linhas.flatMap((l) => [...(l.esq || []), ...(l.dir || [])]));
 

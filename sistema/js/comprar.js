@@ -40,6 +40,7 @@ async function carregar() {
   if (!EX.ativa) return fechada(RESERVA ? "Reservas encerradas" : "Vendas encerradas", EX.motivo || "Fale com a agência.");
   $("#cAgencia").textContent = EX.agencia || "Excursão";
   $("#cDestino").textContent = EX.destino;
+  if (EX.veiculos) mostrarSeloVagas($("#cDestino"));
   if (EX.descricao) { $("#cDesc").textContent = EX.descricao; $("#cDesc").classList.remove("hidden"); }
   if (EX.folder?.caminho) {
     const img = $("#cFolder");
@@ -156,6 +157,17 @@ function restaurar() {
     if (d?.pessoas?.length) S.pessoas = d.pessoas.map((p, i) => ({ ...novaPessoa(i === 0), ...p, assento: null }));
     if (d?.cupom) { $("#cCupom").value = d.cupom; aplicarCupom(true); }
   } catch { /* ignora */ }
+}
+
+/** Selo automático no topo: "Últimas vagas" (faltando 30% ou menos) ou "Esgotado" */
+function mostrarSeloVagas(h1) {
+  document.querySelector(".cp-selo-vagas")?.remove();
+  const selo = R.seloDosVeiculos(EX.veiculos);
+  if (!selo || !h1) return;
+  const livres = EX.veiculos.reduce((s, v) => s + v.cap - v.ocupadas.length, 0);
+  h1.insertAdjacentHTML("afterend", `<span class="cp-selo-vagas ${selo}">${selo === "esgotado"
+    ? '<i class="fa-solid fa-ban"></i> Esgotado'
+    : `<i class="fa-solid fa-fire"></i> Últimas vagas · ${livres} poltrona${livres > 1 ? "s" : ""} livre${livres > 1 ? "s" : ""}`}</span>`);
 }
 
 /* ---------- pessoas ---------- */

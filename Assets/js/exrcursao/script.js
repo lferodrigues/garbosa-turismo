@@ -21,6 +21,11 @@ document.addEventListener("DOMContentLoaded", function () {
     const SELOS = { promocao: "Promoção", ultimas: "Últimas vagas", esgotado: "Esgotado" };
     const selo = (x) => (SELOS[x.status] ? `<span class="selo selo-${x.status}">${SELOS[x.status]}</span>` : "");
 
+    // selo automático pelas poltronas ocupadas (Garbosa System): "Últimas vagas" faltando 30% ou menos, "Esgotado" lotado.
+    // "Esgotado" marcado à mão continua valendo; sem resposta da API, fica o selo escolhido à mão.
+    const VAGAS = fetch("/api/venda?vagas=1").then((r) => (r.ok ? r.json() : {})).catch(() => ({}));
+    const comSelo = (dados, vagas) => Object.entries(dados || {}).map(([id, x]) =>
+        x && typeof x === "object" ? { ...x, status: x.status === "esgotado" ? "esgotado" : (vagas[id] && vagas[id].selo) || x.status } : x);
     let excursoes = LISTA_FIXA;
     let paginaAtual = 0;
     const itensPorPagina = 6;
@@ -55,8 +60,8 @@ document.addEventListener("DOMContentLoaded", function () {
     document.getElementById("nextBtn").onclick = () => { paginaAtual++; renderizarPagina(); window.scrollTo({ top: 0, behavior: "smooth" }); };
 
     renderizarPagina();
-    fetch(BANCO).then((r) => (r.ok ? r.json() : null)).then((dados) => {
-        const lista = Object.values(dados || {}).filter((x) => x && x.ativo !== false && x.titulo && x.imagem)
+    Promise.all([fetch(BANCO).then((r) => (r.ok ? r.json() : null)), VAGAS]).then(([dados, vagas]) => {
+        const lista = comSelo(dados, vagas).filter((x) => x && x.ativo !== false && x.titulo && x.imagem)
             .sort((a, b) => (a.ordem || 0) - (b.ordem || 0));
         if (lista.length) { excursoes = lista; paginaAtual = 0; renderizarPagina(); }
     }).catch(() => { /* mantém a lista fixa */ });

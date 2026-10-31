@@ -27,7 +27,7 @@ export async function veiculosComOcupacao(own, exId, ex) {
   const pol = (await (await db()).ref(`poltronas/${own}/${exId}`).get()).val() || {};
   return R.veiculosDe(ex).map(([id, v]) => {
     const cat = R.VEICULOS[v.tipo] || { nome: v.tipo, cap: 0 };
-    const ocupadas = Object.entries(pol[id] || {}).filter(([, pid]) => !!pid).map(([n]) => Number(n)).sort((a, b) => a - b);
+    const ocupadas = Object.entries(pol[id] || {}).filter(([n, pid]) => !!pid && Number(n) <= cat.cap).map(([n]) => Number(n)).sort((a, b) => a - b);
     return { id, tipo: v.tipo, nome: cat.nome, cap: cat.cap, ocupadas };
   });
 }

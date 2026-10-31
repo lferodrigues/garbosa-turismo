@@ -40,6 +40,7 @@ async function carregar() {
   document.title = `Poltrona: ${EX.destino} | ${EX.agencia || "Garbosa Turismo"}`;
   $("#pAgencia").textContent = EX.agencia || "Excursão";
   $("#pDestino").textContent = EX.destino;
+  mostrarSeloVagas($("#pDestino"));
   $("#pSaida").textContent = `${R.fData(EX.dataSaida)}${EX.horaSaida ? " às " + EX.horaSaida : ""}`;
   $("#pRetorno").textContent = `${R.fData(EX.dataRetorno)}${EX.horaRetorno ? " às " + EX.horaRetorno : ""}`;
   $("#pLocal").textContent = EX.localSaida || "A combinar";
@@ -53,6 +54,17 @@ async function carregar() {
   S.pessoas = [nova()];
   renderLista(); etapa(1, false);
   mostrar("#pagina");
+}
+
+/** Selo automático no topo: "Últimas vagas" (faltando 30% ou menos) ou "Esgotado" */
+function mostrarSeloVagas(h1) {
+  document.querySelector(".cp-selo-vagas")?.remove();
+  const selo = R.seloDosVeiculos(EX.veiculos);
+  if (!selo || !h1) return;
+  const livres = EX.veiculos.reduce((s, v) => s + v.cap - v.ocupadas.length, 0);
+  h1.insertAdjacentHTML("afterend", `<span class="cp-selo-vagas ${selo}">${selo === "esgotado"
+    ? '<i class="fa-solid fa-ban"></i> Esgotado'
+    : `<i class="fa-solid fa-fire"></i> Últimas vagas · ${livres} poltrona${livres > 1 ? "s" : ""} livre${livres > 1 ? "s" : ""}`}</span>`);
 }
 
 function etapa(n, rolar = true) {
