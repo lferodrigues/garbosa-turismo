@@ -1055,3 +1055,5 @@ input:-webkit-autofill{-webkit-text-fill-color:#fff;-webkit-box-shadow:0 0 0 40p
 .btn-zap:hover{background:#178a45}
 .cp-fim-passos{display:grid;gap:10px;margin:14px 0 4px;text-align:left}
 .cp-fim-passos .btn{justify-content:center}
+.txt-erro{color:var(--red)}
+.pedido .pedido-top .btn-sm{padding:5px 10px;font-size:.75rem}

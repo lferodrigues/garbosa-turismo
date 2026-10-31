@@ -203,3 +203,25 @@ test("cliente do Asaas recebe a cobrança também pelo WhatsApp (ligado antes de
   assert.deepEqual(ordem, ["whatsapp", "cobranca"]);
   assert.deepEqual(lote, { customer: "cus_9", notifications: [{ id: "not_1", whatsappEnabledForCustomer: true }] });
 });
+
+import diagWpp from "../api/asaas-whatsapp.js";
+test("diagnóstico do WhatsApp: liga de novo e mostra celular e avisos do cliente no Asaas", async () => {
+  usarFetch(async (url, op) => {
+    const ok = (o) => ({ ok: true, status: 200, text: async () => JSON.stringify(o) });
+    if (url.includes("/customers?")) return ok({ data: [] });
+    if (url.endsWith("/customers")) return ok({ id: "cus_7" });
+    if (url.endsWith("/customers/cus_7")) return ok({ name: "Pessoa A Silva", mobilePhone: "32999990000", email: "p0@ex.com" });
+    if (url.endsWith("/customers/cus_7/notifications")) return ok({ data: [{ id: "not_1", event: "PAYMENT_CREATED", enabled: true, whatsappEnabledForCustomer: true, emailEnabledForCustomer: true }] });
+    if (url.endsWith("/payments") && op.method === "POST") return ok({ id: "pay_7", invoiceUrl: "https://asaas/i/7" });
+    return ok({});
+  });
+  const r = await chamar(pedido, { method: "POST", headers: { authorization: "Bearer tok-cli" }, body: { e: EX, pessoas: [pessoa(0, { assento: { vk: "v1", n: 7 } })], aceite: true, forma: "PIX", parcelas: 1 } });
+  assert.equal(r.statusCode, 200, JSON.stringify(r.body));
+  assert.equal(db.dump().pedidos[OWN][EX][r.body.pedidoId].asaas.whatsapp.ok, true);
+  const negado = await chamar(diagWpp, { method: "POST", headers: { authorization: "Bearer tok-outro" }, body: { pedido: r.body.pedidoId } });
+  assert.equal(negado.statusCode, 403);
+  const d = await chamar(diagWpp, { method: "POST", headers: { authorization: "Bearer tok-dono" }, body: { pedido: r.body.pedidoId } });
+  assert.equal(d.statusCode, 200, JSON.stringify(d.body));
+  assert.equal(d.body.celular, "32999990000");
+  assert.deepEqual(d.body.eventos[0], { evento: "PAYMENT_CREATED", dias: null, ativa: true, whatsapp: true, email: true, sms: false });
+});
