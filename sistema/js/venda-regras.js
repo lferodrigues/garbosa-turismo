@@ -10,8 +10,9 @@ export const VEICULOS = {
   onibus42: { nome: "Ônibus 42 lugares",       cap: 42, div: 29 },
   onibus46: { nome: "Ônibus 46 lugares",       cap: 46, div: 32 },
   onibus50: { nome: "Ônibus 50 lugares",       cap: 50, div: 35 },
-  // "onibus64" ficou como código interno: as excursões que já usavam o antigo de 64 passam para o Double Decker 60
-  onibus64: { nome: "Ônibus Double Decker 60 lugares", cap: 60, div: 40 }
+  dd60:     { nome: "Ônibus Double Decker 60 lugares", cap: 60, div: 40, leito: { de: 49, ate: 60, extra: 20 } },
+  // não é mais oferecido para excursões novas; continua valendo nas que já usavam
+  onibus64: { nome: "Ônibus 64 lugares",       cap: 64, div: 40, legado: true }
 };
 
 export const MAX_PARCELAS = 6;
@@ -170,7 +171,7 @@ export function layoutAssentos(cap) {
  * esq/dir = números das poltronas; notaEsq/notaDir = texto no lugar das poltronas; largo = poltrona da direita ocupa 2 lugares.
  */
 export function plantaVeiculo(tipo, cap = VEICULOS[tipo]?.cap || 0) {
-  if (tipo === "onibus64" && cap === 60) {
+  if (tipo === "dd60") {
     // Double Decker Super Luxo 60 lugares (mapa Michelon, carro 2300)
     const sup = [
       { esq: [1, 2], dir: [4, 3] }, { esq: [5, 6], dir: [7, 8] }, { esq: [9, 10], dir: [11, 12] },
@@ -181,12 +182,20 @@ export function plantaVeiculo(tipo, cap = VEICULOS[tipo]?.cap || 0) {
     for (const b of [49, 52, 55, 58]) inf.push({ esq: [b, b + 1], dir: [b + 2], largo: true });
     return [
       { titulo: "Piso superior", frente: [], linhas: sup, fundo: "Bebedouro · geladeira" },
-      { titulo: "Piso inferior", frente: ["Motorista"], linhas: inf, fundo: "Bebedouro · lixeira" }
+      { titulo: "Piso inferior", subtitulo: `Leito completo · + ${brl(extraPoltronaCent("dd60", 49))} por poltrona`, frente: ["Motorista"], linhas: inf, fundo: "Bebedouro · lixeira" }
     ];
   }
   const linhas = layoutAssentos(cap);
   return [{ titulo: "", frente: ["Motorista", "Porta"], linhas, fundo: cap > 20 && !linhas.some((l) => l.wc) ? "Toalete" : "" }];
 }
+/** Acréscimo (centavos) de uma poltrona: leito do piso inferior do Double Decker 60 = + R$ 20 */
+export function extraPoltronaCent(tipo, n) {
+  const l = VEICULOS[tipo]?.leito;
+  n = Number(n);
+  return l && n >= l.de && n <= l.ate ? centavos(l.extra) : 0;
+}
+/** Acréscimo da poltrona escolhida ({vk, n}) numa excursão */
+export const extraAssentoCent = (ex, a) => (a ? extraPoltronaCent(ex?.veiculos?.[a.vk]?.tipo, a.n) : 0);
 /** Ordem de leitura das poltronas na planta (para listas) */
 export const numerosDaPlanta = (planta) => planta.flatMap((p) => p.linhas.flatMap((l) => [...(l.esq || []), ...(l.dir || [])]));
 
@@ -262,13 +271,13 @@ export function calcularItens(pessoas, { valorCent, valorColoCent = 0, valorInfa
   const infCent = valorInfantilCent ?? valorCent;
   const cheio = (p) => (p.colo ? valorColoCent : p.infantil ? infCent : valorCent);
   const itens = pessoas.map((p) => {
-    if (p.colo) return { valorCent: valorColoCent, cupom: false, colo: true, infantil: false };
-    const base = cheio(p), infantil = !!p.infantil;
-    if (cupons > 0 && cupom.valorCent < base) { cupons--; return { valorCent: cupom.valorCent, cupom: true, colo: false, infantil }; }
-    return { valorCent: base, cupom: false, colo: false, infantil };
+    if (p.colo) return { valorCent: valorColoCent, cupom: false, colo: true, infantil: false, extraCent: 0 };
+    const base = cheio(p), infantil = !!p.infantil, extraCent = Math.max(0, Math.round(p.extraCent || 0));
+    if (cupons > 0 && cupom.valorCent < base) { cupons--; return { valorCent: cupom.valorCent + extraCent, cupom: true, colo: false, infantil, extraCent }; }
+    return { valorCent: base + extraCent, cupom: false, colo: false, infantil, extraCent };
   });
   const totalCent = itens.reduce((s, i) => s + i.valorCent, 0);
-  const cheioCent = pessoas.reduce((s, p) => s + cheio(p), 0);
+  const cheioCent = pessoas.reduce((s, p, i) => s + cheio(p) + itens[i].extraCent, 0);
   return { itens, totalCent, descontoCent: cheioCent - totalCent, comCupom: itens.filter((i) => i.cupom).length };
 }
 

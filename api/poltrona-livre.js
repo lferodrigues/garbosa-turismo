@@ -150,7 +150,7 @@ export default async function handler(req, res) {
     const upd = {}, agora = Date.now();
     for (const p of ativos) {
       const base = `viajantes/${own}/${exId}/${p.vid}`;
-      const valor = R.reais(R.precoDeCent(ex, { colo: p.colo, idade: p.colo ? p.idade : null }));
+      const valor = R.reais(R.precoDeCent(ex, { colo: p.colo, idade: p.colo ? p.idade : null }) + R.extraAssentoCent(ex, p.assento));
       const obs = [p.existente ? "Alterado pelo link de poltrona" : "Escolheu a poltrona pelo link",
         p.colo ? `colo de ${primeiro(p.responsavel)}` : "",
         p.docTipo === "CERTIDAO" ? "certidão será enviada pelo WhatsApp" : ""].filter(Boolean).join(" · ").slice(0, 300);
@@ -163,7 +163,10 @@ export default async function handler(req, res) {
         upd[base] = { ...dados, telefone: "", valor, origem: "poltrona", criadoEm: agora };
       } else {
         for (const [k, v] of Object.entries(dados)) upd[`${base}/${k}`] = v;
+        // valor muda se virou/deixou de ser colo ou se entrou/saiu do leito
+        const antes = R.extraAssentoCent(ex, assentoDe[p.vid]), depois = R.extraAssentoCent(ex, p.assento);
         if ((p.existente.colo === true) !== p.colo) upd[`${base}/valor`] = valor;
+        else if (antes !== depois) upd[`${base}/valor`] = R.reais(R.centavos(p.existente.valor) - antes + depois);
         upd[`${base}/alteradoEm`] = agora;
       }
     }

@@ -23,7 +23,8 @@ const VEICULOS = {
   onibus42: { nome: "Ônibus 42 lugares",       cap: 42, div: 29, icone: "fa-bus" },
   onibus46: { nome: "Ônibus 46 lugares",       cap: 46, div: 32, icone: "fa-bus" },
   onibus50: { nome: "Ônibus 50 lugares",       cap: 50, div: 35, icone: "fa-bus" },
-  onibus64: { nome: "Ônibus Double Decker 60 lugares", cap: 60, div: 40, icone: "fa-bus" } // código antigo mantido (era o de 64)
+  dd60:     { nome: "Ônibus Double Decker 60 lugares", cap: 60, div: 40, icone: "fa-bus" },
+  onibus64: { nome: "Ônibus 64 lugares",       cap: 64, div: 40, icone: "fa-bus", legado: true } // só para excursões antigas
 };
 const DOCS = { RG: "RG", CNH: "CNH", CERTIDAO: "Certidão de Nascimento" };
 const TIPOS = { agencia: "Agência de turismo", transportadora: "Transporte / Fretamento", admin: "Administrador" };
@@ -952,7 +953,7 @@ function detalhes(tipo, id) {
 /* =========================================================
    EXCURSÕES
 ========================================================= */
-const opcoesVeiculo = (sel) => Object.entries(VEICULOS).map(([k, v]) => `<option value="${k}" ${k === sel ? "selected" : ""}>${v.nome}</option>`).join("");
+const opcoesVeiculo = (sel) => Object.entries(VEICULOS).filter(([k, v]) => !v.legado || k === sel).map(([k, v]) => `<option value="${k}" ${k === sel ? "selected" : ""}>${v.nome}</option>`).join("");
 
 function viewExcursoes() {
   const lista = ordenar(S.excursoes, "dataSaida").reverse();
@@ -960,7 +961,7 @@ function viewExcursoes() {
   <section class="panel">
     ${toolbar(ehAdmin() ? "Excursões de todas as agências" : "Excursões", "fa-route", podeAgencia() ? tbBtn("btnNovaEx", "fa-plus", "Cadastrar excursão", "tool-accent") : "")}
     <div class="regra"><i class="fa-solid fa-calculator"></i> Valor por poltrona = (transporte + ingressos e produtos × lotação) ÷ poltronas de rateio:
-      ${Object.values(VEICULOS).map((v) => `<span>${v.nome.replace(" lugares", "")}: ÷${v.div}</span>`).join("")}</div>
+      ${Object.values(VEICULOS).filter((v) => !v.legado).map((v) => `<span>${v.nome.replace(" lugares", "")}: ÷${v.div}</span>`).join("")}</div>
     ${lista.length ? `<div class="table-wrap"><table class="grid">
       <thead><tr>${ehAdmin() ? "<th>Agência</th>" : ""}<th>Destino</th><th>Saída</th><th>Retorno</th><th>Veículos</th><th>Ocupação</th><th>Valor/poltrona</th><th></th></tr></thead>
       <tbody>${lista.map(([id, e]) => {
@@ -1982,13 +1983,23 @@ function viewPoltronas() {
 
   ligarSeletor();
   const base = `poltronas/${own}/${exId}`;
+  // poltrona leito (Double Decker 60, piso inferior): + R$ 20 no valor de quem senta nela.
+  // Compras online ficam como estão (o valor já foi cobrado no Asaas).
+  const ajusteLeito = (upd, pid, de, para) => {
+    const p = S.viajantes[exId]?.[pid];
+    if (!p || p.origem === "venda" || p.colo) return;
+    const tipo = (a) => ex.veiculos?.[a?.vk]?.tipo;
+    const dif = R.extraPoltronaCent(tipo(para), para?.n) - R.extraPoltronaCent(tipo(de), de?.n);
+    if (dif) upd[`viajantes/${own}/${exId}/${pid}/valor`] = R.reais(R.centavos(p.valor) + dif);
+  };
   const salvarPos = async (pid, n) => {
     const upd = {};
     const ant = poltronaDe(exId, pid);
-    if (ant) upd[`${ant.vk}/${ant.n}`] = null;
-    upd[`${vk}/${n}`] = pid;
+    if (ant) upd[`${base}/${ant.vk}/${ant.n}`] = null;
+    upd[`${base}/${vk}/${n}`] = pid;
+    ajusteLeito(upd, pid, ant, { vk, n });
     S.passSel = null;
-    try { await update(ref(db, base), upd); } catch (e) { falha(e); }
+    try { await update(ref(db), upd); } catch (e) { falha(e); }
   };
   $("#busca").addEventListener("input", (e) => {
     S.busca = e.target.value; const pos = e.target.selectionStart; render();
@@ -2011,18 +2022,26 @@ function viewPoltronas() {
     el.addEventListener("dragleave", () => el.classList.remove("over"));
     el.addEventListener("drop", (e) => { e.preventDefault(); el.classList.remove("over"); const pid = e.dataTransfer.getData("text/plain"); if (pid) salvarPos(pid, el.dataset.seat); });
   });
-  $$(".seat-x").forEach((b) => b.addEventListener("click", async () => { try { await remove(ref(db, `${base}/${vk}/${b.dataset.x}`)); } catch (e) { falha(e); } }));
+  $$(".seat-x").forEach((b) => b.addEventListener("click", async () => {
+    const n = b.dataset.x, upd = { [`${base}/${vk}/${n}`]: null };
+    ajusteLeito(upd, mapa[n], { vk, n }, null);
+    try { await update(ref(db), upd); } catch (e) { falha(e); }
+  }));
   $("#btnAuto").onclick = async () => {
     const livres = pessoas.filter(([id]) => !poltronaDe(exId, id)).map(([id]) => id);
     if (!livres.length) return toast("Todos os viajantes já estão posicionados.");
     const upd = {};
     for (const [k, x] of vs) {
       const m = (S.poltronas[exId] || {})[k] || {};
-      for (let n = 1; n <= veic(x.tipo).cap && livres.length; n++) if (!m[n]) upd[`${k}/${n}`] = livres.shift();
+      for (let n = 1; n <= veic(x.tipo).cap && livres.length; n++) if (!m[n]) { const pid = livres.shift(); upd[`${base}/${k}/${n}`] = pid; ajusteLeito(upd, pid, null, { vk: k, n }); }
     }
-    try { await update(ref(db, base), upd); toast(livres.length ? `${livres.length} viajante(s) ficaram sem lugar` : "Viajantes distribuídos", livres.length ? "erro" : "ok"); } catch (e) { falha(e); }
+    try { await update(ref(db), upd); toast(livres.length ? `${livres.length} viajante(s) ficaram sem lugar` : "Viajantes distribuídos", livres.length ? "erro" : "ok"); } catch (e) { falha(e); }
   };
-  $("#btnLimpar").onclick = () => confirmar("Liberar todas as poltronas deste veículo?", async () => { await remove(ref(db, `${base}/${vk}`)); toast("Veículo liberado"); }, "Limpar");
+  $("#btnLimpar").onclick = () => confirmar("Liberar todas as poltronas deste veículo?", async () => {
+    const upd = { [`${base}/${vk}`]: null };
+    Object.entries(mapa).forEach(([n, pid]) => { if (pid) ajusteLeito(upd, pid, { vk, n }, null); });
+    await update(ref(db), upd); toast("Veículo liberado");
+  }, "Limpar");
   $("#btnVeicExtra").onclick = () => formVeiculoExtra(exId);
   if ($("#btnVeicExtra2")) $("#btnVeicExtra2").onclick = () => formVeiculoExtra(exId);
   $("#btnPrint").onclick = () => window.print();

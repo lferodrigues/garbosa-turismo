@@ -15,8 +15,8 @@ function piso(p, seat, van) {
       : (l.dir || []).map((n) => (l.largo ? `<div class="seat-largo">${seat(n)}</div>` : seat(n))).join("") + (l.wc ? `<div class="wc">WC</div>` : "");
     return `<div class="bus-row"><div class="side">${esq}</div><div class="aisle"></div><div class="side">${dir}</div></div>`;
   }).join("");
-  return `<div class="bus ${van ? "bus-van" : ""} ${p.titulo ? "bus-piso" : ""}">
-    ${p.titulo ? `<div class="bus-titulo"><i class="fa-solid fa-layer-group"></i> ${esc(p.titulo)}</div>` : ""}
+  return `<div class="bus ${van ? "bus-van" : ""} ${p.titulo ? "bus-piso" : ""} ${p.subtitulo ? "bus-leito" : ""}">
+    ${p.titulo ? `<div class="bus-titulo"><i class="fa-solid fa-layer-group"></i> ${esc(p.titulo)}${p.subtitulo ? `<small><i class="fa-solid fa-bed"></i> ${esc(p.subtitulo)}</small>` : ""}</div>` : ""}
     ${frente}
     <div class="bus-body">${linhas}<div class="corredor-label">CORREDOR</div></div>
     ${p.fundo ? `<div class="bus-back">${esc(p.fundo)}</div>` : ""}

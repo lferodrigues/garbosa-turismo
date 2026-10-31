@@ -122,7 +122,7 @@ export async function baixarPDFPoltronas(titulo, sub, veiculos, lista) {
     const pisos = v.planta || [{ titulo: "", frente: ["Motorista", "Porta"], linhas: v.layout || [], fundo: "" }];
     const sw = 15, sh = 11, gap = 2, aisle = 9;
     const bx = 14, largura = van ? (sw * 3 + gap * 2 + aisle + 8) : (sw * 4 + gap * 2 + aisle + 8);
-    const extra = (p) => (p.titulo ? 6 : 0) + (p.frente.length ? 8 : 3) + (p.fundo ? 6 : 3);
+    const extra = (p) => (p.titulo ? 6 : 0) + (p.subtitulo ? 4 : 0) + (p.frente.length ? 8 : 3) + (p.fundo ? 6 : 3);
     const totalLinhas = pisos.reduce((t, p) => t + p.linhas.length, 0);
     const fixo = pisos.reduce((t, p) => t + extra(p), 0) + (pisos.length - 1) * 5;
     const passo = Math.min(sh + gap, (230 - fixo) / Math.max(1, totalLinhas));
@@ -153,6 +153,7 @@ export async function baixarPDFPoltronas(titulo, sub, veiculos, lista) {
       doc.roundedRect(bx, by, largura, altura, 6, 6);
       let y = by + 3;
       if (p.titulo) { doc.setFont("helvetica", "bold"); doc.setFontSize(8); doc.setTextColor(...ROXO); doc.text(p.titulo.toUpperCase(), bx + largura / 2, y + 3, { align: "center" }); y += 6; }
+      if (p.subtitulo) { doc.setFont("helvetica", "normal"); doc.setFontSize(6); doc.setTextColor(110, 90, 10); doc.text(p.subtitulo, bx + largura / 2, y + 2, { align: "center" }); y += 4; }
       if (p.frente.length) {
         doc.setFontSize(6); doc.setTextColor(90, 90, 90); doc.setFont("helvetica", "normal");
         doc.text(p.frente[0].toUpperCase(), bx + 5, y + 3);

@@ -78,6 +78,7 @@ export default async function handler(req, res) {
       if (usados.has(k)) throw new ErroUsuario("Duas pessoas escolheram a mesma poltrona.", 400, { etapa: "poltronas" });
       usados.add(k);
     }
+    pessoas.forEach((p) => { p.extraCent = R.extraAssentoCent(ex, p.assento); }); // leito: + R$ 20
 
     /* ---- valores ---- */
     const valorCent = R.precoPessoaCent(ex), valorColoCent = R.centavos(ex.valorColo), valorInfantilCent = R.precoInfantilCent(ex);
@@ -120,10 +121,10 @@ export default async function handler(req, res) {
         cpf: R.mascaraCpf(p.cpf), rg: p.rg, nascimento: p.nascimento, email: p.email, endereco: p.endereco,
         valor: R.reais(item.valorCent), formaPagamento: formaTxt, origem: "venda", pedido: pedidoId, statusVenda: "aguardando",
         responsavel: i === 0 ? null : titular.nome, cupom: item.cupom ? cupom.codigo : null,
-        obs: `Compra online #${curto}${i ? ` · dependente de ${titular.nome.split(" ")[0]}` : " · titular"}${item.cupom ? ` · cupom ${cupom.codigo}` : ""}`.slice(0, 300),
+        obs: `Compra online #${curto}${i ? ` · dependente de ${titular.nome.split(" ")[0]}` : " · titular"}${item.cupom ? ` · cupom ${cupom.codigo}` : ""}${item.extraCent ? ` · leito + ${R.brl(item.extraCent)}` : ""}`.slice(0, 300),
         consentimentoLgpd: true, criadoEm: Date.now()
       };
-      viajantesPed[vid] = { nome: p.nome, valorCent: item.valorCent, cupom: item.cupom, colo: p.colo, infantil: !!item.infantil, assento: p.assento ? `${p.assento.vk}/${p.assento.n}` : null };
+      viajantesPed[vid] = { nome: p.nome, valorCent: item.valorCent, extraCent: item.extraCent || 0, cupom: item.cupom, colo: p.colo, infantil: !!item.infantil, assento: p.assento ? `${p.assento.vk}/${p.assento.n}` : null };
     });
     const pedido = {
       criadoEm: Date.now(), status: "aguardando", clienteUid: cliente.uid,
@@ -132,7 +133,7 @@ export default async function handler(req, res) {
       cupom: cupom?.ok && conta.comCupom ? cupom.codigo : null, cupomPessoas: conta.comCupom,
       titular: { nome: titular.nome, cpf: titular.cpf, email: titular.email, whatsapp: titular.whatsapp },
       viajantes: viajantesPed,
-      dados: pessoas.map(({ infantil, ...p }, i) => ({ ...p, vid: vids[i] }))
+      dados: pessoas.map(({ infantil, extraCent, ...p }, i) => ({ ...p, vid: vids[i] }))
     };
     upd[`pedidos/${own}/${exId}/${pedidoId}`] = pedido;
     upd[`pedidosIdx/${pedidoId}`] = { own, exId };

@@ -53,7 +53,8 @@ async function carregar() {
   const infCent = EX.valorInfantilCent ?? EX.valorCent;
   $("#cColo").textContent = [
     infCent !== EX.valorCent ? `Criança até ${R.IDADE_INFANTIL} anos com poltrona: ${R.brl(infCent)}` : "",
-    EX.valorColoCent > 0 ? `Criança de colo (até ${R.IDADE_COLO} anos): ${R.brl(EX.valorColoCent)}` : `Criança de colo (até ${R.IDADE_COLO} anos) não paga`
+    EX.valorColoCent > 0 ? `Criança de colo (até ${R.IDADE_COLO} anos): ${R.brl(EX.valorColoCent)}` : `Criança de colo (até ${R.IDADE_COLO} anos) não paga`,
+    leitoTexto()
   ].filter(Boolean).join(" · ");
   if (RESERVA) {
     $("#cFormas").innerHTML = `<li><i class="fa-solid fa-couch"></i><span><strong>Escolha sua poltrona agora</strong>sem pagar nada pelo site</span></li>
@@ -272,8 +273,15 @@ $("#btnAddDep").addEventListener("click", () => {
 });
 
 /* ---------- cupom e valores ---------- */
+const tipoVeic = (vk) => EX.veiculos.find((v) => v.id === vk)?.tipo;
+const extraDe = (p) => (ocupaPoltrona(p) && p.assento ? R.extraPoltronaCent(tipoVeic(p.assento.vk), p.assento.n) : 0);
+/** "Poltrona leito (piso inferior): + R$ 20,00" quando a excursão tem Double Decker */
+function leitoTexto() {
+  const v = EX.veiculos.find((x) => R.VEICULOS[x.tipo]?.leito);
+  return v ? `Poltrona leito (piso inferior, ${R.VEICULOS[v.tipo].leito.de}–${R.VEICULOS[v.tipo].leito.ate}): + ${R.brl(R.centavos(R.VEICULOS[v.tipo].leito.extra))}` : "";
+}
 function conta() {
-  const pessoas = S.pessoas.map((p) => ({ colo: !ocupaPoltrona(p), infantil: ocupaPoltrona(p) && R.ehInfantil(idade(p)) }));
+  const pessoas = S.pessoas.map((p) => ({ colo: !ocupaPoltrona(p), infantil: ocupaPoltrona(p) && R.ehInfantil(idade(p)), extraCent: extraDe(p) }));
   const cupom = S.cupom ? { ok: true, valorCent: S.cupom.valorCent, porCompra: S.cupom.porCompra, restam: S.cupom.restam ?? Infinity } : null;
   return R.calcularItens(pessoas, { valorCent: EX.valorCent, valorColoCent: EX.valorColoCent, valorInfantilCent: EX.valorInfantilCent ?? EX.valorCent, cupom });
 }
@@ -284,8 +292,9 @@ function tabelaResumo(comPoltrona) {
     const it = c.itens[i];
     const nome = p.nome.trim() || (p.titular ? "Titular" : `Dependente ${i}`);
     const tags = [it.colo ? `<em class="cp-tag colo">colo</em>` : "", it.infantil ? `<em class="cp-tag colo">até ${R.IDADE_INFANTIL} anos</em>` : "", it.cupom ? `<em class="cp-tag cupom">cupom</em>` : "",
-      comPoltrona && p.assento ? `<em class="cp-tag polt">poltrona ${veicNome(p.assento.vk)}${p.assento.n}</em>` : ""].join("");
-    return `<div class="cp-linha"><span>${i + 1}. ${esc(nome)} ${tags}</span><strong>${it.cupom ? `<s>${R.brl(it.infantil ? (EX.valorInfantilCent ?? EX.valorCent) : EX.valorCent)}</s> ` : ""}${R.brl(it.valorCent)}</strong></div>`;
+      comPoltrona && p.assento ? `<em class="cp-tag polt">poltrona ${veicNome(p.assento.vk)}${p.assento.n}</em>` : "",
+      it.extraCent ? `<em class="cp-tag colo">leito + ${R.brl(it.extraCent)}</em>` : ""].join("");
+    return `<div class="cp-linha"><span>${i + 1}. ${esc(nome)} ${tags}</span><strong>${it.cupom ? `<s>${R.brl((it.infantil ? (EX.valorInfantilCent ?? EX.valorCent) : EX.valorCent) + it.extraCent)}</s> ` : ""}${R.brl(it.valorCent)}</strong></div>`;
   }).join("");
   const desc = c.descontoCent > 0
     ? `<div class="cp-linha desconto"><span><i class="fa-solid fa-tag"></i> Cupom ${esc(S.cupom.codigo)} (${c.comCupom} pessoa${c.comCupom > 1 ? "s" : ""})</span><strong>− ${R.brl(c.descontoCent)}</strong></div>` : "";
