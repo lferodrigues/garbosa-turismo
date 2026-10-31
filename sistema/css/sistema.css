@@ -1145,3 +1145,5 @@ input:-webkit-autofill{-webkit-text-fill-color:#fff;-webkit-box-shadow:0 0 0 40p
 .opc-secao{margin-top:2px}
 .opc-titulo{font-size:.85rem;font-weight:700;color:var(--primary);margin-bottom:8px}
 .opc-titulo small{font-weight:400}
+.site-banner{left:auto;right:8px;color:var(--primary)}
+.ic.ic-on{background:#fff3c4;border-color:#f3d36b;color:#7a5a00}

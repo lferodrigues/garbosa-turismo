@@ -212,6 +212,11 @@ asaasEventos/{id}                      eventos do webhook já processados (só s
   há a mesma caixa. Marcada, a excursão entra no catálogo com o folder e o botão **Comprar** (link de venda).
 - Se o banco não responder ou a lista estiver vazia, excursoes.html e o index mostram as excursões fixas.
 - **Status (selo)** no cadastro: *Promoção*, *Últimas vagas* ou *Esgotado* aparece no canto da foto no catálogo e nos destaques.
+- **Banner da página inicial**: no Administrar site, o botão <i class="fa-solid fa-images"></i> (ou a caixa *Mostrar no banner* no cadastro)
+  coloca a excursão no banner do topo, depois do slide de boas-vindas, com folder, título, descrição, data/local, botão e selo.
+  Sem nenhuma marcada, o banner fica com os slides fixos do HTML. Campo `banner` em `site/excursoes/{id}` (**republicar as regras**).
+- **Destinos em destaque**: as marcadas com ⭐ (botão de estrela no Administrar site); sem nenhuma marcada, aparecem as primeiras do catálogo —
+  sempre com os selos Promoção / Últimas vagas / Esgotado.
 - **Selo automático**: excursões do sistema ganham sozinhas **Últimas vagas** quando faltam 30% ou menos das poltronas
   (contadas no mapa de poltronas, todos os veículos) e **Esgotado** quando todas estão ocupadas. "Esgotado" marcado à mão continua valendo;
   nos outros casos o automático tem prioridade sobre o selo manual. O catálogo e os destaques consultam `GET /api/venda?vagas=1`
