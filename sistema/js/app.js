@@ -1670,7 +1670,7 @@ async function sincronizarSite(exId, own, e) {
     imagem: e.folder.caminho, imagemRaw: e.folder.raw || "",
     link: `sistema/${vende ? "comprar" : "inscricao"}.html?e=${encodeURIComponent(exId)}`, botao: vende ? "Comprar" : "Inscrever-se",
     data: fData(e.dataSaida), local: String(e.localSaida || "").slice(0, 80), categoria: atual?.categoria || "Excursão",
-    owner: own, exId, origem: "sistema", ativo: atual?.ativo !== false, destaque: !!atual?.destaque, status: atual?.status || null,
+    owner: own, exId, origem: "sistema", ativo: atual?.ativo !== false, destaque: !!atual?.destaque, banner: !!atual?.banner, status: atual?.status || null,
     ordem: atual?.ordem ?? Date.now(), criadoEm: atual?.criadoEm || Date.now(), atualizadoEm: Date.now()
   });
 }
@@ -1694,10 +1694,10 @@ function viewSite() {
   $("#workspace").innerHTML = `
   <section class="panel">
     ${toolbar("Administrar site", "fa-globe", tbBtn("btnSiteNova", "fa-plus", "Adicionar excursão", "tool-accent") + tbBtn("btnSiteVer", "fa-arrow-up-right-from-square", "Ver site"), false)}
-    <div class="regra"><i class="fa-solid fa-circle-info"></i> Estas excursões aparecem no <strong>catálogo (excursoes.html)</strong>. As marcadas com ⭐ também aparecem em <strong>Destinos em destaque</strong> na página inicial. As fotos são salvas no GitHub do site.</div>
+    <div class="regra"><i class="fa-solid fa-circle-info"></i> Estas excursões aparecem no <strong>catálogo (excursoes.html)</strong>. As marcadas com ⭐ aparecem em <strong>Destinos em destaque</strong> na página inicial (sem nenhuma marcada, aparecem as primeiras da lista) e as marcadas com <i class="fa-solid fa-images"></i> entram no <strong>banner</strong> do topo, depois do slide de boas-vindas (sem nenhuma marcada, o banner fica com os slides fixos). Os selos Últimas vagas/Esgotado aparecem sozinhos. As fotos são salvas no GitHub do site.</div>
     ${lista.length ? `<div class="site-grid">${lista.map(([id, x], i) => `
       <article class="site-card ${x.ativo === false ? "inativo" : ""}">
-        <div class="site-img">${imgTag(x)}${x.destaque ? `<span class="site-estrela" title="Destaque na página inicial">⭐</span>` : ""}</div>
+        <div class="site-img">${imgTag(x)}${x.destaque ? `<span class="site-estrela" title="Destaque na página inicial">⭐</span>` : ""}${x.banner ? `<span class="site-estrela site-banner" title="No banner da página inicial"><i class="fa-solid fa-images"></i></span>` : ""}</div>
         <div class="site-txt">
           <strong>${esc(x.titulo)}</strong>
           <small>${esc([x.categoria, x.local, x.data].filter(Boolean).join(" · "))}</small>
@@ -1707,6 +1707,8 @@ function viewSite() {
         <div class="site-acoes">
           <button class="ic" data-s="up" data-id="${id}" title="Subir" ${i === 0 ? "disabled" : ""}><i class="fa-solid fa-arrow-up"></i></button>
           <button class="ic" data-s="down" data-id="${id}" title="Descer" ${i === lista.length - 1 ? "disabled" : ""}><i class="fa-solid fa-arrow-down"></i></button>
+          <button class="ic ${x.destaque ? "ic-on" : ""}" data-s="destaque" data-id="${id}" title="${x.destaque ? "Tirar dos destaques" : "Colocar nos destaques (⭐)"}"><i class="fa-${x.destaque ? "solid" : "regular"} fa-star"></i></button>
+          <button class="ic ${x.banner ? "ic-on" : ""}" data-s="banner" data-id="${id}" title="${x.banner ? "Tirar do banner" : "Mostrar no banner da página inicial"}"><i class="fa-solid fa-images"></i></button>
           <button class="ic" data-s="edit" data-id="${id}" title="Editar"><i class="fa-solid fa-pen"></i></button>
           <button class="ic" data-s="vis" data-id="${id}" title="${x.ativo === false ? "Mostrar no site" : "Ocultar do site"}"><i class="fa-solid ${x.ativo === false ? "fa-eye" : "fa-eye-slash"}"></i></button>
           <button class="ic danger" data-s="del" data-id="${id}" title="Remover do site"><i class="fa-solid fa-trash"></i></button>
@@ -1727,6 +1729,11 @@ function viewSite() {
     try {
       if (b.dataset.s === "edit") return formSite(id);
       if (b.dataset.s === "vis") return update(ref(db, `site/excursoes/${id}`), { ativo: x.ativo === false, atualizadoEm: Date.now() });
+      if (b.dataset.s === "destaque" || b.dataset.s === "banner") {
+        const campo = b.dataset.s;
+        await update(ref(db, `site/excursoes/${id}`), { [campo]: !x[campo], atualizadoEm: Date.now() });
+        return toast(campo === "banner" ? (x.banner ? "Saiu do banner" : "Vai aparecer no banner") : (x.destaque ? "Saiu dos destaques" : "Agora está nos destaques ⭐"));
+      }
       if (b.dataset.s === "del") return confirmar(`Remover <strong>${esc(x.titulo)}</strong> do site? A foto continua guardada no GitHub.${x.origem === "sistema" ? "<br><small>A excursão do sistema continua existindo; só sai do catálogo.</small>" : ""}`, async () => {
         const upd = { [`site/excursoes/${id}`]: null };
         if (x.origem === "sistema" && x.owner && x.exId && S.excursoes[x.exId]) upd[`excursoes/${x.owner}/${x.exId}/publicarSite`] = false;
@@ -1769,6 +1776,7 @@ function formSite(id = null) {
       <div class="span2 folder-box" id="sFoto"></div>
       <label class="check"><input type="checkbox" name="ativo" ${x.ativo !== false ? "checked" : ""}> Mostrar no site</label>
       <label class="check"><input type="checkbox" name="destaque" ${x.destaque ? "checked" : ""}> ⭐ Destaque na página inicial</label>
+      <label class="check span2"><input type="checkbox" name="banner" ${x.banner ? "checked" : ""}> <i class="fa-solid fa-images"></i> Mostrar no banner do topo da página inicial</label>
     </form>`, [
     { html: "Cancelar", acao: fecharModal },
     { html: `<i class="fa-solid fa-floppy-disk"></i> Salvar`, classe: "btn-primary", acao: async () => {
@@ -1780,7 +1788,7 @@ function formSite(id = null) {
       const link = ex ? `sistema/${ex.venda?.ativa ? "comprar" : "inscricao"}.html?e=${encodeURIComponent(d.exLink)}` : d.link.trim();
       if (!link) return toast("Escolha uma excursão do sistema ou informe o endereço do botão.", "erro");
       const dados = { titulo: d.titulo, categoria: d.categoria, local: d.local, data: d.data, botao: d.botao || "Saiba mais", descricao: d.descricao,
-        imagem: foto.caminho, imagemRaw: foto.raw || "", link, ativo: !!d.ativo, destaque: !!d.destaque, atualizadoEm: Date.now(), status: STATUS_SITE[d.status] ? d.status : null,
+        imagem: foto.caminho, imagemRaw: foto.raw || "", link, ativo: !!d.ativo, destaque: !!d.destaque, banner: !!d.banner, atualizadoEm: Date.now(), status: STATUS_SITE[d.status] ? d.status : null,
         origem: x.origem || "site", owner: x.owner || U.uid, ordem: x.ordem ?? Date.now(), criadoEm: x.criadoEm || Date.now(), ...(x.exId ? { exId: x.exId } : {}) };
       try {
         await set(id ? ref(db, `site/excursoes/${id}`) : push(ref(db, "site/excursoes")), dados);

@@ -479,6 +479,9 @@
           "ativo": {
             ".validate": "newData.isBoolean()"
           },
+          "banner": {
+            ".validate": "newData.isBoolean()"
+          },
           "destaque": {
             ".validate": "newData.isBoolean()"
           },
