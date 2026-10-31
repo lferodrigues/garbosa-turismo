@@ -42,11 +42,28 @@ export async function clienteAsaas(t, externalReference) {
   };
   const busca = await asaas("GET", `/customers?cpfCnpj=${encodeURIComponent(t.cpf)}&limit=1`);
   const existente = busca?.data?.find((c) => !c.deleted);
+  let id;
   if (existente) {
     await asaas("PUT", `/customers/${existente.id}`, dados).catch(() => {});
-    return existente.id;
-  }
-  return (await asaas("POST", "/customers", dados)).id;
+    id = existente.id;
+  } else id = (await asaas("POST", "/customers", dados)).id;
+  await ligarWhatsapp(id);
+  return id;
+}
+
+/**
+ * O Asaas cria o cliente com o WhatsApp DESLIGADO em todas as notificações.
+ * Liga o WhatsApp para o cliente receber a cobrança, os lembretes e o recibo (e-mail e SMS continuam como estão).
+ * Precisa rodar ANTES de criar a cobrança para a mensagem de "cobrança criada" sair. Falha não impede a venda.
+ */
+export async function ligarWhatsapp(customer) {
+  try {
+    const lista = (await asaas("GET", `/customers/${customer}/notifications`))?.data || [];
+    // só mexe no WhatsApp; notificações desligadas no painel do Asaas continuam desligadas
+    const mudar = lista.filter((n) => n && !n.deleted && n.enabled !== false && n.whatsappEnabledForCustomer !== true)
+      .map((n) => ({ id: n.id, whatsappEnabledForCustomer: true }));
+    if (mudar.length) await asaas("PUT", "/notifications/batch", { customer, notifications: mudar });
+  } catch (e) { console.warn("Asaas: não foi possível ligar o WhatsApp do cliente", e.message); }
 }
 
 /** Cancela no Asaas a cobrança (ou o parcelamento inteiro) de um pedido. Ignora erros. */
