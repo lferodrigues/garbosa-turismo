@@ -1076,7 +1076,14 @@ function formExcursao(id = null, viagemId = null) {
           <input type="number" step="0.01" min="0" name="ingInfantil" value="${esc(ingAtual.valorInfantil ?? "")}" placeholder="Até 5 anos: igual" aria-label="Ingresso: valor até 5 anos"><span></span></div>
         <div id="exProdutos"></div>
       </div>
-      <div class="span2"><button type="button" class="btn btn-light btn-sm" id="btnAddProd"><i class="fa-solid fa-plus"></i> Adicionar produto</button></div>
+      <div class="span2 botoes-itens">
+        <button type="button" class="btn btn-light btn-sm" id="btnAddProd"><i class="fa-solid fa-plus"></i> Adicionar produto</button>
+        <button type="button" class="btn btn-light btn-sm" id="btnAddOpc"><i class="fa-solid fa-square-plus"></i> Adicionar opcional</button>
+      </div>
+      <div class="span2 opc-secao" id="exOpcSecao">
+        <div class="opc-titulo"><i class="fa-solid fa-square-plus"></i> Opcionais <small class="muted">— o viajante escolhe se quer (passeio extra, almoço, camisa…); o valor soma no valor de quem escolher e não entra no rateio</small></div>
+        <div id="exOpcionais"></div>
+      </div>
       <label>Valor para criança de colo (R$)<input type="number" step="0.01" min="0" name="valorColo" value="${esc(e.valorColo ?? 0)}"></label>
       <small class="muted" style="align-self:end">Criança de colo não ocupa poltrona e paga só este valor.</small>
       <div class="calc-box span2" id="exCalc"></div>
@@ -1086,10 +1093,6 @@ function formExcursao(id = null, viagemId = null) {
         <label>Criança até 5 anos com poltrona (R$)<input type="number" step="0.01" min="0" name="valorFinalInfantil" value="${esc(e.valorFinalInfantil ?? "")}" placeholder="Em branco: mesmo valor"></label>
         <small class="muted span2">É este valor que vale na compra online, na reserva, no link de inscrição e no cadastro de viajantes. O leito, os opcionais e o valor de colo continuam sendo somados/cobrados à parte. Desmarque para voltar ao valor do sistema.</small>
       </div>
-      <div class="section-label span2"><i class="fa-solid fa-square-plus"></i> Opcionais</div>
-      <small class="muted span2">Itens que o viajante escolhe se quer (passeio extra, almoço, camisa…). O valor do opcional é somado ao valor de quem escolher, na compra online, na reserva e na escolha de poltrona. Não entra no rateio.</small>
-      <div class="span2" id="exOpcionais"></div>
-      <div class="span2"><button type="button" class="btn btn-light btn-sm" id="btnAddOpc"><i class="fa-solid fa-plus"></i> Adicionar opcional</button></div>
       <div class="section-label span2"><i class="fa-solid fa-cart-shopping"></i> Venda online (Asaas)</div>
       <label class="check span2"><input type="checkbox" name="vendaAtiva" id="exVendaAtiva" ${e.venda?.ativa || !id ? "checked" : ""}> Vender pela internet com cartão em até 6x, Pix e boleto parcelado</label>
       <label>Início do parcelamento (1º vencimento do boleto)<input type="date" name="primeiraParcela" id="exPrimeira" value="${esc(e.venda?.primeiraParcela || "")}"></label>
@@ -1166,6 +1169,7 @@ function formExcursao(id = null, viagemId = null) {
     });
   };
   const renderOpcionais = () => {
+    $("#exOpcSecao").classList.toggle("hidden", !opcs.length);
     $("#exOpcionais").innerHTML = opcs.length ? opcs.map((o, i) => `<div class="opc-row" data-id="${esc(o.id)}">
       <span class="opc-num">${i + 1}</span>
       <input data-f="titulo" value="${esc(o.titulo)}" placeholder="Título (ex.: Passeio de barco)" maxlength="80" aria-label="Título do opcional">
