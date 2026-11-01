@@ -1,18 +1,11 @@
 // Catálogo de excursões (excursoes.html).
-// A lista vem do Garbosa System → Administrar site (Firebase: site/excursoes).
-// Se ainda não houver nada lá (ou a internet falhar), mostra a lista fixa abaixo.
+// Mostra só as excursões cadastradas no Garbosa System (Firebase: site/excursoes ligadas a uma excursão do sistema).
+// Páginas antigas/fixas do site não aparecem aqui.
 document.addEventListener("DOMContentLoaded", function () {
 
-    const LISTA_FIXA = [
-        { titulo: "Excursão para o Zoológico + Parque de diversões Guanabara em BH", imagem: "Assets/img/excursoes/bh.png",
-          descricao: "Prepare-se para um dia incrível de diversão em Belo Horizonte, curtindo as atrações do Parque Guanabara e a natureza do Zoológico de BH em uma aventura para toda a família", link: "bh.html" },
-        { titulo: "Excursão para a praia da Barra da Tijuca no Rio de Janeiro", imagem: "Assets/img/excursoes/barra.jpeg",
-          descricao: "Prepare a mala e venha viver momentos inesquecíveis na Praia da Barra da Tijuca! Um dia de sol, mar e muita diversão esperando por você", link: "barra.html" },
-        { titulo: "Excursão para o parque aquatico Aldeia das águas", imagem: "Assets/img/excursoes/aldeia-das-aguas.jpg",
-          descricao: "Prepare-se para uma aventura incrivel no maior parque aquatico do estado do Rio de Janeiro, com o maior toboagua do mundo", link: "aldeia-das-aguas.html" },
-        { titulo: "Excursão para o show do Frei Gilson em JF", imagem: "Assets/img/excursoes/frei.png",
-          descricao: "Prepare-se para uma noite repleta do Espirito Santo", link: "evento-frei-gilson.html" }
-    ];
+    // só excursões do Garbosa System: publicadas pelo sistema (exId) ou com o botão levando a uma excursão do sistema
+    const exIdDoSite = (x) => (x && x.exId && /^[\w-]{1,128}$/.test(x.exId) ? x.exId
+        : ((String((x && x.link) || "").match(/sistema\/(?:comprar|inscricao|reservar|poltrona)\.html\?e=([\w-]{1,128})/) || [])[1] || ""));
     const BANCO = "https://bus-virtual-dd0f7-default-rtdb.firebaseio.com/site/excursoes.json";
     const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
     const linkSeguro = (l) => (/^(https?:\/\/|[\w./?=&%-]+$)/.test(l || "") && !/^javascript:/i.test(l) ? l : "#");
@@ -26,7 +19,8 @@ document.addEventListener("DOMContentLoaded", function () {
     const VAGAS = fetch("/api/venda?vagas=1").then((r) => (r.ok ? r.json() : {})).catch(() => ({}));
     const comSelo = (dados, vagas) => Object.entries(dados || {}).map(([id, x]) =>
         x && typeof x === "object" ? { ...x, status: x.status === "esgotado" ? "esgotado" : (vagas[id] && vagas[id].selo) || x.status } : x);
-    let excursoes = LISTA_FIXA;
+    let excursoes = [];
+    let estado = "carregando"; // carregando | ok | erro
     let paginaAtual = 0;
     const itensPorPagina = 6;
 
@@ -46,7 +40,9 @@ document.addEventListener("DOMContentLoaded", function () {
                     <p>${esc(x.descricao)}</p>
                     ${x.status === "esgotado" ? `<span class="btn-saiba btn-esgotado" aria-disabled="true">Esgotado</span>` : `<a class="btn-saiba" href="${esc(linkSeguro(x.link))}">${esc(x.botao || "Saiba mais")}</a>`}
                 </div>
-            </div>`).join("") || `<p>Nenhuma excursão disponível no momento. Fale com a gente pelo WhatsApp!</p>`;
+            </div>`).join("") || `<p class="catalogo-vazio">${estado === "carregando" ? "Carregando as excursões…"
+                : estado === "erro" ? "Não foi possível carregar as excursões agora. Tente de novo em instantes ou fale com a gente pelo WhatsApp!"
+                : "Nenhuma excursão disponível no momento. Fale com a gente pelo WhatsApp!"}</p>`;
 
         container.querySelectorAll("img[data-raw]").forEach((img) => {
             img.addEventListener("error", () => { if (img.dataset.raw && img.src !== img.dataset.raw) img.src = img.dataset.raw; }, { once: true });
@@ -60,9 +56,9 @@ document.addEventListener("DOMContentLoaded", function () {
     document.getElementById("nextBtn").onclick = () => { paginaAtual++; renderizarPagina(); window.scrollTo({ top: 0, behavior: "smooth" }); };
 
     renderizarPagina();
-    Promise.all([fetch(BANCO).then((r) => (r.ok ? r.json() : null)), VAGAS]).then(([dados, vagas]) => {
-        const lista = comSelo(dados, vagas).filter((x) => x && x.ativo !== false && x.titulo && x.imagem)
+    Promise.all([fetch(BANCO).then((r) => { if (!r.ok) throw new Error("banco"); return r.json(); }), VAGAS]).then(([dados, vagas]) => {
+        excursoes = comSelo(dados, vagas).filter((x) => x && x.ativo !== false && x.titulo && x.imagem && exIdDoSite(x))
             .sort((a, b) => (a.ordem || 0) - (b.ordem || 0));
-        if (lista.length) { excursoes = lista; paginaAtual = 0; renderizarPagina(); }
-    }).catch(() => { /* mantém a lista fixa */ });
+        estado = "ok"; paginaAtual = 0; renderizarPagina();
+    }).catch(() => { estado = "erro"; renderizarPagina(); });
 });
