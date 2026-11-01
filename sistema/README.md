@@ -213,7 +213,12 @@ asaasEventos/{id}                      eventos do webhook já processados (só s
   há a mesma caixa. Marcada, a excursão entra no catálogo com o folder e o botão **Comprar** (link de venda).
 - **excursoes.html mostra só excursões do sistema**: itens publicados pelo Garbosa System ou cujo botão leva a uma excursão do sistema
   (`sistema/comprar|inscricao|reservar|poltrona.html?e=…`). Páginas antigas/fixas não aparecem; sem nenhuma, mostra "Nenhuma excursão disponível".
-  O index (destaques e banner) continua como estava.
+  A página usa o mesmo visual da página inicial (cabeçalho, cartões, chamada e rodapé de `Assets/css/novosite/home.css`).
+- **Oculta no Administrar site = não aparece em lugar nenhum**: some do catálogo, dos destaques e do banner da página inicial,
+  perde o selo automático, e os links públicos (compra, reserva, escolha de poltrona e inscrição) mostram
+  "Esta excursão não está disponível no momento" (`ocultaNoSite` em `api/_lib/venda.js`). Ao reexibir, tudo volta.
+  Excursão que nunca foi para o catálogo continua com o link da agência funcionando. A página inicial não tem mais
+  excursões fixas no HTML: banner e destaques vêm só do Administrar site.
 - **Status (selo)** no cadastro: *Promoção*, *Últimas vagas* ou *Esgotado* aparece no canto da foto no catálogo e nos destaques.
 - **Banner da página inicial**: no Administrar site, o botão <i class="fa-solid fa-images"></i> (ou a caixa *Mostrar no banner* no cadastro)
   coloca a excursão no banner do topo, depois do slide de boas-vindas, com folder, título, descrição, data/local, botão e selo.

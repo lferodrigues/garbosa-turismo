@@ -12,7 +12,7 @@ async function vagasDoSite() {
   const res = {};
   await Promise.all(Object.entries(site).map(async ([id, x]) => {
     const exId = exIdDoSite(x);
-    if (!exId) return; // página fixa (sem excursão do sistema): só o selo escolhido à mão
+    if (!exId || x.ativo === false) return; // página fixa ou oculta: sem selo automático
     // dono da excursão: o do link de inscrição (o item do catálogo pode ter sido cadastrado pelo admin)
     const own = (await d.ref(`inscricoes/${exId}/owner`).get()).val() || x.owner;
     if (!own || !/^[\w-]{1,128}$/.test(own)) return;

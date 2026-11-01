@@ -221,3 +221,36 @@ a{color:inherit}
 .gt-slide-status{display:inline-block;color:#fff;font-size:.72rem;font-weight:800;padding:5px 12px;border-radius:30px;text-transform:uppercase;letter-spacing:.5px;margin:0 8px 14px 0;box-shadow:0 4px 12px rgba(0,0,0,.25)}
 .gt-slide-info{font-size:.85rem;opacity:.85;margin-top:6px}
 .gt-slide-esgotado .gt-slide-img{filter:grayscale(1)}
+
+/* ---------- página de excursões (catálogo) ---------- */
+.gt-menu a.ativo{background:#f1efff;color:var(--roxo)}
+.gt-pagina{background:linear-gradient(120deg,var(--noite) 0%,var(--roxo) 55%,var(--lilas) 100%);color:#fff;padding:46px 0 52px;position:relative;overflow:hidden}
+.gt-pagina::after{content:"";position:absolute;right:-80px;top:-80px;width:280px;height:280px;border-radius:50%;background:rgba(255,213,74,.12)}
+.gt-pagina-in{position:relative;z-index:1}
+.gt-trilha{font-size:.8rem;color:rgba(255,255,255,.75);margin-bottom:10px}
+.gt-trilha a{color:#fff;text-decoration:none}
+.gt-trilha i{font-size:.6rem;margin:0 6px}
+.gt-pagina h1{font-size:clamp(1.8rem,4vw,2.6rem);font-weight:800;line-height:1.15}
+.gt-pagina h1 b{color:var(--amarelo)}
+.gt-pagina p{max-width:560px;margin-top:8px;opacity:.88}
+.gt-secao-catalogo{padding-top:40px}
+.gt-catalogo{display:grid;grid-template-columns:repeat(4,1fr);gap:20px}
+.gt-dest-info{display:flex;align-items:center;justify-content:center;gap:6px}
+.gt-dest-info i{color:var(--lilas)}
+.gt-dest .gt-dest-desc{font-size:.8rem;color:var(--cinza);margin-top:-6px}
+.gt-catalogo-vazio{grid-column:1/-1;text-align:center;background:#fff;border-radius:var(--raio);padding:48px 20px;box-shadow:0 8px 24px rgba(21,21,59,.07);color:var(--cinza)}
+.gt-catalogo-vazio i{font-size:2.4rem;color:var(--lilas);margin-bottom:10px}
+.gt-catalogo-vazio p{max-width:440px;margin:0 auto 18px}
+.gt-paginacao{display:flex;align-items:center;justify-content:center;gap:16px;margin-top:34px;flex-wrap:wrap}
+.gt-paginacao[hidden]{display:none}
+.gt-paginacao span{font-size:.85rem;color:var(--cinza);font-weight:600}
+.gt-btn-vazado-roxo{background:#fff;color:var(--roxo);border:2px solid var(--roxo)}
+.gt-btn-vazado-roxo:hover:not(:disabled){background:var(--roxo);color:#fff}
+.gt-paginacao .gt-btn:disabled{opacity:.4;cursor:not-allowed}
+@media(max-width:1100px){.gt-catalogo{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:700px){
+  .gt-catalogo{grid-template-columns:1fr 1fr;gap:12px}
+  .gt-dest .gt-dest-desc{display:none}
+  .gt-pagina{padding:32px 0 36px}
+}
+@media(max-width:420px){.gt-catalogo{grid-template-columns:1fr}}

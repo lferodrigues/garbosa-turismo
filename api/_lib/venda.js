@@ -12,7 +12,18 @@ export async function carregarExcursao(exId) {
   if (!pub?.owner) throw new ErroUsuario("Excursão não encontrada.", 404);
   const ex = (await d.ref(`excursoes/${pub.owner}/${exId}`).get()).val();
   if (!ex) throw new ErroUsuario("Excursão não encontrada.", 404);
+  // oculta no Administrar site: não aparece em lugar nenhum (compra, reserva, poltrona, inscrição)
+  if (ocultaNoSite((await d.ref("site/excursoes").get()).val(), exId)) throw new ErroUsuario("Esta excursão não está disponível no momento.", 404, { oculta: true });
   return { exId, own: pub.owner, ex, agencia: pub.agencia || "" };
+}
+
+/**
+ * A excursão está oculta no site? Sim quando existe item no catálogo ligado a ela e todos esses itens estão ocultos
+ * (ativo === false). Excursão que nunca foi para o catálogo não conta como oculta (o link enviado pela agência funciona).
+ */
+export function ocultaNoSite(site, exId) {
+  const ligados = Object.values(site || {}).filter((x) => x && exIdDoSite(x) === exId);
+  return ligados.length > 0 && ligados.every((x) => x.ativo === false);
 }
 
 export function situacaoVenda(ex, hoje = R.hojeBR()) {

@@ -1,123 +1,135 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <link rel="icon" href="Assets/img/logo.ico" type="image/x-icon" />
-    <link rel="shortcut icon" href="Assets/img/logo.ico" type="image/x-icon" />
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
- 
-    <link rel="stylesheet" href="./Assets/css/excursao/estilo.css?v=3">
-    <script>
-// BLOQUEAR BOTÃO DIREITO
-document.addEventListener('contextmenu', event => event.preventDefault());
-
-// BLOQUEAR TECLAS DE ATAJO
-document.addEventListener('keydown', (e) => {
-
-    // F12
-    if (e.key === "F12") {
-        e.preventDefault();
-    }
-
-    // CTRL + SHIFT + I / J / C
-    if (e.ctrlKey && e.shiftKey && (
-        e.key === "I" || e.key === "i" ||
-        e.key === "J" || e.key === "j" ||
-        e.key === "C" || e.key === "c"
-    )) {
-        e.preventDefault();
-    }
-
-    // CTRL + U (código-fonte)
-    if (e.ctrlKey && (e.key === "U" || e.key === "u")) {
-        e.preventDefault();
-    }
-
-    // CTRL + S (salvar página)
-    if (e.ctrlKey && (e.key === "S" || e.key === "s")) {
-        e.preventDefault();
-    }
-
-    // CTRL + C / X (copiar e recortar)
-    if (e.ctrlKey && (e.key === "C" || e.key === "c" || e.key === "X" || e.key === "x")) {
-        e.preventDefault();
-    }
-});
-
-// BLOQUEAR SELEÇÃO DE TEXTO
-document.addEventListener('selectstart', (e) => e.preventDefault());
-
-// BLOQUEAR ARRASTAR IMAGENS
-document.addEventListener('dragstart', (e) => e.preventDefault());
-
-// DESCARACTERIZAR TENTATIVA DE DEVTOOLS
-(function() {
-    let aberto = false;
-    const elemento = new Image();
-    Object.defineProperty(elemento, 'id', {
-        get: function () {
-            aberto = true;
-            throw new Error("DevTools detectado");
-        }
-    });
-
-    setInterval(function() {
-        aberto = false;
-        console.log(elemento);
-        if (aberto) {
-            document.body.innerHTML = "<h1 style='color:white; text-align:center; margin-top:30vh;'>Acesso negado</h1>";
-        }
-    }, 500);
-})();
-</script>
-
-
-    <title>Excursões – Garbosa Turismo</title>
- 
-    
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Excursões | Garbosa Turismo</title>
+<meta name="description" content="Todas as excursões da Garbosa Turismo saindo de São João Nepomuceno: compre online com cartão em até 6x, Pix ou boleto e escolha sua poltrona.">
+<meta property="og:title" content="Excursões | Garbosa Turismo">
+<meta property="og:description" content="Escolha sua próxima viagem e garanta sua poltrona pela internet.">
+<meta property="og:image" content="https://garbosaturismo.com.br/Assets/img/banner.png">
+<link rel="icon" type="image/png" sizes="192x192" href="./Assets/img/logo.ico">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+<link rel="stylesheet" href="./Assets/css/novosite/home.css?v=4">
+<link rel="stylesheet" href="./Assets/css/novosite/conta.css?v=1">
+</head>
 <body>
-   <nav class="navbar">
-        <div class="nav-container">
 
-            <img src="./Assets/img/logo.ico" class="logo-img" alt="Garbosa Turismo">
-
-            <!-- HAMBURGUER -->
-            <div class="hamburger" id="hamburger">
-                <span></span>
-                <span></span>
-                <span></span>
-            </div>
-
-            <ul class="nav-links" id="nav-links">
-                <li><a href="https://garbosaturismo.com.br">Início</a></li>
-                
-            </ul>
-
-        </div>
-    </nav> 
-    <div></div>
-
-    <div class="excursao-container">
-        
-        <h1>Nossas Excursões:</h1>
-
-        <div id="cards" class="cards-grid"></div>
-
-        <div class="pagination">
-            <button id="prevBtn" class="btn-paginacao">
-    <i class="fa fa-arrow-left"></i> Anterior
-</button>
-
-<button id="nextBtn" class="btn-paginacao">
-    Próxima <i class="fa fa-arrow-right"></i>
-</button>
-        </div>
+<!-- ============ BARRA DE CONTATO ============ -->
+<div class="gt-topo">
+  <div class="gt-container gt-topo-in">
+    <span><i class="fa-solid fa-location-dot"></i> São João Nepomuceno / MG</span>
+    <div class="gt-topo-dir">
+      <a href="https://wa.me/5532999874657" target="_blank" rel="noopener"><i class="fa-brands fa-whatsapp"></i> (32) 99987-4657</a>
+      <span class="gt-topo-redes">
+        <a href="https://www.instagram.com/garbosaturismo/" target="_blank" rel="noopener" aria-label="Instagram"><i class="fa-brands fa-instagram"></i></a>
+        <a href="https://www.tiktok.com/@garbosaturismo" target="_blank" rel="noopener" aria-label="TikTok"><i class="fa-brands fa-tiktok"></i></a>
+        <a href="https://www.facebook.com/profile.php?id=100093055390780" target="_blank" rel="noopener" aria-label="Facebook"><i class="fa-brands fa-facebook-f"></i></a>
+      </span>
     </div>
+  </div>
+</div>
 
-    
+<!-- ============ CABEÇALHO ============ -->
+<header class="gt-header" id="topo">
+  <div class="gt-container gt-header-in">
+    <a href="./index.html" class="gt-marca" aria-label="Garbosa Turismo — início">
+      <img src="./Assets/img/logo.ico" alt="">
+      <span><strong>Garbosa</strong><em>Turismo</em></span>
+    </a>
+    <button class="gt-menu-btn" id="gtMenuBtn" aria-label="Abrir menu" aria-expanded="false" aria-controls="gtMenu"><i class="fa-solid fa-bars"></i></button>
+    <nav class="gt-menu" id="gtMenu" aria-label="Menu principal">
+      <ul>
+        <li><a href="./index.html#inicio">Início</a></li>
+        <li><a href="./index.html#destinos">Destinos</a></li>
+        <li><a href="./excursoes.html" aria-current="page" class="ativo">Excursões</a></li>
+        <li><a href="./index.html#sobre">A agência</a></li>
+        <li><a href="./index.html#parceiros">Parceiros</a></li>
+        <li><a href="./contrato.html">Contrato</a></li>
+        <li><a href="#contato">Contato</a></li>
+        <li class="gt-menu-conta"><a href="./sistema/minha-conta.html" id="linkConta"><i class="fa-regular fa-circle-user"></i> Área do cliente</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
 
+<main>
+<!-- ============ TOPO DA PÁGINA ============ -->
+<section class="gt-pagina">
+  <div class="gt-container gt-pagina-in">
+    <nav class="gt-trilha" aria-label="Você está em"><a href="./index.html">Início</a> <i class="fa-solid fa-chevron-right"></i> <span>Excursões</span></nav>
+    <h1>Nossas <b>excursões</b></h1>
+    <p>Escolha a próxima viagem e garanta sua poltrona pela internet: cartão em até 6x, Pix ou boleto.</p>
+  </div>
+</section>
+
+<!-- ============ CATÁLOGO (vem do Garbosa System) ============ -->
+<section class="gt-secao gt-secao-catalogo" id="catalogo">
+  <div class="gt-container">
+    <div class="gt-catalogo" id="cards" aria-live="polite"></div>
+    <nav class="gt-paginacao" aria-label="Páginas">
+      <button type="button" class="gt-btn gt-btn-vazado-roxo" id="prevBtn"><i class="fa-solid fa-arrow-left"></i> Anterior</button>
+      <span id="paginaInfo"></span>
+      <button type="button" class="gt-btn gt-btn-vazado-roxo" id="nextBtn">Próxima <i class="fa-solid fa-arrow-right"></i></button>
+    </nav>
+  </div>
+</section>
+
+<!-- ============ CHAMADA ============ -->
+<section class="gt-cta">
+  <div class="gt-container gt-cta-in">
+    <div><h2>Pronto para a próxima viagem?</h2><p>Fale com a gente ou garanta sua poltrona pela internet.</p></div>
+    <div class="gt-acoes"><a class="gt-btn gt-btn-amarelo" href="./sistema/minha-conta.html" data-abrir-conta>Área do cliente</a><a class="gt-btn gt-btn-vazado" href="https://wa.me/5532999874657" target="_blank" rel="noopener"><i class="fa-brands fa-whatsapp"></i> WhatsApp</a></div>
+  </div>
+</section>
+</main>
+
+<!-- ============ RODAPÉ ============ -->
+<footer class="gt-rodape" id="contato">
+  <div class="gt-container gt-rodape-in">
+    <div>
+      <a href="./index.html" class="gt-marca gt-marca-clara"><img src="./Assets/img/logo.ico" alt=""><span><strong>Garbosa</strong><em>Turismo</em></span></a>
+      <p>A viagem dos seus sonhos começa aqui. Excursões saindo de São João Nepomuceno, MG.</p>
+      <div class="gt-redes">
+        <a href="https://wa.me/5532999874657" target="_blank" rel="noopener" aria-label="WhatsApp"><i class="fa-brands fa-whatsapp"></i></a>
+        <a href="https://www.instagram.com/garbosaturismo/" target="_blank" rel="noopener" aria-label="Instagram"><i class="fa-brands fa-instagram"></i></a>
+        <a href="https://www.tiktok.com/@garbosaturismo" target="_blank" rel="noopener" aria-label="TikTok"><i class="fa-brands fa-tiktok"></i></a>
+        <a href="https://www.facebook.com/profile.php?id=100093055390780" target="_blank" rel="noopener" aria-label="Facebook"><i class="fa-brands fa-facebook-f"></i></a>
+      </div>
+    </div>
+    <div>
+      <h3>Navegue</h3>
+      <ul><li><a href="./excursoes.html">Excursões</a></li><li><a href="./index.html#destinos">Destinos em destaque</a></li><li><a href="./sistema/minha-conta.html" data-abrir-conta>Área do cliente</a></li><li><a href="./contrato.html">Contrato de prestação de serviço</a></li><li><a href="./fale-conosco.html">Fale conosco</a></li></ul>
+    </div>
+    <div>
+      <h3>Atendimento</h3>
+      <ul><li><a href="https://wa.me/5532999874657" target="_blank" rel="noopener"><i class="fa-brands fa-whatsapp"></i> (32) 99987-4657</a></li><li><i class="fa-solid fa-location-dot"></i> São João Nepomuceno / MG</li></ul>
+    </div>
+    <div class="gt-cadastur">
+      <h3>Cadastur</h3>
+      <a href="./Assets/documentos/cadastro.pdf" target="_blank" rel="noopener" title="Clique para verificar o cadastro"><img loading="lazy" src="./Assets/img/cadastur.png" alt="Selo Cadastur — verificar cadastro"></a>
+      <small>Clique no selo para verificar o cadastro</small>
+    </div>
+  </div>
+  <p class="gt-copy">© <span id="currentYear">2026</span> Todos os direitos reservados | Garbosa Turismo</p>
+</footer>
+
+<!-- WhatsApp flutuante -->
+<a class="gt-wpp" href="https://wa.me/5532999874657" target="_blank" rel="noopener" aria-label="Atendimento via WhatsApp"><i class="fa-brands fa-whatsapp"></i><span>Atendimento<br><b>via WhatsApp</b></span></a>
+
+<!-- Área do cliente: login e cadastro (e-mail/senha ou Google) -->
+<div class="gc-modal" id="gcModal" hidden role="dialog" aria-modal="true" aria-label="Área do cliente">
+  <div class="gc-caixa">
+    <button type="button" class="gc-fechar" data-fechar aria-label="Fechar">&times;</button>
+    <div id="gcCorpo"></div>
+  </div>
+</div>
+
+<script src="./Assets/js/novosite/home.js?v=7" defer></script>
+<script src="./Assets/js/exrcursao/script.js?v=7" defer></script>
+<script type="module" src="./Assets/js/novosite/conta.js?v=2"></script>
 </body>
-<script src="./Assets/js/scripts.js"></script>
-<script src="./Assets/js/exrcursao/script.js?v=6"></script>
 </html>

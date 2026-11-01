@@ -28,6 +28,13 @@ async function carregar() {
     const snap = await get(ref(db, `inscricoes/${exId}`));
     if (!snap.exists()) { $("#fechTitulo").textContent = "Excursão não encontrada"; $("#fechTexto").textContent = "Este link não existe mais. Fale com a agência."; return mostrar("#inscFechada"); }
     EX = snap.val();
+    // oculta no Administrar site: não aparece em lugar nenhum
+    const site = (await get(ref(db, "site/excursoes"))).val() || {};
+    const ligados = Object.values(site).filter((x) => x && (x.exId === exId || String(x.link || "").includes(`?e=${exId}`)));
+    if (ligados.length && ligados.every((x) => x.ativo === false)) {
+      $("#fechTitulo").textContent = "Excursão indisponível"; $("#fechTexto").textContent = "Esta excursão não está disponível no momento. Fale com a agência.";
+      return mostrar("#inscFechada");
+    }
   } catch (e) { console.error(e); $("#fechTitulo").textContent = "Não foi possível carregar"; $("#fechTexto").textContent = "Verifique sua internet e tente novamente."; return mostrar("#inscFechada"); }
   if (!EX.ativa) return mostrar("#inscFechada");
   document.title = `Inscrição: ${EX.destino} | ${EX.agencia || "Garbosa Turismo"}`;
