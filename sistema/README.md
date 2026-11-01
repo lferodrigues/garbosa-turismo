@@ -211,7 +211,9 @@ asaasEventos/{id}                      eventos do webhook já processados (só s
 - "Importar as excursões que já estão no site" cria a lista inicial a partir das excursões fixas.
 - No cadastro da excursão: **Adicionar folder** e a caixa **Mostrar no catálogo do site**; no painel 🛒 Venda online
   há a mesma caixa. Marcada, a excursão entra no catálogo com o folder e o botão **Comprar** (link de venda).
-- Se o banco não responder ou a lista estiver vazia, excursoes.html e o index mostram as excursões fixas.
+- **excursoes.html mostra só excursões do sistema**: itens publicados pelo Garbosa System ou cujo botão leva a uma excursão do sistema
+  (`sistema/comprar|inscricao|reservar|poltrona.html?e=…`). Páginas antigas/fixas não aparecem; sem nenhuma, mostra "Nenhuma excursão disponível".
+  O index (destaques e banner) continua como estava.
 - **Status (selo)** no cadastro: *Promoção*, *Últimas vagas* ou *Esgotado* aparece no canto da foto no catálogo e nos destaques.
 - **Banner da página inicial**: no Administrar site, o botão <i class="fa-solid fa-images"></i> (ou a caixa *Mostrar no banner* no cadastro)
   coloca a excursão no banner do topo, depois do slide de boas-vindas, com folder, título, descrição, data/local, botão e selo.
