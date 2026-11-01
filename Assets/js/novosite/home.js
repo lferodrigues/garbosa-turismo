@@ -54,18 +54,20 @@
   const esc = (t) => String(t == null ? "" : t).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const linkSeguro = (l) => (/^(https?:\/\/|[\w./?=&%-]+$)/.test(l || "") && !/^javascript:/i.test(l) ? l : "#");
   const SELOS = { promocao: "Promoção", ultimas: "Últimas vagas", esgotado: "Esgotado" };
-  const VAGAS = fetch("/api/venda?vagas=1").then((r) => (r.ok ? r.json() : {})).catch(() => ({}));
+  const VAGAS = () => fetch("/api/venda?vagas=1").then((r) => (r.ok ? r.json() : {})).catch(() => ({}));
   const comSelo = (dados, vagas) => Object.entries(dados || {}).map(([id, x]) =>
     x && typeof x === "object" ? { ...x, status: x.status === "esgotado" ? "esgotado" : (vagas[id] && vagas[id].selo) || x.status } : x);
-  const SITE = Promise.all([fetch("https://bus-virtual-dd0f7-default-rtdb.firebaseio.com/site/excursoes.json").then((r) => (r.ok ? r.json() : null)), VAGAS])
-    .then(([dados, vagas]) => comSelo(dados, vagas).filter((x) => x && x.ativo !== false && x.titulo && x.imagem).sort((a, b) => (a.ordem || 0) - (b.ordem || 0)));
+  // oculta no Administrar site (ativo === false) nunca aparece; só busca quando a página tem banner ou destaques
+  let _site = null;
+  const SITE = { then: (ok, erro) => (_site ||= Promise.all([fetch("https://bus-virtual-dd0f7-default-rtdb.firebaseio.com/site/excursoes.json").then((r) => (r.ok ? r.json() : null)), VAGAS()])
+    .then(([dados, vagas]) => comSelo(dados, vagas).filter((x) => x && x.ativo !== false && x.titulo && x.imagem).sort((a, b) => (a.ordem || 0) - (b.ordem || 0)))).then(ok, erro) };
   const trocaImg = (raiz) => raiz.querySelectorAll("img[data-raw]").forEach((img) => img.addEventListener("error", () => { if (img.dataset.raw && img.src !== img.dataset.raw) img.src = img.dataset.raw; }, { once: true }));
 
   const FUNDOS = ["linear-gradient(120deg,#0b4f6c 0%,#2A1F88 70%)", "linear-gradient(120deg,#0d6e6e 0%,#2A1F88 70%)", "linear-gradient(120deg,#5a1a8c 0%,#2A1F88 70%)", "linear-gradient(120deg,#8c3a1a 0%,#2A1F88 70%)"];
   if (slider) {
     SITE.then((lista) => {
       const banner = lista.filter((x) => x.banner);
-      if (!banner.length) return; // nenhuma escolhida: ficam os slides do HTML
+      if (!banner.length) return; // nenhuma escolhida: fica só o slide de boas-vindas
       $$(".gt-slide", slider).slice(1).forEach((s) => s.remove());
       const html = banner.map((x, i) => {
         const esg = x.status === "esgotado";
@@ -95,7 +97,7 @@
   }
 
   /* destinos em destaque: as marcadas com ⭐ no Garbosa System → Administrar site; se nenhuma, as primeiras do catálogo.
-     Sem dados, ficam os cartões do HTML. */
+     Sem dados, fica só o cartão "Ver catálogo" (não há excursões fixas no HTML). */
   const grade = $(".gt-destinos");
   if (grade) {
     SITE.then((todas) => {

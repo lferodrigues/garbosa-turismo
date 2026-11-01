@@ -344,3 +344,23 @@ test("selo de vagas: item do catálogo cadastrado à mão com link para a excurs
   const g = await chamar(venda, { method: "GET", query: { e: EX } });
   assert.deepEqual(g.body.vagas, { selo: "ultimas", livres: 16, cap: 46 });
 });
+
+test("excursão oculta no Administrar site não abre em lugar nenhum (compra, reserva, poltrona) e some do selo", async () => {
+  const { default: reservaApi } = await import("../api/reserva.js");
+  const { default: poltronaApi } = await import("../api/poltrona-livre.js");
+  await db.ref("site/excursoes").set({ s1: { titulo: "Aldeia", exId: EX, owner: OWN, origem: "sistema", ativo: false } });
+  for (const api of [venda, reservaApi, poltronaApi]) {
+    const r = await chamar(api, { method: "GET", query: { e: EX } });
+    assert.equal(r.statusCode, 404, JSON.stringify(r.body));
+    assert.match(r.body.erro, /não está disponível/);
+  }
+  const compra = await comprar([pessoa(0, { assento: { vk: "v1", n: 40 } })]);
+  assert.equal(compra.statusCode, 404);
+  assert.deepEqual((await chamar(venda, { method: "GET", query: { vagas: "1" } })).body, {});
+  // reexibida: volta a abrir
+  await db.ref("site/excursoes/s1/ativo").set(true);
+  assert.equal((await chamar(venda, { method: "GET", query: { e: EX } })).statusCode, 200);
+  // excursão que nunca foi para o catálogo: o link da agência continua funcionando
+  await db.ref("site/excursoes").set(null);
+  assert.equal((await chamar(venda, { method: "GET", query: { e: EX } })).statusCode, 200);
+});
