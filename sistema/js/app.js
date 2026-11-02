@@ -1,7 +1,7 @@
 import { auth, db, ADMIN_EMAIL, authSecundario } from "./firebase.js?v=8";
 import { baixarXLSX, baixarPDF, baixarPDFPoltronas, carregarXLSX } from "./exportar.js?v=9";
-import * as R from "./venda-regras.js?v=19";
-import { htmlOnibus } from "./mapa-onibus.js?v=1";
+import * as R from "./venda-regras.js?v=20";
+import { htmlOnibus } from "./mapa-onibus.js?v=2";
 import {
   onAuthStateChanged, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword,
   sendPasswordResetEmail, updateProfile,
@@ -1854,6 +1854,42 @@ function formVeiculoExtra(exId) {
   calc();
 }
 
+/** Embarque próprio de um veículo: só quem mora na cidade (CEP) escolhe poltrona nele, com local e horário de saída próprios */
+function formEmbarque(exId, vk) {
+  const ex = S.excursoes[exId], own = dono(exId), v = ex.veiculos?.[vk];
+  if (!v) return;
+  const e = v.embarque || {};
+  const i = veiculosDe(ex).findIndex(([k]) => k === vk);
+  abrirModal(`Embarque do veículo ${i + 1}`, `
+    <form id="fEmb" class="form-grid">
+      <p class="span2 muted" style="margin:0">Use para um ônibus que sai de outra cidade e é <strong>só para quem mora lá</strong>
+        (ex.: Descoberto, CEP 36690-000, saída da praça às 03:30). No link de compra, reserva e escolha de poltrona
+        este ônibus só aparece para quem informar um CEP da lista; os outros veículos continuam abertos para todos.</p>
+      <label class="check span2"><input type="checkbox" name="ativo" id="embAtivo" ${R.embarqueDe(v) ? "checked" : ""}> Este veículo é só para quem mora em outra cidade</label>
+      <label>Cidade<input name="cidade" value="${esc(e.cidade || "")}" placeholder="Ex.: Descoberto" maxlength="60"></label>
+      <label>CEP(s) da cidade<input name="ceps" value="${esc(Array.isArray(e.ceps) ? e.ceps.join(", ") : e.ceps || "")}" placeholder="Ex.: 36690-000" maxlength="120"></label>
+      <label>Local de saída<input name="local" value="${esc(e.local || "")}" placeholder="Ex.: Praça de Descoberto" maxlength="120"></label>
+      <label>Horário de saída<input type="time" name="hora" value="${esc(e.hora || "")}"></label>
+      <small class="muted span2">Vários CEPs: separe por vírgula. Com 5 dígitos (ex.: 36690) vale toda a faixa que começa assim.</small>
+    </form>`, [
+    { html: "Cancelar", acao: fecharModal },
+    { html: `<i class="fa-solid fa-floppy-disk"></i> Salvar`, classe: "btn-primary", acao: async () => {
+      const d = lerForm($("#fEmb"));
+      let embarque = null;
+      if (d.ativo) {
+        embarque = { cidade: d.cidade.slice(0, 60), ceps: d.ceps.slice(0, 120), local: d.local.slice(0, 120), hora: d.hora || "" };
+        if (!R.embarqueDe({ embarque })) return toast("Informe pelo menos um CEP válido (8 dígitos, ou 5 para a faixa da cidade).", "erro");
+        if (!embarque.cidade) return toast("Informe o nome da cidade.", "erro");
+      }
+      try {
+        await set(ref(db, `excursoes/${own}/${exId}/veiculos/${vk}/embarque`), embarque);
+        fecharModal();
+        toast(embarque ? `Veículo ${i + 1}: ${R.textoEmbarque(R.embarqueDe({ embarque }))}` : "Veículo aberto para todos");
+      } catch (err) { falha(err); }
+    } }
+  ]);
+}
+
 /* ---------- seletor de excursão ---------- */
 function seletorExcursao() {
   const lista = ordenar(S.excursoes, "dataSaida").reverse();
@@ -1930,6 +1966,7 @@ function viewViajantes() {
   ligarSeletor();
   $("#btnNovoPass").onclick = () => formViajante(exId);
   $("#btnVeicExtra").onclick = () => formVeiculoExtra(exId);
+  $("#btnEmbarque").onclick = () => formEmbarque(exId, vk);
   if ($("#btnVeicExtra2")) $("#btnVeicExtra2").onclick = () => formVeiculoExtra(exId);
   $("#btnIrPolt").onclick = () => irPara("poltronas", exId);
   $("#btnImportar").onclick = () => importarPlanilha(exId);
@@ -2069,7 +2106,7 @@ function viewPoltronas() {
   $("#workspace").innerHTML = `
   <section class="panel">
     ${toolbar("Montagem de poltronas", "fa-couch",
-      tbBtn("btnAuto", "fa-wand-magic-sparkles", "Distribuir") + tbBtn("btnLimpar", "fa-eraser", "Limpar veículo") +
+      tbBtn("btnAuto", "fa-wand-magic-sparkles", "Distribuir") + tbBtn("btnLimpar", "fa-eraser", "Limpar veículo") + tbBtn("btnEmbarque", "fa-location-dot", "Embarque do veículo") +
       tbBtn("btnVeicExtra", "fa-plus", "Inserir veículo", "tool-accent") + tbBtn("btnPrint", "fa-print", "Imprimir"))}
     <div class="subbar">${sel}
       <div class="lotacao"><div class="lot-txt"><strong>${totalSent}</strong> de <strong>${pessoas.length}</strong> viajantes posicionados · capacidade total ${capacidadeEx(ex)}</div></div>
@@ -2086,7 +2123,8 @@ function viewPoltronas() {
       <button class="btn btn-primary btn-sm" id="btnVeicExtra2"><i class="fa-solid fa-plus"></i> Inserir mais um veículo</button></div>` : ""}
     <div class="veic-tabs">${vs.map(([k, x], i) => {
       const ocup = Object.keys((S.poltronas[exId] || {})[k] || {}).length;
-      return `<button class="vtab ${k === vk ? "active" : ""}" data-vk="${k}"><i class="fa-solid ${veic(x.tipo).icone}"></i> Veículo ${i + 1} · ${esc(veic(x.tipo).nome)} <span class="pill">${ocup}/${veic(x.tipo).cap}</span></button>`;
+      const emb = R.embarqueDe(x);
+      return `<button class="vtab ${k === vk ? "active" : ""}" data-vk="${k}" ${emb ? `title="${esc(R.textoEmbarque(emb))} · só CEP ${esc(emb.ceps.join(", "))}"` : ""}><i class="fa-solid ${veic(x.tipo).icone}"></i> Veículo ${i + 1} · ${esc(veic(x.tipo).nome)}${emb ? ` <em class="vtab-emb"><i class="fa-solid fa-location-dot"></i> ${esc(emb.cidade || "embarque")}${emb.hora ? ` · ${esc(emb.hora)}` : ""}</em>` : ""} <span class="pill">${ocup}/${veic(x.tipo).cap}</span></button>`;
     }).join("")}
       ${vs.length > 1 ? `<button class="vtab vtab-del" id="btnDelVeic" title="Remover este veículo"><i class="fa-solid fa-trash"></i></button>` : ""}</div>
     <div class="polt-layout">
@@ -2159,9 +2197,18 @@ function viewPoltronas() {
     const livres = pessoas.filter(([id]) => !poltronaDe(exId, id)).map(([id]) => id);
     if (!livres.length) return toast("Todos os viajantes já estão posicionados.");
     const upd = {};
-    for (const [k, x] of vs) {
+    // ônibus com embarque próprio (ex.: Descoberto) só recebe quem tem CEP da cidade dele; quem é de lá vai primeiro para ele
+    const cepViaj = (pid) => { const p = S.viajantes[exId]?.[pid]; return p?.cep || p?.endereco?.cep || ""; };
+    const ordemVs = [...vs].sort(([, a], [, b]) => Number(!!R.embarqueDe(b)) - Number(!!R.embarqueDe(a)));
+    for (const [k, x] of ordemVs) {
       const m = (S.poltronas[exId] || {})[k] || {};
-      for (let n = 1; n <= veic(x.tipo).cap && livres.length; n++) if (!m[n]) { const pid = livres.shift(); upd[`${base}/${k}/${n}`] = pid; ajusteLeito(upd, pid, null, { vk: k, n }); }
+      for (let n = 1; n <= veic(x.tipo).cap; n++) {
+        if (m[n]) continue;
+        const idx = livres.findIndex((pid) => R.podeEmbarcar(x, cepViaj(pid)));
+        if (idx < 0) break;
+        const pid = livres.splice(idx, 1)[0];
+        upd[`${base}/${k}/${n}`] = pid; ajusteLeito(upd, pid, null, { vk: k, n });
+      }
     }
     try { await update(ref(db), upd); toast(livres.length ? `${livres.length} viajante(s) ficaram sem lugar` : "Viajantes distribuídos", livres.length ? "erro" : "ok"); } catch (e) { falha(e); }
   };
@@ -2198,7 +2245,7 @@ function viewPoltronas() {
       { nome: "Todos os viajantes", colunas: COLS_POLT, linhas: linhasPoltronas(exId) }
     ],
     pdf: () => baixarPDFPoltronas(titulo, sub,
-      porVeiculo.map(({ i, x, nm, cap }) => ({ titulo: `${vs.length > 1 ? `Veículo ${i + 1} · ` : ""}${veic(x.tipo).nome}`, cap, planta: R.plantaVeiculo(x.tipo, cap), nomes: nm })),
+      porVeiculo.map(({ i, x, nm, cap }) => ({ titulo: `${vs.length > 1 ? `Veículo ${i + 1} · ` : ""}${veic(x.tipo).nome}${R.embarqueDe(x) ? ` · ${R.textoEmbarque(R.embarqueDe(x))}` : ""}`, cap, planta: R.plantaVeiculo(x.tipo, cap), nomes: nm })),
       { colunas: COLS_POLT, linhas: linhasPoltronas(exId) })
   };
 }

@@ -148,3 +148,20 @@ test("opcionais na escolha rápida: somam no valor e podem ser trocados depois",
   v = db.dump().viajantes[OWN][EX][vid];
   assert.equal(v.valor, 115); assert.deepEqual(Object.keys(v.opcionais), ["o2"]);
 });
+
+test("escolha rápida: ônibus de Descoberto só com CEP 36690-000 (criança de colo segue o adulto)", async () => {
+  await db.ref(`excursoes/${OWN}/${EX}/veiculos/v2`).set({ tipo: "van15", valorTransporte: 1000, ordem: 1,
+    embarque: { cidade: "Descoberto", ceps: "36690-000", local: "Praça", hora: "03:30" } });
+  let r = await salvar([{ nome: "Ana Paula Souza", docTipo: "RG", docNumero: "MG-7.777.777", cep: "36680-000", assento: { vk: "v2", n: 3 } }]);
+  assert.equal(r.statusCode, 400); assert.match(r.body.erro, /Descoberto/);
+  r = await salvar([{ nome: "Ana Paula Souza", docTipo: "RG", docNumero: "MG-7.777.777", assento: { vk: "v2", n: 3 } }]);
+  assert.equal(r.statusCode, 400);
+  r = await salvar([
+    { nome: "Ana Paula Souza", docTipo: "RG", docNumero: "MG-7.777.777", cep: "36690000", assento: { vk: "v2", n: 3 } },
+    { nome: "Lia Souza", docTipo: "CERTIDAO", colo: true, nascimento: somarDias(hojeBR(), -500), com: 0 }
+  ]);
+  assert.equal(r.statusCode, 200, JSON.stringify(r.body));
+  const vs = Object.values(db.dump().viajantes[OWN][EX]);
+  assert.equal(vs.find((v) => v.nome === "Ana Paula Souza").cep, "36690-000");
+  assert.equal(vs.find((v) => v.nome === "Lia Souza").cep, "36690-000");
+});

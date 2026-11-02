@@ -89,6 +89,33 @@ export function idadeEm(nascimento, dataRef) {
 }
 
 /** Veículos da excursão em ordem */
+/* ---------- embarque próprio de um veículo (ex.: ônibus só para quem mora em Descoberto) ---------- */
+/**
+ * Veículo com embarque próprio: { cidade, local, hora, ceps: ["36690000", "36690"] } ou null.
+ * Só quem tem CEP na lista pode escolher poltrona nele; os outros veículos continuam abertos para todos.
+ * CEP com 8 dígitos tem de ser igual; com 5 dígitos vale como começo (toda a faixa da cidade).
+ */
+export function embarqueDe(v) {
+  const e = v?.embarque;
+  if (!e) return null;
+  const ceps = String(Array.isArray(e.ceps) ? e.ceps.join(",") : e.ceps || "").split(/[,;\s]+/).map((c) => c.replace(/\D/g, "")).filter((c) => c.length === 5 || c.length === 8);
+  if (!ceps.length) return null;
+  return { cidade: String(e.cidade || "").trim().slice(0, 60), local: String(e.local || "").trim().slice(0, 120), hora: String(e.hora || "").trim().slice(0, 5), ceps };
+}
+/** O CEP pode embarcar neste veículo? (veículo sem embarque próprio: todos podem) */
+export function podeEmbarcar(v, cep) {
+  const e = embarqueDe(v);
+  if (!e) return true;
+  const c = String(cep || "").replace(/\D/g, "");
+  return c.length === 8 && e.ceps.some((x) => (x.length === 8 ? c === x : c.startsWith(x)));
+}
+/** Texto da saída: "Saída de Descoberto: Praça, às 03:30" */
+export function textoEmbarque(e) {
+  if (!e) return "";
+  const onde = [e.local, e.hora ? `às ${e.hora}` : ""].filter(Boolean).join(", ");
+  return `Saída de ${e.cidade || "embarque próprio"}${onde ? `: ${onde}` : ""}`;
+}
+
 export const veiculosDe = (ex) => Object.entries(ex?.veiculos || {}).sort((a, b) => (a[1].ordem || 0) - (b[1].ordem || 0));
 
 /* ---------- custos e valor por poltrona ----------

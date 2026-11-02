@@ -4,7 +4,7 @@
 // Funciona enquanto o link de inscrição da excursão estiver aberto (o mesmo botão "Encerrar/Reabrir inscrições").
 import { db } from "./_lib/firebase.js";
 import { enviar, lerCorpo, soMetodo, tratarErro, ErroUsuario } from "./_lib/http.js";
-import { carregarExcursao, veiculosComOcupacao, vagasDaExcursao, reservarPoltronas, liberarPoltronas, notificar, R } from "./_lib/venda.js";
+import { carregarExcursao, veiculosComOcupacao, vagasDaExcursao, reservarPoltronas, liberarPoltronas, notificar, conferirEmbarque, R } from "./_lib/venda.js";
 
 const texto = (v, max) => String(v ?? "").replace(/\s+/g, " ").trim().slice(0, max);
 
@@ -78,6 +78,7 @@ export default async function handler(req, res) {
       usados.add(`${a.vk}/${a.n}`);
     }
 
+    conferirEmbarque(ex, pessoas, (p) => p.endereco?.cep);
     const vids = pessoas.map(() => d.ref(`viajantes/${own}/${exId}`).push().key);
     await reservarPoltronas(own, exId, pessoas.map((p, i) => (p.assento ? { ...p.assento, vid: vids[i] } : null)).filter(Boolean));
     vidsReservados = vids;

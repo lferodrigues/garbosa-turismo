@@ -364,3 +364,26 @@ test("excursão oculta no Administrar site não abre em lugar nenhum (compra, re
   await db.ref("site/excursoes").set(null);
   assert.equal((await chamar(venda, { method: "GET", query: { e: EX } })).statusCode, 200);
 });
+
+test("ônibus com embarque próprio (Descoberto): só CEP 36690-000 escolhe poltrona nele; aparece na venda com o texto da saída", async () => {
+  const { default: reservaApi } = await import("../api/reserva.js");
+  await db.ref(`excursoes/${OWN}/${EX}/veiculos/v2`).set({ tipo: "onibus46", valorTransporte: 9000, ordem: 1,
+    embarque: { cidade: "Descoberto", ceps: "36690-000", local: "Praça de Descoberto", hora: "03:30" } });
+  const g = await chamar(venda, { method: "GET", query: { e: EX } });
+  const v2 = g.body.veiculos.find((v) => v.id === "v2");
+  assert.equal(v2.embarque.texto, "Saída de Descoberto: Praça de Descoberto, às 03:30");
+  assert.deepEqual(v2.embarque.ceps, ["36690000"]);
+  assert.equal(g.body.veiculos.find((v) => v.id === "v1").embarque, null);
+  // CEP de São João (36680-000): recusado no ônibus de Descoberto
+  let r = await comprar([pessoa(0, { assento: { vk: "v2", n: 5 } })], { cupom: "", forma: "PIX", parcelas: 1 });
+  assert.equal(r.statusCode, 400); assert.match(r.body.erro, /Descoberto/);
+  assert.equal(db.dump().poltronas[OWN][EX].v2, undefined);
+  // CEP de Descoberto: pode no ônibus de Descoberto e também no principal
+  const desc = { ...pessoa(0).endereco, cep: "36690-000", cidade: "Descoberto" };
+  r = await comprar([pessoa(0, { endereco: desc, assento: { vk: "v2", n: 5 } }), pessoa(1, { endereco: desc, assento: { vk: "v1", n: 6 } })], { cupom: "", forma: "PIX", parcelas: 1 });
+  assert.equal(r.statusCode, 200, JSON.stringify(r.body));
+  assert.ok(db.dump().poltronas[OWN][EX].v2[5]);
+  // reserva sem pagamento segue a mesma regra
+  r = await chamar(reservaApi, { method: "POST", body: { e: EX, aceite: true, pessoas: [pessoa(2, { assento: { vk: "v2", n: 7 } })] } });
+  assert.equal(r.statusCode, 400); assert.match(r.body.erro, /Descoberto/);
+});

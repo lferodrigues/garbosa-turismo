@@ -235,6 +235,16 @@ asaasEventos/{id}                      eventos do webhook já processados (só s
 - Banco: `site/excursoes/{id}` (leitura pública; escrita do admin ou da agência dona).
 - Vercel: variável **`GITHUB_TOKEN`** (token do GitHub com permissão *Contents: Read and write* no repositório).
 
+## Ônibus com embarque próprio (ex.: Descoberto)
+Em **Poltronas**, escolha a aba do veículo e toque em **Embarque do veículo**: cidade, CEP(s), local e horário de saída
+(ex.: Descoberto · 36690-000 · Praça de Descoberto · 03:30).
+- Nas páginas de compra, reserva e escolha rápida, esse ônibus **só aparece para quem tem CEP da lista** (na escolha rápida
+  aparece o campo *CEP de onde mora*); quem é da cidade vê os dois ônibus. Os outros veículos continuam abertos para todos.
+- O topo das páginas mostra "Saída de Descoberto: Praça de Descoberto, às 03:30" e o mapa desse ônibus tem o mesmo aviso.
+- O servidor recusa poltrona nesse ônibus para CEP de fora (`conferirEmbarque`). **Distribuir** no painel só coloca nele
+  viajantes com CEP da cidade. O PDF do mapa traz o embarque no título.
+- Banco: `excursoes/{uid}/{exId}/veiculos/{vk}/embarque` = `{ cidade, ceps, local, hora }` (sem mudança nas regras).
+
 ## Escolha de poltrona sem pagamento (sem login)
 Os dois links ficam em **Link de inscrição** de cada excursão e funcionam enquanto as inscrições estiverem abertas.
 - `sistema/poltrona.html?e={id}` — **escolha rápida**: nome completo + RG (ou certidão de nascimento, com botão para enviar

@@ -11,7 +11,7 @@
 // Funciona enquanto as inscrições da excursão estiverem abertas (link de inscrição ativo).
 import { db } from "./_lib/firebase.js";
 import { enviar, lerCorpo, soMetodo, tratarErro, ErroUsuario } from "./_lib/http.js";
-import { carregarExcursao, veiculosComOcupacao, vagasDaExcursao, trocarPoltronas, liberarPoltronas, notificar, R } from "./_lib/venda.js";
+import { carregarExcursao, veiculosComOcupacao, vagasDaExcursao, trocarPoltronas, liberarPoltronas, notificar, conferirEmbarque, R } from "./_lib/venda.js";
 
 export const WHATSAPP_CERTIDAO = "5532999775281";
 const MAX = 10;
@@ -87,6 +87,7 @@ export default async function handler(req, res) {
       colo: p?.colo === true, nascimento: texto(p?.nascimento, 10), com: Number.isInteger(p?.com) ? p.com : -1,
       vid: /^[\w-]{1,40}$/.test(p?.vid || "") ? p.vid : "", manter: p?.manter === true,
       assento: p?.assento ? { vk: texto(p.assento.vk, 40), n: parseInt(p.assento.n, 10) } : null,
+      cep: R.mascaraCep(p?.cep),
       opcionais: R.opcionaisValidos(ex, (Array.isArray(p?.opcionais) ? p.opcionais : []).slice(0, 30).map((x) => texto(x, 40)))
     }));
     if (!pessoas.length) throw new ErroUsuario("Informe quem vai viajar.");
@@ -141,6 +142,7 @@ export default async function handler(req, res) {
       p.responsavel = resp.nome;
     });
 
+    conferirEmbarque(ex, pessoas.map((p) => (p.manter || p.colo ? { ...p, assento: null } : p)), (p) => p.cep || p.existente?.cep);
     const d = await db();
     pessoas.forEach((p) => { if (!p.vid) p.vid = d.ref(`viajantes/${own}/${exId}`).push().key; });
     const ativos = pessoas.filter((p) => !p.manter);
@@ -161,7 +163,8 @@ export default async function handler(req, res) {
       const dados = {
         nome: p.nome, docTipo: p.docTipo, docNumero: p.docNumero, colo: p.colo,
         nascimento: p.colo ? p.nascimento : p.existente?.nascimento || "", idade: p.colo ? p.idade : p.existente?.idade ?? null,
-        responsavel: p.colo ? p.responsavel : null, opcionais: R.opcionaisRegistro(ex, p.opcionais), obs
+        responsavel: p.colo ? p.responsavel : null, opcionais: R.opcionaisRegistro(ex, p.opcionais), obs,
+        cep: p.cep || p.existente?.cep || (p.colo ? pessoas[p.com]?.cep || "" : "")
       };
       if (!p.existente) {
         upd[base] = { ...dados, telefone: "", valor, origem: "poltrona", criadoEm: agora };
