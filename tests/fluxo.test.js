@@ -387,3 +387,11 @@ test("ônibus com embarque próprio (Descoberto): só CEP 36690-000 escolhe polt
   r = await chamar(reservaApi, { method: "POST", body: { e: EX, aceite: true, pessoas: [pessoa(2, { assento: { vk: "v2", n: 7 } })] } });
   assert.equal(r.statusCode, 400); assert.match(r.body.erro, /Descoberto/);
 });
+
+test("selo do catálogo leva também as saídas de outras cidades (Descoberto) para os cartões", async () => {
+  await db.ref("site/excursoes").set({ s1: { titulo: "Aldeia", exId: EX, owner: OWN } });
+  await db.ref(`excursoes/${OWN}/${EX}/veiculos/v2`).set({ tipo: "onibus46", valorTransporte: 9000, ordem: 1,
+    embarque: { cidade: "Descoberto", ceps: "36690-000", local: "Praça", hora: "03:30" } });
+  const r = await chamar(venda, { method: "GET", query: { vagas: "1" } });
+  assert.deepEqual(r.body.s1.saidas, ["Descoberto: Praça, 03:30"]);
+});

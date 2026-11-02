@@ -56,7 +56,8 @@
   const SELOS = { promocao: "Promoção", ultimas: "Últimas vagas", esgotado: "Esgotado" };
   const VAGAS = () => fetch("/api/venda?vagas=1").then((r) => (r.ok ? r.json() : {})).catch(() => ({}));
   const comSelo = (dados, vagas) => Object.entries(dados || {}).map(([id, x]) =>
-    x && typeof x === "object" ? { ...x, status: x.status === "esgotado" ? "esgotado" : (vagas[id] && vagas[id].selo) || x.status } : x);
+    x && typeof x === "object" ? { ...x, status: x.status === "esgotado" ? "esgotado" : (vagas[id] && vagas[id].selo) || x.status,
+      local: [x.local, ...((vagas[id] && vagas[id].saidas) || [])].filter(Boolean).join(" · ") } : x);
   // oculta no Administrar site (ativo === false) nunca aparece; só busca quando a página tem banner ou destaques
   let _site = null;
   const SITE = { then: (ok, erro) => (_site ||= Promise.all([fetch("https://bus-virtual-dd0f7-default-rtdb.firebaseio.com/site/excursoes.json").then((r) => (r.ok ? r.json() : null)), VAGAS()])
