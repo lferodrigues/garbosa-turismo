@@ -394,6 +394,7 @@ $("#btnIr2").addEventListener("click", async () => {
   await atualizarOcupacao();
   b.disabled = false;
   S.ativo = S.pessoas.findIndex((p) => ocupaPoltrona(p) && !p.assento);
+  abrirVeiculoDe(S.pessoas[S.ativo] ?? sentam()[0]?.[0]);
   irEtapa(2);
 });
 $("#btnVolta1").addEventListener("click", () => irEtapa(1));
@@ -417,6 +418,12 @@ const sentam = () => S.pessoas.map((p, i) => [p, i]).filter(([p]) => ocupaPoltro
 const cepDe = (p) => efetiva(p).endereco?.cep;
 const podeNoVeiculo = (p, v) => !v?.embarque || R.podeEmbarcar(v, cepDe(p));
 const veiculosDaPessoa = (p) => EX.veiculos.filter((v) => podeNoVeiculo(p, v));
+/** Abre o mapa no ônibus certo: o da poltrona já escolhida ou o de embarque próprio da cidade do CEP (ex.: Descoberto) */
+function abrirVeiculoDe(p) {
+  if (!p) return;
+  const vk = p.assento?.vk || EX.veiculos.find((v) => v.embarque && R.podeEmbarcar(v, cepDe(p)))?.id;
+  if (vk) S.veic = vk;
+}
 
 function renderPoltronas() {
   const lista = sentam();
@@ -431,8 +438,7 @@ function renderPoltronas() {
     + S.pessoas.filter((p) => !ocupaPoltrona(p)).map((p) => `<span class="cp-q colo"><i class="fa-solid fa-baby"></i>${esc(primeiro(p.nome))}<em>colo</em></span>`).join("");
   $$(".cp-q[data-i]").forEach((b) => b.addEventListener("click", () => {
     S.ativo = +b.dataset.i;
-    const p = S.pessoas[S.ativo];
-    if (p.assento) S.veic = p.assento.vk;
+    abrirVeiculoDe(S.pessoas[S.ativo]);
     renderPoltronas();
   }));
   const meus = ativo ? veiculosDaPessoa(ativo) : EX.veiculos;
@@ -474,7 +480,7 @@ function escolher(vk, n) {
   if (!p || !ocupaPoltrona(p) || !podeNoVeiculo(p, EX.veiculos.find((x) => x.id === vk))) return;
   p.assento = { vk, n };
   const prox = sentam().find(([x, i]) => !x.assento && i > S.ativo) || sentam().find(([x]) => !x.assento);
-  if (prox) S.ativo = prox[1];
+  if (prox) { S.ativo = prox[1]; abrirVeiculoDe(prox[0]); }
   renderPoltronas();
 }
 $("#btnIr3").addEventListener("click", () => {
