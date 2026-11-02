@@ -1,6 +1,6 @@
 import { auth, db, ADMIN_EMAIL, authSecundario } from "./firebase.js?v=8";
 import { baixarXLSX, baixarPDF, baixarPDFPoltronas, carregarXLSX } from "./exportar.js?v=9";
-import * as R from "./venda-regras.js?v=22";
+import * as R from "./venda-regras.js?v=23";
 import { htmlOnibus } from "./mapa-onibus.js?v=3";
 import {
   onAuthStateChanged, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword,
@@ -1887,7 +1887,7 @@ function formEmbarque(exId, vk) {
     <form id="fEmb" class="form-grid">
       <p class="span2 muted" style="margin:0">Use para um ônibus que sai de outra cidade e é <strong>só para quem mora lá</strong>
         (ex.: Descoberto, CEP 36690-000, saída da praça às 03:30). No link de compra, reserva e escolha de poltrona
-        este ônibus só aparece para quem informar um CEP da lista; os outros veículos continuam abertos para todos.</p>
+        quem informar um CEP da lista só escolhe poltrona neste ônibus; os outros CEPs não veem este ônibus.</p>
       <label class="check span2"><input type="checkbox" name="ativo" id="embAtivo" ${R.embarqueDe(v) ? "checked" : ""}> Este veículo é só para quem mora em outra cidade</label>
       <label>Cidade<input name="cidade" value="${esc(e.cidade || "")}" placeholder="Ex.: Descoberto" maxlength="60"></label>
       <label>CEP(s) da cidade<input name="ceps" value="${esc(Array.isArray(e.ceps) ? e.ceps.join(", ") : e.ceps || "")}" placeholder="Ex.: 36690-000" maxlength="120"></label>
@@ -2236,7 +2236,7 @@ function viewPoltronas() {
     // primeiro quem tem veículo certo pelo CEP (Descoberto vai para o veículo 2); depois os demais
     const lista = vs.map(([id, x]) => ({ ...x, id }));
     ordemVs.forEach(([k, x]) => colocar(k, x, (pid) => R.veiculoDoCep(lista, cepViaj(pid))?.id === k));
-    ordemVs.forEach(([k, x]) => colocar(k, x, (pid) => R.podeEmbarcar(x, cepViaj(pid))));
+    ordemVs.forEach(([k, x]) => colocar(k, x, (pid) => R.veiculoLiberado(lista, { ...x, id: k }, cepViaj(pid))));
     try { await update(ref(db), upd); toast(livres.length ? `${livres.length} viajante(s) ficaram sem lugar` : "Viajantes distribuídos", livres.length ? "erro" : "ok"); } catch (e) { falha(e); }
   };
   $("#btnLimpar").onclick = () => confirmar("Liberar todas as poltronas deste veículo?", async () => {

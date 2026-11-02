@@ -1,5 +1,5 @@
 // Página pública de compra: viajantes → poltronas → pagamento no Asaas
-import * as R from "./venda-regras.js?v=22";
+import * as R from "./venda-regras.js?v=23";
 import { htmlOnibus, htmlSaidasTopo, htmlEmbarquesTopo, avisoEmbarque, etiquetaEmbarque } from "./mapa-onibus.js?v=4";
 import { htmlOpcionais, ligarOpcionais, resumoOpcionais } from "./opcionais-ui.js?v=1";
 import { aoMudarSessao, telaAcesso, formPerfil, lerPerfil, salvarPerfil, paraPerfil, sair, api as apiConta } from "./conta-viajante.js?v=16";
@@ -272,7 +272,7 @@ function dicasEmbarque() {
     if (!p || !el) return;
     const v = extras.find((x) => R.podeEmbarcar(x, cepDe(p)));
     el.classList.toggle("hidden", !v);
-    if (v) el.innerHTML = `<i class="fa-solid fa-bus"></i> ${esc(v.embarque.texto)} — na escolha das poltronas aparece também o ônibus de ${esc(v.embarque.cidade || "embarque próprio")}.`;
+    if (v) el.innerHTML = `<i class="fa-solid fa-bus"></i> ${esc(v.embarque.texto)} — sua poltrona será neste ônibus.`;
   });
 }
 function atualizarOpcionais(p, fs) { $$("[data-opc]", fs).forEach((s) => s.classList.toggle("hidden", !(p.colo && podeColo(p)))); }
@@ -415,9 +415,9 @@ async function atualizarOcupacao() {
   });
 }
 const sentam = () => S.pessoas.map((p, i) => [p, i]).filter(([p]) => ocupaPoltrona(p));
-/** Veículos que a pessoa pode escolher: os abertos + os de embarque próprio da cidade do CEP dela */
+/** Veículos que a pessoa pode escolher: só o do CEP dela, quando tem; senão, os abertos */
 const cepDe = (p) => efetiva(p).endereco?.cep;
-const podeNoVeiculo = (p, v) => !v?.embarque || R.podeEmbarcar(v, cepDe(p));
+const podeNoVeiculo = (p, v) => R.veiculoLiberado(EX.veiculos, v, cepDe(p));
 const veiculosDaPessoa = (p) => EX.veiculos.filter((v) => podeNoVeiculo(p, v));
 /** Abre o mapa no ônibus certo: o da poltrona já escolhida ou o do CEP (Descoberto vai para o veículo 2) */
 const veiculoPorCep = (p) => R.veiculoDoCep(EX.veiculos, cepDe(p))?.id;

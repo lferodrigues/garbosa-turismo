@@ -1,5 +1,5 @@
 // Página pública: escolher a poltrona sem pagamento e sem login
-import * as R from "./venda-regras.js?v=22";
+import * as R from "./venda-regras.js?v=23";
 import { htmlOnibus, htmlSaidasTopo, htmlEmbarquesTopo, avisoEmbarque, etiquetaEmbarque } from "./mapa-onibus.js?v=4";
 import { htmlOpcionais, ligarOpcionais, resumoOpcionais } from "./opcionais-ui.js?v=1";
 
@@ -92,12 +92,12 @@ function campoCep(p) {
   const extras = extrasEmbarque();
   if (!extras.length && (EX.veiculos || []).length < 2) return "";
   const cidades = [...new Set(extras.map((v) => v.embarque.cidade).filter(Boolean))].join(" ou ");
-  return `<label class="span2">CEP de onde mora ${extras.length ? `<small class="cp-opc">(quem mora em ${esc(cidades || "outra cidade")} pode ir no ônibus que sai de lá)</small>` : ""}
+  return `<label class="span2">CEP de onde mora ${extras.length ? `<small class="cp-opc">(quem mora em ${esc(cidades || "outra cidade")} vai no ônibus que sai de lá)</small>` : ""}
       <input data-c="cep" value="${esc(p.cep)}" inputmode="numeric" maxlength="9" placeholder="00000-000"></label>
     <p class="cp-cep-dica span2 hidden" data-emb-dica></p>`;
 }
 const cepDe = (p) => (p.colo ? S.pessoas.find((a) => a.id === p.com)?.cep : p.cep);
-const podeNoVeiculo = (p, v) => !v?.embarque || R.podeEmbarcar(v, cepDe(p));
+const podeNoVeiculo = (p, v) => R.veiculoLiberado(EX.veiculos, v, cepDe(p));
 /** Abre o mapa no ônibus certo: o da poltrona já escolhida ou o do CEP (Descoberto vai para o veículo 2) */
 const veiculoPorCep = (p) => R.veiculoDoCep(EX.veiculos, cepDe(p))?.id;
 function abrirVeiculoDe(p, anterior) {
@@ -111,7 +111,7 @@ function dicaCep(p, fs) {
   if (!el) return;
   const v = extrasEmbarque().find((x) => R.podeEmbarcar(x, p.cep));
   el.classList.toggle("hidden", !v);
-  if (v) el.innerHTML = `<i class="fa-solid fa-bus"></i> ${esc(v.embarque.texto)} — na escolha da poltrona aparece também o ônibus de ${esc(v.embarque.cidade || "embarque próprio")}.`;
+  if (v) el.innerHTML = `<i class="fa-solid fa-bus"></i> ${esc(v.embarque.texto)} — sua poltrona será neste ônibus.`;
 }
 function campoDoc(p) {
   const cert = p.docTipo === "CERTIDAO", wpp = R.mascaraTel(EX.whatsappCertidao.slice(2));

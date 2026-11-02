@@ -149,6 +149,13 @@ test("opcionais na escolha rápida: somam no valor e podem ser trocados depois",
   assert.equal(v.valor, 115); assert.deepEqual(Object.keys(v.opcionais), ["o2"]);
 });
 
+test("escolha rápida: CEP 36690-000 só vai no veículo 2, mesmo sem embarque cadastrado", async () => {
+  await db.ref(`excursoes/${OWN}/${EX}/veiculos/v2`).set({ tipo: "van15", valorTransporte: 1000, ordem: 1 });
+  let r = await salvar([{ nome: "Ana Paula Souza", docTipo: "RG", docNumero: "MG-7.777.777", cep: "36690-000", assento: { vk: "v1", n: 3 } }]);
+  assert.equal(r.statusCode, 400); assert.match(r.body.erro, /Veículo 2/);
+  r = await salvar([{ nome: "Ana Paula Souza", docTipo: "RG", docNumero: "MG-7.777.777", cep: "36690-000", assento: { vk: "v2", n: 3 } }]);
+  assert.equal(r.statusCode, 200, JSON.stringify(r.body));
+});
 test("escolha rápida: ônibus de Descoberto só com CEP 36690-000 (criança de colo segue o adulto)", async () => {
   await db.ref(`excursoes/${OWN}/${EX}/veiculos/v2`).set({ tipo: "van15", valorTransporte: 1000, ordem: 1,
     embarque: { cidade: "Descoberto", ceps: "36690-000", local: "Praça", hora: "03:30" } });

@@ -239,13 +239,14 @@ asaasEventos/{id}                      eventos do webhook já processados (só s
 Em **Poltronas**, escolha a aba do veículo e toque em **Embarque do veículo**: cidade, CEP(s), local e horário de saída
 (ex.: Descoberto · 36690-000 · Praça de Descoberto · 03:30).
 - Nas páginas de compra, reserva e escolha rápida, esse ônibus **só aparece para quem tem CEP da lista** (na escolha rápida
-  aparece o campo *CEP de onde mora*); quem é da cidade vê os dois ônibus. Os outros veículos continuam abertos para todos.
+  aparece o campo *CEP de onde mora*), e quem é da cidade **só escolhe poltrona nele**. Os outros CEPs usam os outros veículos.
 - O topo das páginas mostra "Saída de Descoberto: Praça de Descoberto, às 03:30" e o mapa desse ônibus tem o mesmo aviso.
 - O servidor recusa poltrona nesse ônibus para CEP de fora (`conferirEmbarque`). **Distribuir** no painel só coloca nele
   viajantes com CEP da cidade. O PDF do mapa traz o embarque no título.
 - Banco: `excursoes/{uid}/{exId}/veiculos/{vk}/embarque` = `{ cidade, ceps, local, hora }` (sem mudança nas regras).
-- CEP **36690-000** sempre abre o mapa no **veículo 2** e tem prioridade nele no **Distribuir**, mesmo sem embarque cadastrado
-  (`CEP_VEICULO_2`). Se um veículo tiver embarque próprio para esse CEP, vale esse veículo. Quem tem esse CEP ainda pode trocar de aba.
+- CEP **36690-000** sempre vai no **veículo 2**, mesmo sem embarque cadastrado (`CEP_VEICULO_2`): o cliente só vê esse veículo, o servidor
+  recusa poltrona nos outros (`veiculoLiberado`) e o **Distribuir** não o coloca em outro. Se um veículo tiver embarque próprio para esse
+  CEP, vale esse veículo. Se ele lotar, a agência coloca a pessoa à mão no mapa do painel; quem já tem poltrona não muda de veículo.
 
 ## Mais de uma saída na excursão
 No formulário da excursão, abaixo de **Local de saída**, toque em **Adicionar outra saída** e informe o local e o horário (até 10).

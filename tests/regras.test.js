@@ -168,3 +168,14 @@ test("CEP 36690-000 vai para o veículo 2, com ou sem embarque cadastrado; outro
   const tres = [{ id: "v1" }, { id: "v2" }, { id: "v3", embarque: { cidade: "Descoberto", ceps: ["36690000"] } }];
   assert.equal(R.veiculoDoCep(tres, "36690000")?.id, "v3"); // embarque cadastrado tem prioridade
 });
+
+test("veiculoLiberado: quem tem veículo pelo CEP só vai nele; outro CEP segue o embarque", () => {
+  const dois = [{ id: "v1" }, { id: "v2" }];
+  assert.equal(R.veiculoLiberado(dois, dois[0], "36690-000"), false);
+  assert.equal(R.veiculoLiberado(dois, dois[1], "36690-000"), true);
+  assert.equal(R.veiculoLiberado(dois, dois[0], "36680-000"), true);
+  assert.equal(R.veiculoLiberado(dois, dois[1], "36680-000"), true);
+  const emb = [{ id: "v1" }, { id: "v2", embarque: { cidade: "Descoberto", ceps: ["36690000"] } }];
+  assert.equal(R.veiculoLiberado(emb, emb[1], "36680-000"), false);
+  assert.equal(R.veiculoLiberado(emb, emb[0], "36690-000"), false);
+});

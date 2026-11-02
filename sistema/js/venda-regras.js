@@ -114,7 +114,12 @@ export const CEP_VEICULO_2 = "36690000";
 /** Veículo certo para o CEP: o de embarque próprio da cidade; senão, o veículo 2 para o CEP_VEICULO_2 (veiculos já em ordem) */
 export function veiculoDoCep(veiculos, cep) {
   const lista = veiculos || [], c = soDig(cep);
-  return lista.find((v) => embarqueDe(v) && podeEmbarcar(v, c)) || (c === CEP_VEICULO_2 ? lista[1] : undefined);
+  return lista.find((v) => embarqueDe(v) && podeEmbarcar(v, c)) || (c === CEP_VEICULO_2 && podeEmbarcar(lista[1], c) ? lista[1] : undefined);
+}
+/** A pessoa pode sentar neste veículo? Quem tem veículo certo pelo CEP só vai nele; os outros seguem o embarque próprio */
+export function veiculoLiberado(veiculos, v, cep) {
+  const certo = veiculoDoCep(veiculos, cep);
+  return certo ? certo.id === v?.id : podeEmbarcar(v, cep);
 }
 /** Texto da saída: "Saída de Descoberto: Praça, às 03:30" */
 export function textoEmbarque(e) {

@@ -378,9 +378,11 @@ test("ônibus com embarque próprio (Descoberto): só CEP 36690-000 escolhe polt
   let r = await comprar([pessoa(0, { assento: { vk: "v2", n: 5 } })], { cupom: "", forma: "PIX", parcelas: 1 });
   assert.equal(r.statusCode, 400); assert.match(r.body.erro, /Descoberto/);
   assert.equal(db.dump().poltronas[OWN][EX].v2, undefined);
-  // CEP de Descoberto: pode no ônibus de Descoberto e também no principal
+  // CEP de Descoberto: recusado no ônibus principal, só vai no de Descoberto
   const desc = { ...pessoa(0).endereco, cep: "36690-000", cidade: "Descoberto" };
-  r = await comprar([pessoa(0, { endereco: desc, assento: { vk: "v2", n: 5 } }), pessoa(1, { endereco: desc, assento: { vk: "v1", n: 6 } })], { cupom: "", forma: "PIX", parcelas: 1 });
+  r = await comprar([pessoa(0, { endereco: desc, assento: { vk: "v1", n: 6 } })], { cupom: "", forma: "PIX", parcelas: 1 });
+  assert.equal(r.statusCode, 400); assert.match(r.body.erro, /Veículo 2/);
+  r = await comprar([pessoa(0, { endereco: desc, assento: { vk: "v2", n: 5 } }), pessoa(1, { endereco: desc, assento: { vk: "v2", n: 6 } })], { cupom: "", forma: "PIX", parcelas: 1 });
   assert.equal(r.statusCode, 200, JSON.stringify(r.body));
   assert.ok(db.dump().poltronas[OWN][EX].v2[5]);
   // reserva sem pagamento segue a mesma regra
