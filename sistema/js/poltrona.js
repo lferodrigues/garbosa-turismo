@@ -1,5 +1,5 @@
 // Página pública: escolher a poltrona sem pagamento e sem login
-import * as R from "./venda-regras.js?v=21";
+import * as R from "./venda-regras.js?v=22";
 import { htmlOnibus, htmlSaidasTopo, htmlEmbarquesTopo, avisoEmbarque, etiquetaEmbarque } from "./mapa-onibus.js?v=4";
 import { htmlOpcionais, ligarOpcionais, resumoOpcionais } from "./opcionais-ui.js?v=1";
 
@@ -86,22 +86,24 @@ function opcoesColo(p) {
     ? ads.map((a) => `<option value="${a.id}" ${a.id === p.com ? "selected" : ""}>${esc(nomeCurto(a))}</option>`).join("")
     : `<option value="">Adicione o adulto primeiro</option>`;
 }
-/* CEP de onde mora: só aparece quando a excursão tem ônibus de outra cidade (ex.: Descoberto) */
+/* CEP de onde mora: só aparece quando a excursão tem mais de um veículo ou ônibus de outra cidade (ex.: Descoberto) */
 const extrasEmbarque = () => (EX.veiculos || []).filter((v) => v.embarque);
 function campoCep(p) {
   const extras = extrasEmbarque();
-  if (!extras.length) return "";
+  if (!extras.length && (EX.veiculos || []).length < 2) return "";
   const cidades = [...new Set(extras.map((v) => v.embarque.cidade).filter(Boolean))].join(" ou ");
-  return `<label class="span2">CEP de onde mora <small class="cp-opc">(quem mora em ${esc(cidades || "outra cidade")} pode ir no ônibus que sai de lá)</small>
+  return `<label class="span2">CEP de onde mora ${extras.length ? `<small class="cp-opc">(quem mora em ${esc(cidades || "outra cidade")} pode ir no ônibus que sai de lá)</small>` : ""}
       <input data-c="cep" value="${esc(p.cep)}" inputmode="numeric" maxlength="9" placeholder="00000-000"></label>
     <p class="cp-cep-dica span2 hidden" data-emb-dica></p>`;
 }
 const cepDe = (p) => (p.colo ? S.pessoas.find((a) => a.id === p.com)?.cep : p.cep);
 const podeNoVeiculo = (p, v) => !v?.embarque || R.podeEmbarcar(v, cepDe(p));
-/** Abre o mapa no ônibus certo: o da poltrona já escolhida ou o de embarque próprio da cidade do CEP (ex.: Descoberto) */
-function abrirVeiculoDe(p) {
+/** Abre o mapa no ônibus certo: o da poltrona já escolhida ou o do CEP (Descoberto vai para o veículo 2) */
+const veiculoPorCep = (p) => R.veiculoDoCep(EX.veiculos, cepDe(p))?.id;
+function abrirVeiculoDe(p, anterior) {
   if (!p) return;
-  const vk = p.assento?.vk || extrasEmbarque().find((v) => R.podeEmbarcar(v, cepDe(p)))?.id;
+  // quem não tem veículo pelo CEP volta ao veículo 1 se o mapa só estava no outro por causa do CEP da pessoa anterior
+  const vk = p.assento?.vk || veiculoPorCep(p) || (anterior && veiculoPorCep(anterior) === S.veic ? EX.veiculos[0]?.id : null);
   if (vk) S.veic = vk;
 }
 function dicaCep(p, fs) {
@@ -322,6 +324,7 @@ async function continuar() {
     await atualizar();
     S.ativo = S.pessoas.findIndex((p) => precisaPoltrona(p) && !p.assento);
     if (S.ativo < 0) S.ativo = S.pessoas.findIndex(precisaPoltrona);
+    S.veic = EX.veiculos[0]?.id || null;
     abrirVeiculoDe(S.pessoas[S.ativo]);
     etapa(2);
   } finally { $("#btnIr2").disabled = false; }
@@ -360,7 +363,7 @@ function renderMapa() {
         ? `<span class="cp-q colo"><i class="fa-solid fa-circle-check"></i>${esc(primeiro(p.existente.nome))}<em>${p.existente.poltrona === "colo" ? "colo" : esc(p.existente.poltrona)} · mantido</em></span>`
         : `<span class="cp-q colo"><i class="fa-solid fa-baby"></i>${esc(primeiro(p.nome))}<em>colo de ${esc(nomeCurto(S.pessoas.find((a) => a.id === p.com) || {}))}</em></span>`).join("")
     : "";
-  $$(".cp-q[data-i]").forEach((b) => b.addEventListener("click", () => { S.ativo = +b.dataset.i; abrirVeiculoDe(S.pessoas[S.ativo]); renderMapa(); }));
+  $$(".cp-q[data-i]").forEach((b) => b.addEventListener("click", () => { const anterior = S.pessoas[S.ativo]; S.ativo = +b.dataset.i; abrirVeiculoDe(S.pessoas[S.ativo], anterior); renderMapa(); }));
   const meus = ativo ? EX.veiculos.filter((v) => podeNoVeiculo(ativo, v)) : EX.veiculos;
   if (!meus.find((v) => v.id === S.veic)) S.veic = meus[0]?.id;
   $("#veics").innerHTML = meus.length > 1 ? meus.map((v) => `<button type="button" class="vtab ${v.id === S.veic ? "active" : ""}" data-vk="${v.id}">Veículo ${EX.veiculos.indexOf(v) + 1} · ${esc(v.nome)}${etiquetaEmbarque(v)} <span class="pill">${v.cap - ocupadasDe(v).size - sentam.filter((p) => p.assento?.vk === v.id).length} livres</span></button>`).join("") : "";
@@ -385,10 +388,11 @@ function escolher(vk, n) {
   const dono = S.pessoas.find((p) => precisaPoltrona(p) && p.assento?.vk === vk && p.assento.n === n);
   if (dono) { dono.assento = null; S.ativo = S.pessoas.indexOf(dono); return renderMapa(); }
   if (!podeNoVeiculo(S.pessoas[S.ativo], EX.veiculos.find((x) => x.id === vk))) return;
-  S.pessoas[S.ativo].assento = { vk, n };
+  const anterior = S.pessoas[S.ativo];
+  anterior.assento = { vk, n };
   const prox = S.pessoas.findIndex((p, i) => precisaPoltrona(p) && !p.assento && i > S.ativo);
   const qualquer = S.pessoas.findIndex((p) => precisaPoltrona(p) && !p.assento);
-  if (prox >= 0 || qualquer >= 0) { S.ativo = prox >= 0 ? prox : qualquer; abrirVeiculoDe(S.pessoas[S.ativo]); }
+  if (prox >= 0 || qualquer >= 0) { S.ativo = prox >= 0 ? prox : qualquer; abrirVeiculoDe(S.pessoas[S.ativo], anterior); }
   renderMapa();
 }
 

@@ -158,3 +158,13 @@ test("outras saídas: limpa a lista, ignora linha sem local e monta o texto", ()
   assert.deepEqual(R.saidasDe({}), []);
   assert.equal(R.saidasDe({ saidas: Array.from({ length: 15 }, (_, i) => ({ local: `L${i}` })) }).length, R.MAX_SAIDAS);
 });
+
+test("CEP 36690-000 vai para o veículo 2, com ou sem embarque cadastrado; outros CEPs não têm veículo definido", () => {
+  const dois = [{ id: "v1" }, { id: "v2" }];
+  assert.equal(R.veiculoDoCep(dois, "36690-000")?.id, "v2");
+  assert.equal(R.veiculoDoCep(dois, "36680-000"), undefined);
+  assert.equal(R.veiculoDoCep(dois, ""), undefined);
+  assert.equal(R.veiculoDoCep([{ id: "v1" }], "36690-000"), undefined); // só um veículo: fica nele
+  const tres = [{ id: "v1" }, { id: "v2" }, { id: "v3", embarque: { cidade: "Descoberto", ceps: ["36690000"] } }];
+  assert.equal(R.veiculoDoCep(tres, "36690000")?.id, "v3"); // embarque cadastrado tem prioridade
+});

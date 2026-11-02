@@ -1,6 +1,6 @@
 import { auth, db, ADMIN_EMAIL, authSecundario } from "./firebase.js?v=8";
 import { baixarXLSX, baixarPDF, baixarPDFPoltronas, carregarXLSX } from "./exportar.js?v=9";
-import * as R from "./venda-regras.js?v=21";
+import * as R from "./venda-regras.js?v=22";
 import { htmlOnibus } from "./mapa-onibus.js?v=3";
 import {
   onAuthStateChanged, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword,
@@ -2223,16 +2223,20 @@ function viewPoltronas() {
     // ônibus com embarque próprio (ex.: Descoberto) só recebe quem tem CEP da cidade dele; quem é de lá vai primeiro para ele
     const cepViaj = (pid) => { const p = S.viajantes[exId]?.[pid]; return p?.cep || p?.endereco?.cep || ""; };
     const ordemVs = [...vs].sort(([, a], [, b]) => Number(!!R.embarqueDe(b)) - Number(!!R.embarqueDe(a)));
-    for (const [k, x] of ordemVs) {
+    const colocar = (k, x, pode) => {
       const m = (S.poltronas[exId] || {})[k] || {};
       for (let n = 1; n <= veic(x.tipo).cap; n++) {
-        if (m[n]) continue;
-        const idx = livres.findIndex((pid) => R.podeEmbarcar(x, cepViaj(pid)));
+        if (m[n] || upd[`${base}/${k}/${n}`]) continue;
+        const idx = livres.findIndex(pode);
         if (idx < 0) break;
         const pid = livres.splice(idx, 1)[0];
         upd[`${base}/${k}/${n}`] = pid; ajusteLeito(upd, pid, null, { vk: k, n });
       }
-    }
+    };
+    // primeiro quem tem veículo certo pelo CEP (Descoberto vai para o veículo 2); depois os demais
+    const lista = vs.map(([id, x]) => ({ ...x, id }));
+    ordemVs.forEach(([k, x]) => colocar(k, x, (pid) => R.veiculoDoCep(lista, cepViaj(pid))?.id === k));
+    ordemVs.forEach(([k, x]) => colocar(k, x, (pid) => R.podeEmbarcar(x, cepViaj(pid))));
     try { await update(ref(db), upd); toast(livres.length ? `${livres.length} viajante(s) ficaram sem lugar` : "Viajantes distribuídos", livres.length ? "erro" : "ok"); } catch (e) { falha(e); }
   };
   $("#btnLimpar").onclick = () => confirmar("Liberar todas as poltronas deste veículo?", async () => {

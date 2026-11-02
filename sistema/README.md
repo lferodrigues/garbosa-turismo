@@ -244,6 +244,8 @@ Em **Poltronas**, escolha a aba do veículo e toque em **Embarque do veículo**:
 - O servidor recusa poltrona nesse ônibus para CEP de fora (`conferirEmbarque`). **Distribuir** no painel só coloca nele
   viajantes com CEP da cidade. O PDF do mapa traz o embarque no título.
 - Banco: `excursoes/{uid}/{exId}/veiculos/{vk}/embarque` = `{ cidade, ceps, local, hora }` (sem mudança nas regras).
+- CEP **36690-000** sempre abre o mapa no **veículo 2** e tem prioridade nele no **Distribuir**, mesmo sem embarque cadastrado
+  (`CEP_VEICULO_2`). Se um veículo tiver embarque próprio para esse CEP, vale esse veículo. Quem tem esse CEP ainda pode trocar de aba.
 
 ## Mais de uma saída na excursão
 No formulário da excursão, abaixo de **Local de saída**, toque em **Adicionar outra saída** e informe o local e o horário (até 10).

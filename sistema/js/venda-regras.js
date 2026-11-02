@@ -109,6 +109,13 @@ export function podeEmbarcar(v, cep) {
   const c = String(cep || "").replace(/\D/g, "");
   return c.length === 8 && e.ceps.some((x) => (x.length === 8 ? c === x : c.startsWith(x)));
 }
+/** CEP de Descoberto: vai para o veículo 2 mesmo quando ele não tem embarque próprio cadastrado */
+export const CEP_VEICULO_2 = "36690000";
+/** Veículo certo para o CEP: o de embarque próprio da cidade; senão, o veículo 2 para o CEP_VEICULO_2 (veiculos já em ordem) */
+export function veiculoDoCep(veiculos, cep) {
+  const lista = veiculos || [], c = soDig(cep);
+  return lista.find((v) => embarqueDe(v) && podeEmbarcar(v, c)) || (c === CEP_VEICULO_2 ? lista[1] : undefined);
+}
 /** Texto da saída: "Saída de Descoberto: Praça, às 03:30" */
 export function textoEmbarque(e) {
   if (!e) return "";
