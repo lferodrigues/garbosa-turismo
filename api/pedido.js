@@ -134,7 +134,7 @@ export default async function handler(req, res) {
     });
     const pedido = {
       criadoEm: Date.now(), status: "aguardando", clienteUid: cliente.uid,
-      excursao: { destino: ex.destino, dataSaida: ex.dataSaida, horaSaida: ex.horaSaida || "", dataRetorno: ex.dataRetorno || ex.dataSaida, horaRetorno: ex.horaRetorno || "", localSaida: ex.localSaida || "", agencia }, forma, parcelas, formaTxt, vencimento,
+      excursao: { destino: ex.destino, dataSaida: ex.dataSaida, horaSaida: ex.horaSaida || "", dataRetorno: ex.dataRetorno || ex.dataSaida, horaRetorno: ex.horaRetorno || "", localSaida: ex.localSaida || "", saidas: R.saidasDe(ex), agencia }, forma, parcelas, formaTxt, vencimento,
       totalCent: conta.totalCent, descontoCent: conta.descontoCent, recebidoCent: 0,
       cupom: cupom?.ok && conta.comCupom ? cupom.codigo : null, cupomPessoas: conta.comCupom,
       titular: { nome: titular.nome, cpf: titular.cpf, email: titular.email, whatsapp: titular.whatsapp },

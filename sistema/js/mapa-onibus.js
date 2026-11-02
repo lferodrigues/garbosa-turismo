@@ -30,6 +30,9 @@ export function htmlOnibus(planta, seat, cap = 0) {
   return planta.length > 1 ? `<div class="bus-pisos">${pisos}</div>` : pisos;
 }
 
+/** Outras saídas da excursão, para o quadro de informações do topo */
+export const htmlSaidasTopo = (saidas) => (saidas || []).map((s) => `<div><i class="fa-solid fa-location-dot"></i><small>Outra saída</small><strong>${esc(s.local)}${s.hora ? `, às ${esc(s.hora)}` : ""}</strong></div>`).join("");
+
 /* ---------- embarque próprio (ônibus só para quem mora numa cidade, com saída própria) ---------- */
 const cepTxt = (c) => (String(c).length === 8 ? String(c).replace(/(\d{5})(\d{3})/, "$1-$2") : `${c}…`);
 /** Linhas extras para o quadro de informações do topo: "Saída de Descoberto · Praça, às 03:30" */

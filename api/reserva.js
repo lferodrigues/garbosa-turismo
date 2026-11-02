@@ -36,7 +36,7 @@ export default async function handler(req, res) {
       const { exId, own, ex, agencia } = await carregarExcursao(String(req.query.e || ""));
       const sit = await situacao(exId, ex);
       const base = { destino: ex.destino, agencia, descricao: ex.descricao || "", dataSaida: ex.dataSaida, horaSaida: ex.horaSaida || "",
-        dataRetorno: ex.dataRetorno || ex.dataSaida, horaRetorno: ex.horaRetorno || "", localSaida: ex.localSaida || "",
+        dataRetorno: ex.dataRetorno || ex.dataSaida, horaRetorno: ex.horaRetorno || "", localSaida: ex.localSaida || "", saidas: R.saidasDe(ex),
         folder: ex.folder?.caminho ? { caminho: ex.folder.caminho, raw: ex.folder.raw || "" } : null };
       if (!sit.ativa) return enviar(res, 200, { ...base, ativa: false, motivo: sit.motivo });
       return enviar(res, 200, { ...base, ativa: true, hoje: R.hojeBR(), valorCent: R.precoPessoaCent(ex), valorColoCent: R.centavos(ex.valorColo),

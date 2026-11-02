@@ -1,6 +1,6 @@
 import { auth, db, ADMIN_EMAIL, authSecundario } from "./firebase.js?v=8";
 import { baixarXLSX, baixarPDF, baixarPDFPoltronas, carregarXLSX } from "./exportar.js?v=9";
-import * as R from "./venda-regras.js?v=20";
+import * as R from "./venda-regras.js?v=21";
 import { htmlOnibus } from "./mapa-onibus.js?v=3";
 import {
   onAuthStateChanged, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword,
@@ -938,6 +938,7 @@ function detalhes(tipo, id) {
         ${linha("Saída", `${fData(e.dataSaida)} às ${esc(e.horaSaida || "—")}`)}
         ${linha("Retorno", `${fData(e.dataRetorno)} às ${esc(e.horaRetorno || "—")}`)}
         ${linha("Local de saída", esc(e.localSaida || "—"))}
+        ${linhasSaidas(e)}
         ${linha("Viajantes", `${total} cadastrados (${occ} ocupam poltrona) / ${cap} lugares`)}
       </div>
       <h4 class="sub">Veículos</h4>
@@ -1054,6 +1055,10 @@ function formExcursao(id = null, viagemId = null) {
       <label>Data de retorno<input type="date" name="dataRetorno" value="${esc(e.dataRetorno)}"></label>
       <label>Horário de retorno<input type="time" name="horaRetorno" value="${esc(e.horaRetorno)}"></label>
       <label class="span2">Local de saída<input name="localSaida" required value="${esc(e.localSaida)}" placeholder="Ex.: Rodoviária de São João Nepomuceno"></label>
+      <div class="span2">
+        <div id="exSaidas">${R.saidasDe(e).map(linhaSaida).join("")}</div>
+        <button type="button" class="btn btn-light btn-sm" id="btnAddSaida"><i class="fa-solid fa-plus"></i> Adicionar outra saída</button>
+      </div>
       <label class="span2">Descrição para a página de venda (opcional)<textarea name="descricao" rows="3" maxlength="1500" placeholder="O que está incluso, roteiro, observações…">${esc(e.descricao)}</textarea></label>
       <div class="span2 grupo-zap">
         <button type="button" class="btn btn-light btn-sm ${e.grupoWhatsapp ? "hidden" : ""}" id="btnGrupoZap"><i class="fa-brands fa-whatsapp"></i> Adicionar link do grupo do WhatsApp</button>
@@ -1236,6 +1241,13 @@ function formExcursao(id = null, viagemId = null) {
   }
   if (viagemId) aplicarViagem();
   renderProdutos(); renderOpcionais(); calc(); chips();
+  $("#btnAddSaida").addEventListener("click", () => {
+    const box = $("#exSaidas");
+    if (box.children.length >= R.MAX_SAIDAS) return toast(`No máximo ${R.MAX_SAIDAS} saídas extras.`, "erro");
+    box.insertAdjacentHTML("beforeend", linhaSaida());
+    box.lastElementChild.querySelector("[data-s=local]").focus();
+  });
+  $("#exSaidas").addEventListener("click", (ev) => ev.target.closest("[data-rm-saida]")?.closest(".saida-row").remove());
   $("#btnGrupoZap").addEventListener("click", () => { $("#btnGrupoZap").classList.add("hidden"); $("#grupoZapBox").classList.remove("hidden"); $("#exGrupo").focus(); });
   $("#btnGrupoRm").addEventListener("click", () => { $("#exGrupo").value = ""; $("#grupoZapBox").classList.add("hidden"); $("#btnGrupoZap").classList.remove("hidden"); });
   caixaFolder($("#exFolderBox"), () => FOLDER_FORM, (f) => { FOLDER_FORM = f; if (f && !$("#exPublicar").checked) $("#exPublicar").checked = true; }, () => f.elements.destino.value);
@@ -1250,6 +1262,8 @@ async function salvarExcursao(id, vk, colabs = {}, colabsAntes = {}) {
   if (d.vendaAtiva && !d.primeiraParcela) return toast("Escolha a data de início do parcelamento da venda online.", "erro");
   if (d.vendaAtiva && d.primeiraParcela >= d.dataSaida) return toast("O início do parcelamento precisa ser antes da data de saída.", "erro");
   if (d.publicarSite && !FOLDER_FORM) return toast("Adicione o folder para mostrar a excursão no catálogo do site.", "erro");
+  const saidas = $$("#exSaidas .saida-row").map((row) => ({ local: row.querySelector("[data-s=local]").value.trim(), hora: row.querySelector("[data-s=hora]").value }));
+  if (saidas.some((s) => s.hora && !s.local)) return toast("Informe o local de cada saída (ou remova a linha).", "erro");
   const precos = FORM_EX_TEMP ? FORM_EX_TEMP() : {};
   if ($$("#exProdutos [data-f=nome]").some((el) => !el.value.trim())) return toast("Dê um nome para cada produto (ou remova a linha vazia).", "erro");
   if (precos.opcionaisVazios) return toast("Dê um título para cada opcional (ou remova a linha).", "erro");
@@ -1261,7 +1275,7 @@ async function salvarExcursao(id, vk, colabs = {}, colabsAntes = {}) {
   const ing = precos.ingresso && (precos.ingresso.valor !== null || precos.ingresso.valorInfantil !== null) ? precos.ingresso : null;
   const info = { grupoWhatsapp: grupoWhatsapp || null, ingresso: ing, produtos: Object.keys(precos.produtos || {}).length ? precos.produtos : null,
     opcionais: Object.keys(precos.opcionais || {}).length ? precos.opcionais : null,
-    valorFinal: precos.valorFinal ?? null, valorFinalInfantil: precos.valorFinalInfantil ?? null, destino: d.destino, dataSaida: d.dataSaida, horaSaida: d.horaSaida, dataRetorno: d.dataRetorno || d.dataSaida, horaRetorno: d.horaRetorno, localSaida: d.localSaida, valorColo: num(d.valorColo),
+    valorFinal: precos.valorFinal ?? null, valorFinalInfantil: precos.valorFinalInfantil ?? null, destino: d.destino, dataSaida: d.dataSaida, horaSaida: d.horaSaida, dataRetorno: d.dataRetorno || d.dataSaida, horaRetorno: d.horaRetorno, localSaida: d.localSaida, saidas: R.saidasDe({ saidas }).length ? R.saidasDe({ saidas }) : null, valorColo: num(d.valorColo),
     descricao: d.descricao || null, folder: FOLDER_FORM || null, publicarSite: !!d.publicarSite, venda: { ativa: !!d.vendaAtiva, primeiraParcela: d.primeiraParcela || null, maxParcelas: Math.min(6, Math.max(1, parseInt(d.maxParcelas, 10) || 1)) } };
   const podeColab = !id || souDono(id);
   try {
@@ -1312,13 +1326,21 @@ async function publicarInscricao(exId, own = dono(exId)) {
   Object.keys(e.colaboradores || {}).forEach((uid) => { notificar_[uid] = true; });
   const pub = {
     owner: own, agencia: nomeAgencia(own), destino: e.destino, dataSaida: e.dataSaida, horaSaida: e.horaSaida || "",
-    dataRetorno: e.dataRetorno || e.dataSaida, horaRetorno: e.horaRetorno || "", localSaida: e.localSaida || "",
+    dataRetorno: e.dataRetorno || e.dataSaida, horaRetorno: e.horaRetorno || "", localSaida: e.localSaida || "", saidas: R.saidasDe(e),
     valor: arred(precoPoltrona(v0, e)), valorInfantil: arred(precoInfantil(v0, e)), valorColo: num(e.valorColo), ativa: e.linkAtivo !== false,
     notificar: notificar_, atualizadoEm: Date.now()
   };
   await set(ref(db, `inscricoes/${exId}`), pub);
   return pub;
 }
+
+/* Outras saídas da excursão: uma linha por saída no formulário, nos detalhes e nas mensagens */
+const linhaSaida = (s = {}) => `<div class="saida-row" style="display:grid;grid-template-columns:1fr 130px auto;gap:8px;align-items:end;margin-bottom:8px">
+    <label>Outra saída<input data-s="local" maxlength="120" value="${esc(s.local || "")}" placeholder="Ex.: Praça de Descoberto"></label>
+    <label>Horário<input type="time" data-s="hora" value="${esc(s.hora || "")}"></label>
+    <button type="button" class="ic danger" data-rm-saida title="Remover saída"><i class="fa-solid fa-trash"></i></button></div>`;
+const linhasSaidas = (e) => R.saidasDe(e).map((s) => linha("Outra saída", esc(R.textoSaida(s)))).join("");
+const saidasZap = (e) => R.saidasDe(e).map((s) => `\n📍 Outra saída: ${R.textoSaida(s)}`).join("");
 
 function mostrarLink(exId, own = dono(exId), recemCriada = false, pub = null) {
   const doEstado = S.excursoes[exId];
@@ -1327,13 +1349,14 @@ function mostrarLink(exId, own = dono(exId), recemCriada = false, pub = null) {
   const v0 = veiculosDe(doEstado)[0]?.[1];
   const valor = v0 ? precoPoltrona(v0, doEstado) : num(pub?.valor);
   const ativo = doEstado ? doEstado.linkAtivo !== false : pub?.ativa !== false;
-  const texto = `Inscrição para a excursão *${e.destino || ""}*\n📅 Saída: ${fData(e.dataSaida)}${e.horaSaida ? " às " + e.horaSaida : ""}\n📍 Local: ${e.localSaida || "a combinar"}\n💰 Valor: ${brl(valor)}\n\nFaça seu cadastro: ${url}`;
+  const texto = `Inscrição para a excursão *${e.destino || ""}*\n📅 Saída: ${fData(e.dataSaida)}${e.horaSaida ? " às " + e.horaSaida : ""}\n📍 Local: ${e.localSaida || "a combinar"}${saidasZap(e)}\n💰 Valor: ${brl(valor)}\n\nFaça seu cadastro: ${url}`;
   abrirModal(recemCriada ? "Excursão cadastrada! Links para os viajantes" : "Links de inscrição e reserva", `
     ${recemCriada ? `<p class="muted" style="margin-bottom:10px">O link abaixo foi gerado automaticamente. Envie para os viajantes se cadastrarem sozinhos.</p>` : ""}
     <div class="dl">
       ${linha("Excursão", esc(e.destino || ""))}
       ${linha("Saída", `${fData(e.dataSaida)}${e.horaSaida ? " às " + esc(e.horaSaida) : ""}`)}
       ${linha("Local de saída", esc(e.localSaida || "—"))}
+      ${linhasSaidas(e)}
       ${linha("Valor final por pessoa", `<span class="money">${brl(valor)}</span>`)}
       ${num(e.valorColo) ? linha("Criança de colo", brl(e.valorColo)) : ""}
       ${linha("Situação", ativo ? `<span class="pill pill-green">Recebendo inscrições</span>` : `<span class="pill pill-red">Inscrições encerradas</span>`)}
@@ -1347,7 +1370,7 @@ function mostrarLink(exId, own = dono(exId), recemCriada = false, pub = null) {
     <p class="muted" style="font-size:.85rem;margin-bottom:6px">O cliente preenche os dados, escolhe a poltrona no mapa e a reserva já entra em Viajantes e Poltronas. O pagamento fica "a combinar".</p>
     <div class="link-box"><input id="reservaUrl" readonly value="${esc(urlReserva(exId))}"><button class="btn btn-primary btn-sm" id="btnCopiarReserva"><i class="fa-solid fa-copy"></i> Copiar</button></div>
     <div class="link-acoes">
-      <a class="btn btn-wpp btn-sm" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(`Reserve sua poltrona na excursão *${e.destino || ""}*\n📅 Saída: ${fData(e.dataSaida)}${e.horaSaida ? " às " + e.horaSaida : ""}\n📍 Local: ${e.localSaida || "a combinar"}\n💰 Valor: ${brl(valor)}\n\nEscolha seu lugar no ônibus: ${urlReserva(exId)}`)}"><i class="fa-brands fa-whatsapp"></i> Enviar no WhatsApp</a>
+      <a class="btn btn-wpp btn-sm" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(`Reserve sua poltrona na excursão *${e.destino || ""}*\n📅 Saída: ${fData(e.dataSaida)}${e.horaSaida ? " às " + e.horaSaida : ""}\n📍 Local: ${e.localSaida || "a combinar"}${saidasZap(e)}\n💰 Valor: ${brl(valor)}\n\nEscolha seu lugar no ônibus: ${urlReserva(exId)}`)}"><i class="fa-brands fa-whatsapp"></i> Enviar no WhatsApp</a>
       <a class="btn btn-light btn-sm" target="_blank" rel="noopener" href="${esc(urlReserva(exId))}"><i class="fa-solid fa-arrow-up-right-from-square"></i> Abrir reserva</a>
     </div>
     <h4 class="sub"><i class="fa-solid fa-chair"></i> Escolha rápida de poltrona (só nome e RG)</h4>
@@ -1406,7 +1429,7 @@ async function painelVenda(exId, own = dono(exId), recemCriada = false, exDados 
   const vendidos = lista.filter(([, p]) => ["aguardando", "parcial", "pago"].includes(p.status));
   const recebido = vendidos.reduce((t, [, p]) => t + (p.recebidoCent || 0), 0);
   const formas = `💳 Cartão${max > 1 ? ` em até ${max}x` : ""} · Pix à vista · Boleto${max > 1 ? ` em até ${max}x` : ""}`;
-  const texto = `🚌 *${e.destino}*\n📅 Saída: ${fData(e.dataSaida)}${e.horaSaida ? " às " + e.horaSaida : ""}\n📍 ${e.localSaida || "Local a combinar"}\n💰 ${brl(valor)} por pessoa\n${formas}\n\nEscolha sua poltrona e garanta seu lugar: ${url}`;
+  const texto = `🚌 *${e.destino}*\n📅 Saída: ${fData(e.dataSaida)}${e.horaSaida ? " às " + e.horaSaida : ""}\n📍 ${e.localSaida || "Local a combinar"}${saidasZap(e)}\n💰 ${brl(valor)} por pessoa\n${formas}\n\nEscolha sua poltrona e garanta seu lugar: ${url}`;
 
   abrirModal(recemCriada ? "Excursão cadastrada! Link de venda" : `Venda online — ${e.destino}`, `
     ${recemCriada ? `<p class="muted" style="margin-bottom:10px">O link de venda foi gerado. Quem abrir preenche os dados, escolhe a poltrona e paga pelo Asaas.</p>` : ""}
@@ -2231,7 +2254,7 @@ function viewPoltronas() {
 
   // exportação: uma aba/página por veículo + lista completa
   const titulo = `Poltronas ${ex.destino} ${fData(ex.dataSaida)}`;
-  const sub = `${tituloEx(ex)}${ex.horaSaida ? " às " + ex.horaSaida : ""}${ex.localSaida ? " · Saída: " + ex.localSaida : ""}`;
+  const sub = `${tituloEx(ex)}${ex.horaSaida ? " às " + ex.horaSaida : ""}${ex.localSaida ? " · Saída: " + ex.localSaida : ""}${R.saidasDe(ex).map((s) => " · Outra saída: " + R.textoSaida(s)).join("")}`;
   const porVeiculo = vs.map(([k, x], i) => {
     const nm = nomesPorPoltrona(exId, k), cap = veic(x.tipo).cap;
     return { k, i, x, nm, cap };

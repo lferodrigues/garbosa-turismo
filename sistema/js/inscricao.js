@@ -2,6 +2,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getDatabase, ref, get, set, push, update, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 import { firebaseConfig } from "./firebase.js";
+import { htmlSaidasTopo } from "./mapa-onibus.js?v=4";
 
 const db = getDatabase(initializeApp(firebaseConfig, "inscricao"));
 const $ = (s) => document.querySelector(s);
@@ -43,6 +44,7 @@ async function carregar() {
   $("#iSaida").textContent = `${fData(EX.dataSaida)}${EX.horaSaida ? " às " + EX.horaSaida : ""}`;
   $("#iRetorno").textContent = `${fData(EX.dataRetorno)}${EX.horaRetorno ? " às " + EX.horaRetorno : ""}`;
   $("#iLocal").textContent = EX.localSaida || "A combinar";
+  $("#iLocal").closest("div").insertAdjacentHTML("afterend", htmlSaidasTopo(Object.values(EX.saidas || {})));
   $("#iValor").textContent = brl(EX.valor);
   $("#iColo").textContent = [
     temInfantil() ? `Criança até 5 anos com poltrona: ${brl(EX.valorInfantil)}` : "",

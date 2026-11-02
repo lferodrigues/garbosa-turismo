@@ -1,6 +1,6 @@
 // Página pública de compra: viajantes → poltronas → pagamento no Asaas
-import * as R from "./venda-regras.js?v=20";
-import { htmlOnibus, htmlEmbarquesTopo, avisoEmbarque, etiquetaEmbarque } from "./mapa-onibus.js?v=3";
+import * as R from "./venda-regras.js?v=21";
+import { htmlOnibus, htmlSaidasTopo, htmlEmbarquesTopo, avisoEmbarque, etiquetaEmbarque } from "./mapa-onibus.js?v=4";
 import { htmlOpcionais, ligarOpcionais, resumoOpcionais } from "./opcionais-ui.js?v=1";
 import { aoMudarSessao, telaAcesso, formPerfil, lerPerfil, salvarPerfil, paraPerfil, sair, api as apiConta } from "./conta-viajante.js?v=16";
 
@@ -51,8 +51,8 @@ async function carregar() {
   $("#cSaida").textContent = `${R.fData(EX.dataSaida)}${EX.horaSaida ? " às " + EX.horaSaida : ""}`;
   $("#cRetorno").textContent = `${R.fData(EX.dataRetorno)}${EX.horaRetorno ? " às " + EX.horaRetorno : ""}`;
   $("#cLocal").textContent = EX.localSaida || "A combinar";
-  // ônibus com saída própria (ex.: Descoberto, praça às 03:30)
-  $("#cLocal").closest("div").insertAdjacentHTML("afterend", htmlEmbarquesTopo(EX.veiculos));
+  // outras saídas da excursão + ônibus com saída própria (ex.: Descoberto, praça às 03:30)
+  $("#cLocal").closest("div").insertAdjacentHTML("afterend", htmlSaidasTopo(EX.saidas) + htmlEmbarquesTopo(EX.veiculos));
   $("#cValor").textContent = R.brl(EX.valorCent);
   const infCent = EX.valorInfantilCent ?? EX.valorCent;
   $("#cColo").textContent = [

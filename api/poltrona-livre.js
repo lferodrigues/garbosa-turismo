@@ -52,7 +52,7 @@ export default async function handler(req, res) {
       const { exId, own, ex, agencia } = await aberta(String(req.query.e || ""));
       return enviar(res, 200, {
         destino: ex.destino, agencia, dataSaida: ex.dataSaida, horaSaida: ex.horaSaida || "", dataRetorno: ex.dataRetorno || ex.dataSaida,
-        horaRetorno: ex.horaRetorno || "", localSaida: ex.localSaida || "", descricao: ex.descricao || "",
+        horaRetorno: ex.horaRetorno || "", localSaida: ex.localSaida || "", saidas: R.saidasDe(ex), descricao: ex.descricao || "",
         folder: ex.folder?.caminho ? { caminho: ex.folder.caminho, raw: ex.folder.raw || "" } : null,
         whatsappCertidao: WHATSAPP_CERTIDAO, max: MAX, idadeColo: R.IDADE_COLO, valorColoCent: R.centavos(ex.valorColo),
         opcionais: R.opcionaisDe(ex),

@@ -245,6 +245,13 @@ Em **Poltronas**, escolha a aba do veículo e toque em **Embarque do veículo**:
   viajantes com CEP da cidade. O PDF do mapa traz o embarque no título.
 - Banco: `excursoes/{uid}/{exId}/veiculos/{vk}/embarque` = `{ cidade, ceps, local, hora }` (sem mudança nas regras).
 
+## Mais de uma saída na excursão
+No formulário da excursão, abaixo de **Local de saída**, toque em **Adicionar outra saída** e informe o local e o horário (até 10).
+- É só informativo: o passageiro não escolhe o embarque. As saídas aparecem nas páginas de compra, reserva, poltrona e inscrição,
+  em Minhas viagens (compras novas), nos detalhes da excursão, nas mensagens de WhatsApp e no PDF do mapa.
+- Para separar um ônibus por cidade e CEP, continue usando o **Embarque do veículo** (acima).
+- Banco: `excursoes/{uid}/{exId}/saidas` = `[{ local, hora }]`, copiado para `inscricoes/{exId}` (sem mudança nas regras).
+
 ## Escolha de poltrona sem pagamento (sem login)
 Os dois links ficam em **Link de inscrição** de cada excursão e funcionam enquanto as inscrições estiverem abertas.
 - `sistema/poltrona.html?e={id}` — **escolha rápida**: nome completo + RG (ou certidão de nascimento, com botão para enviar

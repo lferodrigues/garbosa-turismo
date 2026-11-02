@@ -149,3 +149,12 @@ test("notificações do Asaas: WhatsApp ligado, cobrança criada garantida e lem
   // já configurado: não muda nada
   assert.deepEqual(ajustesNotificacoes([{ id: "c", event: "PAYMENT_DUEDATE_WARNING", scheduleOffset: 5, enabled: true, whatsappEnabledForCustomer: true }]).mudar, []);
 });
+
+test("outras saídas: limpa a lista, ignora linha sem local e monta o texto", () => {
+  const s = R.saidasDe({ saidas: [{ local: " Praça de Descoberto ", hora: "03:30" }, { local: "", hora: "04:00" }, { local: "Rio Novo" }] });
+  assert.deepEqual(s, [{ local: "Praça de Descoberto", hora: "03:30" }, { local: "Rio Novo", hora: "" }]);
+  assert.equal(R.textoSaida(s[0]), "Praça de Descoberto, às 03:30");
+  assert.equal(R.textoSaida(s[1]), "Rio Novo");
+  assert.deepEqual(R.saidasDe({}), []);
+  assert.equal(R.saidasDe({ saidas: Array.from({ length: 15 }, (_, i) => ({ local: `L${i}` })) }).length, R.MAX_SAIDAS);
+});

@@ -12,7 +12,7 @@ function resumo(pedidoId, p) {
   return {
     pedido: pedidoId, codigo: pedidoId.slice(-6).toUpperCase(), criadoEm: p.criadoEm, status: p.status,
     destino: ex.destino || "Excursão", dataSaida: ex.dataSaida || "", horaSaida: ex.horaSaida || "", dataRetorno: ex.dataRetorno || "",
-    horaRetorno: ex.horaRetorno || "", localSaida: ex.localSaida || "", agencia: ex.agencia || "",
+    horaRetorno: ex.horaRetorno || "", localSaida: ex.localSaida || "", saidas: R.saidasDe(ex), agencia: ex.agencia || "",
     formaTxt: p.formaTxt || "", parcelas: p.parcelas || 1, totalCent: p.totalCent || 0, recebidoCent: p.recebidoCent || 0,
     cupom: p.cupom || null, descontoCent: p.descontoCent || 0,
     viajantes: Object.values(p.viajantes || {}).map((v) => ({ nome: v.nome, colo: !!v.colo, poltrona: v.assento ? Number(String(v.assento).split("/")[1]) : null, valorCent: v.valorCent || 0 }))

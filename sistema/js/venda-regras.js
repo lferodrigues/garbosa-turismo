@@ -116,6 +116,16 @@ export function textoEmbarque(e) {
   return `Saída de ${e.cidade || "embarque próprio"}${onde ? `: ${onde}` : ""}`;
 }
 
+/* ---------- outras saídas da excursão (informativo: além do local e horário principais) ---------- */
+export const MAX_SAIDAS = 10;
+/** Lista limpa de saídas extras: [{ local, hora }] */
+export function saidasDe(ex) {
+  return Object.values(ex?.saidas || {}).map((s) => ({ local: String(s?.local || "").trim().slice(0, 120), hora: String(s?.hora || "").trim().slice(0, 5) }))
+    .filter((s) => s.local).slice(0, MAX_SAIDAS);
+}
+/** "Praça de Descoberto, às 03:30" */
+export const textoSaida = (s) => `${s.local}${s.hora ? `, às ${s.hora}` : ""}`;
+
 export const veiculosDe = (ex) => Object.entries(ex?.veiculos || {}).sort((a, b) => (a[1].ordem || 0) - (b[1].ordem || 0));
 
 /* ---------- custos e valor por poltrona ----------

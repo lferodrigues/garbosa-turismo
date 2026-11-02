@@ -1,5 +1,5 @@
 // Área do viajante: histórico de viagens, parcelas pagas e em aberto, meus dados
-import * as R from "./venda-regras.js?v=16";
+import * as R from "./venda-regras.js?v=21";
 import { aoMudarSessao, telaAcesso, formPerfil, lerPerfil, salvarPerfil, sair, api, esc } from "./conta-viajante.js?v=16";
 
 const $ = (s, el = document) => el.querySelector(s);
@@ -110,6 +110,7 @@ async function detalhe(pedido) {
       <div><i class="fa-solid fa-calendar-day"></i><small>Saída</small><strong>${quando(v)}</strong></div>
       <div><i class="fa-solid fa-rotate-left"></i><small>Retorno</small><strong>${R.fData(v.dataRetorno)}${v.horaRetorno ? " às " + esc(v.horaRetorno) : ""}</strong></div>
       <div class="span2"><i class="fa-solid fa-location-dot"></i><small>Local de saída</small><strong>${esc(v.localSaida || "A combinar")}</strong></div>
+      ${(v.saidas || []).map((s) => `<div class="span2"><i class="fa-solid fa-location-dot"></i><small>Outra saída</small><strong>${esc(R.textoSaida(s))}</strong></div>`).join("")}
     </div>
     ${v.motivo ? `<div class="alerta"><i class="fa-solid fa-circle-info"></i> ${esc(v.motivo)}</div>` : ""}
 

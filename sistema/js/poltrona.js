@@ -1,6 +1,6 @@
 // Página pública: escolher a poltrona sem pagamento e sem login
-import * as R from "./venda-regras.js?v=20";
-import { htmlOnibus, htmlEmbarquesTopo, avisoEmbarque, etiquetaEmbarque } from "./mapa-onibus.js?v=3";
+import * as R from "./venda-regras.js?v=21";
+import { htmlOnibus, htmlSaidasTopo, htmlEmbarquesTopo, avisoEmbarque, etiquetaEmbarque } from "./mapa-onibus.js?v=4";
 import { htmlOpcionais, ligarOpcionais, resumoOpcionais } from "./opcionais-ui.js?v=1";
 
 const $ = (s, el = document) => el.querySelector(s);
@@ -44,8 +44,8 @@ async function carregar() {
   $("#pSaida").textContent = `${R.fData(EX.dataSaida)}${EX.horaSaida ? " às " + EX.horaSaida : ""}`;
   $("#pRetorno").textContent = `${R.fData(EX.dataRetorno)}${EX.horaRetorno ? " às " + EX.horaRetorno : ""}`;
   $("#pLocal").textContent = EX.localSaida || "A combinar";
-  // ônibus com saída própria (ex.: Descoberto, praça às 03:30)
-  const embTopo = htmlEmbarquesTopo(EX.veiculos);
+  // outras saídas da excursão + ônibus com saída própria (ex.: Descoberto, praça às 03:30)
+  const embTopo = htmlSaidasTopo(EX.saidas) + htmlEmbarquesTopo(EX.veiculos);
   if (embTopo) { $("#pLocal").closest("div").style.gridColumn = "auto"; $("#pLocal").closest("div").insertAdjacentHTML("afterend", embTopo); }
   $("#idadeColo").textContent = EX.idadeColo;
   if (EX.folder?.caminho) {
