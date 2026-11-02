@@ -1,6 +1,6 @@
 // Página pública: escolher a poltrona sem pagamento e sem login
 import * as R from "./venda-regras.js?v=20";
-import { htmlOnibus, htmlEmbarquesTopo, avisoEmbarque, etiquetaEmbarque } from "./mapa-onibus.js?v=2";
+import { htmlOnibus, htmlEmbarquesTopo, avisoEmbarque, etiquetaEmbarque } from "./mapa-onibus.js?v=3";
 import { htmlOpcionais, ligarOpcionais, resumoOpcionais } from "./opcionais-ui.js?v=1";
 
 const $ = (s, el = document) => el.querySelector(s);
@@ -45,7 +45,8 @@ async function carregar() {
   $("#pRetorno").textContent = `${R.fData(EX.dataRetorno)}${EX.horaRetorno ? " às " + EX.horaRetorno : ""}`;
   $("#pLocal").textContent = EX.localSaida || "A combinar";
   // ônibus com saída própria (ex.: Descoberto, praça às 03:30)
-  $("#pLocal").closest("div").insertAdjacentHTML("afterend", htmlEmbarquesTopo(EX.veiculos));
+  const embTopo = htmlEmbarquesTopo(EX.veiculos);
+  if (embTopo) { $("#pLocal").closest("div").style.gridColumn = "auto"; $("#pLocal").closest("div").insertAdjacentHTML("afterend", embTopo); }
   $("#idadeColo").textContent = EX.idadeColo;
   if (EX.folder?.caminho) {
     const img = $("#pFolder");

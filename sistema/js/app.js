@@ -1,7 +1,7 @@
 import { auth, db, ADMIN_EMAIL, authSecundario } from "./firebase.js?v=8";
 import { baixarXLSX, baixarPDF, baixarPDFPoltronas, carregarXLSX } from "./exportar.js?v=9";
 import * as R from "./venda-regras.js?v=20";
-import { htmlOnibus } from "./mapa-onibus.js?v=2";
+import { htmlOnibus } from "./mapa-onibus.js?v=3";
 import {
   onAuthStateChanged, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword,
   sendPasswordResetEmail, updateProfile,

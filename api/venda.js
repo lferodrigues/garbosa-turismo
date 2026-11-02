@@ -19,6 +19,9 @@ async function vagasDoSite() {
     const ex = (await d.ref(`excursoes/${own}/${exId}`).get()).val();
     if (!ex) return;
     res[id] = await vagasDaExcursao(own, exId, ex);
+    // saídas de outras cidades (ex.: Descoberto, praça às 03:30), para mostrar junto do local de saída nos cartões
+    const emb = R.veiculosDe(ex).map(([, v]) => R.embarqueDe(v)).filter(Boolean);
+    if (emb.length) res[id].saidas = [...new Set(emb.map((e) => `${e.cidade}${e.local || e.hora ? `: ${[e.local, e.hora].filter(Boolean).join(", ")}` : ""}`))];
   }));
   return res;
 }

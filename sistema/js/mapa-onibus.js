@@ -39,9 +39,9 @@ export function htmlEmbarquesTopo(veiculos) {
     const e = v.embarque, chave = [e.cidade, e.local, e.hora].join("|");
     if (vistos.has(chave)) return "";
     vistos.add(chave);
-    return `<div class="cp-emb-topo" style="grid-column:span 2"><i class="fa-solid fa-bus"></i><small>Saída de ${esc(e.cidade || "embarque próprio")}</small>
+    return `<div class="cp-emb-topo"><i class="fa-solid fa-location-dot"></i><small>Saída de ${esc(e.cidade || "embarque próprio")}</small>
       <strong>${esc([e.local, e.hora ? `às ${e.hora}` : ""].filter(Boolean).join(", ") || "A combinar")}</strong>
-      <em>Ônibus só para quem mora em ${esc(e.cidade || "outra cidade")} (CEP ${e.ceps.map(cepTxt).join(", ")})</em></div>`;
+      <em>Só para quem mora em ${esc(e.cidade || "outra cidade")} (CEP ${e.ceps.map(cepTxt).join(", ")})</em></div>`;
   }).join("");
 }
 /** Aviso em cima do mapa de um veículo com embarque próprio */
