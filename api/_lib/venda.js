@@ -39,7 +39,8 @@ export async function veiculosComOcupacao(own, exId, ex) {
   return R.veiculosDe(ex).map(([id, v]) => {
     const cat = R.VEICULOS[v.tipo] || { nome: v.tipo, cap: 0 };
     const ocupadas = Object.entries(pol[id] || {}).filter(([n, pid]) => !!pid && Number(n) <= cat.cap).map(([n]) => Number(n)).sort((a, b) => a - b);
-    return { id, tipo: v.tipo, nome: cat.nome, cap: cat.cap, ocupadas };
+    const emb = R.embarqueDe(v);
+    return { id, tipo: v.tipo, nome: cat.nome, cap: cat.cap, ocupadas, embarque: emb ? { ...emb, texto: R.textoEmbarque(emb) } : null };
   });
 }
 
@@ -64,6 +65,17 @@ export function exIdDoSite(x) {
   if (x?.exId && /^[\w-]{1,128}$/.test(x.exId)) return x.exId;
   const m = String(x?.link || "").match(/sistema\/(?:comprar|inscricao|reservar|poltrona)\.html\?e=([\w-]{1,128})/);
   return m ? m[1] : "";
+}
+
+/** Confere o embarque próprio: cada pessoa sentada num veículo com embarque precisa ter CEP da cidade */
+export function conferirEmbarque(ex, pessoas, cepDe) {
+  const veics = Object.fromEntries(R.veiculosDe(ex));
+  pessoas.forEach((p, i) => {
+    const v = p.assento && veics[p.assento.vk];
+    if (!v || R.podeEmbarcar(v, cepDe(p))) return;
+    const e = R.embarqueDe(v);
+    throw new ErroUsuario(`O ônibus da poltrona de ${String(p.nome || "").split(" ")[0] || `a pessoa ${i + 1}`} é só para quem mora em ${e.cidade || "outra cidade"} (CEP ${e.ceps.map((c) => (c.length === 8 ? c.replace(/(\d{5})(\d{3})/, "$1-$2") : c)).join(", ")}). Escolha uma poltrona no outro ônibus.`, 400, { etapa: "poltronas", pessoa: i });
+  });
 }
 
 /* ---------- cupom ---------- */

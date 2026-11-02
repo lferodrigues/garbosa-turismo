@@ -1,6 +1,6 @@
 // Página pública: escolher a poltrona sem pagamento e sem login
-import * as R from "./venda-regras.js?v=19";
-import { htmlOnibus } from "./mapa-onibus.js?v=1";
+import * as R from "./venda-regras.js?v=20";
+import { htmlOnibus, htmlEmbarquesTopo, avisoEmbarque, etiquetaEmbarque } from "./mapa-onibus.js?v=2";
 import { htmlOpcionais, ligarOpcionais, resumoOpcionais } from "./opcionais-ui.js?v=1";
 
 const $ = (s, el = document) => el.querySelector(s);
@@ -15,7 +15,7 @@ const S = { pessoas: [], ativo: 0, veic: null };
  * + quando o documento já estava cadastrado: vid, existente { nome, poltrona, podeAlterar },
  *   manter (fica como está) ou original (poltrona de antes, enquanto altera)
  */
-const nova = (colo = false) => ({ id: "p" + seq++, nome: "", docTipo: colo ? "CERTIDAO" : "RG", docNumero: "", colo, nascimento: "", com: "", assento: null, opcionais: [] });
+const nova = (colo = false) => ({ id: "p" + seq++, nome: "", docTipo: colo ? "CERTIDAO" : "RG", docNumero: "", colo, nascimento: "", com: "", assento: null, opcionais: [], cep: "" });
 const precisaPoltrona = (p) => !p.colo && !p.manter;
 const adultos = () => S.pessoas.filter((p) => !p.colo);
 const nomeCurto = (p) => primeiro(p.nome) || `Pessoa ${S.pessoas.indexOf(p) + 1}`;
@@ -44,6 +44,8 @@ async function carregar() {
   $("#pSaida").textContent = `${R.fData(EX.dataSaida)}${EX.horaSaida ? " às " + EX.horaSaida : ""}`;
   $("#pRetorno").textContent = `${R.fData(EX.dataRetorno)}${EX.horaRetorno ? " às " + EX.horaRetorno : ""}`;
   $("#pLocal").textContent = EX.localSaida || "A combinar";
+  // ônibus com saída própria (ex.: Descoberto, praça às 03:30)
+  $("#pLocal").closest("div").insertAdjacentHTML("afterend", htmlEmbarquesTopo(EX.veiculos));
   $("#idadeColo").textContent = EX.idadeColo;
   if (EX.folder?.caminho) {
     const img = $("#pFolder");
@@ -82,6 +84,25 @@ function opcoesColo(p) {
   return ads.length
     ? ads.map((a) => `<option value="${a.id}" ${a.id === p.com ? "selected" : ""}>${esc(nomeCurto(a))}</option>`).join("")
     : `<option value="">Adicione o adulto primeiro</option>`;
+}
+/* CEP de onde mora: só aparece quando a excursão tem ônibus de outra cidade (ex.: Descoberto) */
+const extrasEmbarque = () => (EX.veiculos || []).filter((v) => v.embarque);
+function campoCep(p) {
+  const extras = extrasEmbarque();
+  if (!extras.length) return "";
+  const cidades = [...new Set(extras.map((v) => v.embarque.cidade).filter(Boolean))].join(" ou ");
+  return `<label class="span2">CEP de onde mora <small class="cp-opc">(quem mora em ${esc(cidades || "outra cidade")} pode ir no ônibus que sai de lá)</small>
+      <input data-c="cep" value="${esc(p.cep)}" inputmode="numeric" maxlength="9" placeholder="00000-000"></label>
+    <p class="cp-cep-dica span2 hidden" data-emb-dica></p>`;
+}
+const cepDe = (p) => (p.colo ? S.pessoas.find((a) => a.id === p.com)?.cep : p.cep);
+const podeNoVeiculo = (p, v) => !v?.embarque || R.podeEmbarcar(v, cepDe(p));
+function dicaCep(p, fs) {
+  const el = $("[data-emb-dica]", fs);
+  if (!el) return;
+  const v = extrasEmbarque().find((x) => R.podeEmbarcar(x, p.cep));
+  el.classList.toggle("hidden", !v);
+  if (v) el.innerHTML = `<i class="fa-solid fa-bus"></i> ${esc(v.embarque.texto)} — na escolha da poltrona aparece também o ônibus de ${esc(v.embarque.cidade || "embarque próprio")}.`;
 }
 function campoDoc(p) {
   const cert = p.docTipo === "CERTIDAO", wpp = R.mascaraTel(EX.whatsappCertidao.slice(2));
@@ -128,6 +149,7 @@ function renderLista() {
         <div class="form-grid">
           <label class="span2">Nome completo<input data-c="nome" value="${esc(p.nome)}" maxlength="120" autocomplete="${i ? "off" : "name"}"></label>
           ${campoDoc(p)}
+          ${campoCep(p)}
           ${htmlOpcionais(EX.opcionais, p.opcionais)}
         </div>
       </fieldset>`;
@@ -137,8 +159,11 @@ function renderLista() {
     const p = S.pessoas.find((x) => x.id === fs.dataset.id);
     if (p.colo) mostrarIdade(p, fs);
     ligarOpcionais(fs, (ids) => { p.opcionais = ids; });
+    dicaCep(p, fs);
     $$("[data-c]", fs).forEach((el) => el.addEventListener(el.tagName === "SELECT" || el.type === "date" ? "change" : "input", () => {
+      if (el.dataset.c === "cep") el.value = R.mascaraCep(el.value);
       p[el.dataset.c] = el.value;
+      if (el.dataset.c === "cep") dicaCep(p, fs);
       fs.classList.remove("erro");
       if (el.dataset.c === "docTipo") {
         const cert = el.value === "CERTIDAO";
@@ -303,7 +328,7 @@ async function atualizar() {
     if (!p.assento) return;
     const v = EX.veiculos.find((x) => x.id === p.assento.vk);
     const eraDela = p.original && p.original.vk === p.assento.vk && p.original.n === p.assento.n;
-    if (!v || (!eraDela && v.ocupadas.includes(p.assento.n))) p.assento = null;
+    if (!v || (!eraDela && v.ocupadas.includes(p.assento.n)) || !podeNoVeiculo(p, v)) p.assento = null;
   });
 }
 /** Ocupadas do veículo sem contar as poltronas de quem está alterando o próprio cadastro */
@@ -328,11 +353,12 @@ function renderMapa() {
         : `<span class="cp-q colo"><i class="fa-solid fa-baby"></i>${esc(primeiro(p.nome))}<em>colo de ${esc(nomeCurto(S.pessoas.find((a) => a.id === p.com) || {}))}</em></span>`).join("")
     : "";
   $$(".cp-q[data-i]").forEach((b) => b.addEventListener("click", () => { S.ativo = +b.dataset.i; const a = S.pessoas[S.ativo].assento; if (a) S.veic = a.vk; renderMapa(); }));
-  if (!EX.veiculos.find((v) => v.id === S.veic)) S.veic = EX.veiculos[0]?.id;
-  $("#veics").innerHTML = EX.veiculos.length > 1 ? EX.veiculos.map((v, i) => `<button type="button" class="vtab ${v.id === S.veic ? "active" : ""}" data-vk="${v.id}">Veículo ${i + 1} · ${esc(v.nome)} <span class="pill">${v.cap - ocupadasDe(v).size - sentam.filter((p) => p.assento?.vk === v.id).length} livres</span></button>`).join("") : "";
+  const meus = ativo ? EX.veiculos.filter((v) => podeNoVeiculo(ativo, v)) : EX.veiculos;
+  if (!meus.find((v) => v.id === S.veic)) S.veic = meus[0]?.id;
+  $("#veics").innerHTML = meus.length > 1 ? meus.map((v) => `<button type="button" class="vtab ${v.id === S.veic ? "active" : ""}" data-vk="${v.id}">Veículo ${EX.veiculos.indexOf(v) + 1} · ${esc(v.nome)}${etiquetaEmbarque(v)} <span class="pill">${v.cap - ocupadasDe(v).size - sentam.filter((p) => p.assento?.vk === v.id).length} livres</span></button>`).join("") : "";
   $$("#veics [data-vk]").forEach((b) => b.addEventListener("click", () => { S.veic = b.dataset.vk; renderMapa(); }));
   const v = EX.veiculos.find((x) => x.id === S.veic);
-  $("#mapa").innerHTML = v ? desenhar(v) : `<p class="vazio">Esta excursão ainda não tem veículo.</p>`;
+  $("#mapa").innerHTML = v ? avisoEmbarque(v) + desenhar(v) : `<p class="vazio">Esta excursão ainda não tem veículo.</p>`;
   $$("#mapa .seat[data-n]").forEach((el) => el.addEventListener("click", () => escolher(v.id, +el.dataset.n)));
   $("#btnSalvar").disabled = falta > 0;
 }
@@ -350,6 +376,7 @@ function desenhar(v) {
 function escolher(vk, n) {
   const dono = S.pessoas.find((p) => precisaPoltrona(p) && p.assento?.vk === vk && p.assento.n === n);
   if (dono) { dono.assento = null; S.ativo = S.pessoas.indexOf(dono); return renderMapa(); }
+  if (!podeNoVeiculo(S.pessoas[S.ativo], EX.veiculos.find((x) => x.id === vk))) return;
   S.pessoas[S.ativo].assento = { vk, n };
   const prox = S.pessoas.findIndex((p, i) => precisaPoltrona(p) && !p.assento && i > S.ativo);
   const qualquer = S.pessoas.findIndex((p) => precisaPoltrona(p) && !p.assento);
@@ -363,7 +390,7 @@ function corpoPessoa(p) {
   return {
     nome: p.nome, docTipo: p.docTipo, docNumero: p.docNumero, vid: p.vid || undefined,
     colo: p.colo, nascimento: p.colo ? p.nascimento : "", com: p.colo ? S.pessoas.findIndex((a) => a.id === p.com) : undefined,
-    assento: p.colo ? null : p.assento, opcionais: resumoOpcionais(EX.opcionais, p.opcionais).ids
+    assento: p.colo ? null : p.assento, opcionais: resumoOpcionais(EX.opcionais, p.opcionais).ids, cep: cepDe(p) || ""
   };
 }
 async function salvar(n) {

@@ -1147,3 +1147,16 @@ input:-webkit-autofill{-webkit-text-fill-color:#fff;-webkit-box-shadow:0 0 0 40p
 .opc-titulo small{font-weight:400}
 .site-banner{left:auto;right:8px;color:var(--primary)}
 .ic.ic-on{background:#fff3c4;border-color:#f3d36b;color:#7a5a00}
+
+/* ---------- embarque próprio (ônibus de outra cidade) ---------- */
+.cp-emb-topo{background:rgba(255,213,74,.16);border:1px solid rgba(255,213,74,.45)}
+.cp-emb-topo i{color:#FFD54A}
+.cp-emb-topo em{display:block;font-style:normal;font-size:.72rem;opacity:.85;margin-top:2px}
+.cp-emb-aviso{display:flex;gap:10px;align-items:flex-start;background:#fff7df;border:1px solid #f3df9c;color:#5a4200;border-radius:12px;padding:10px 14px;margin-bottom:10px}
+.cp-emb-aviso i{color:#c08a00;margin-top:3px}
+.cp-emb-aviso span{display:flex;flex-direction:column;line-height:1.35}
+.cp-emb-aviso small{font-size:.78rem;opacity:.85}
+.vtab-emb{font-style:normal;font-size:.7rem;font-weight:700;background:#fff3c4;color:#7a5a00;border-radius:20px;padding:1px 8px;margin-left:4px;white-space:nowrap}
+.cp-cep-dica{font-size:.75rem;color:#7a5a00;background:#fffbea;border-radius:8px;padding:6px 10px;margin:0}
+.cp-mapa{flex-wrap:wrap}
+.cp-mapa>.cp-emb-aviso{flex:0 0 100%;box-sizing:border-box}

@@ -1,6 +1,6 @@
 // Página pública de compra: viajantes → poltronas → pagamento no Asaas
-import * as R from "./venda-regras.js?v=19";
-import { htmlOnibus } from "./mapa-onibus.js?v=1";
+import * as R from "./venda-regras.js?v=20";
+import { htmlOnibus, htmlEmbarquesTopo, avisoEmbarque, etiquetaEmbarque } from "./mapa-onibus.js?v=2";
 import { htmlOpcionais, ligarOpcionais, resumoOpcionais } from "./opcionais-ui.js?v=1";
 import { aoMudarSessao, telaAcesso, formPerfil, lerPerfil, salvarPerfil, paraPerfil, sair, api as apiConta } from "./conta-viajante.js?v=16";
 
@@ -51,6 +51,8 @@ async function carregar() {
   $("#cSaida").textContent = `${R.fData(EX.dataSaida)}${EX.horaSaida ? " às " + EX.horaSaida : ""}`;
   $("#cRetorno").textContent = `${R.fData(EX.dataRetorno)}${EX.horaRetorno ? " às " + EX.horaRetorno : ""}`;
   $("#cLocal").textContent = EX.localSaida || "A combinar";
+  // ônibus com saída própria (ex.: Descoberto, praça às 03:30)
+  $("#cLocal").closest("div").insertAdjacentHTML("afterend", htmlEmbarquesTopo(EX.veiculos));
   $("#cValor").textContent = R.brl(EX.valorCent);
   const infCent = EX.valorInfantilCent ?? EX.valorCent;
   $("#cColo").textContent = [
@@ -209,6 +211,7 @@ function cardPessoa(p, i) {
       <div class="cp-colo ${podeColo(p) ? "" : "hidden"}" data-colo-wrap>
         <label class="check"><input type="checkbox" data-c="colo" ${p.colo ? "checked" : ""}> Vai no colo (não ocupa poltrona)</label>
       </div>
+      <p class="cp-cep-dica span2 hidden" data-emb-dica></p>
       ${htmlOpcionais(EX.opcionais, p.opcionais || [])}
       ${p.titular ? "" : `<label class="check span2"><input type="checkbox" data-c="mesmoContato" ${p.mesmoContato ? "checked" : ""}> Usar e-mail, WhatsApp e endereço ${RESERVA ? "do responsável" : "do titular"}</label>`}
       <div class="span2 form-grid cp-contato ${!p.titular && p.mesmoContato ? "hidden" : ""}" data-contato>
@@ -238,6 +241,7 @@ function renderPessoas() {
     atualizarOpcionais(p, fs);
     ligarOpcionais(fs, (ids) => { p.opcionais = ids; renderResumo1(); salvar(); });
   });
+  dicasEmbarque();
   $$("[data-rem]").forEach((b) => b.addEventListener("click", () => {
     S.pessoas = S.pessoas.filter((p) => p.uid !== b.dataset.rem);
     renderPessoas(); renderDepsSalvos(); renderResumo1(); salvar();
@@ -254,10 +258,22 @@ function atualizarCampo(p, el, fs) {
   if (c.includes(".")) { const [g, k] = c.split("."); p[g][k] = v; } else p[c] = v;
   if (c === "nascimento") { $("[data-colo-wrap]", fs).classList.toggle("hidden", !podeColo(p)); if (!podeColo(p)) { p.colo = false; $("[data-c=colo]", fs).checked = false; } }
   if (c === "mesmoContato") $("[data-contato]", fs).classList.toggle("hidden", !!v);
+  if (c === "endereco.cep" || c === "mesmoContato") dicasEmbarque();
   if (c === "nascimento" || c === "colo") { atualizarOpcionais(p, fs); renderResumo1(); }
   if (c === "nome") renderResumo1();
   fs.classList.remove("erro");
   salvar();
+}
+/** Quem tem CEP da cidade de um ônibus com saída própria vê o aviso (ex.: Descoberto, praça às 03:30) */
+function dicasEmbarque() {
+  const extras = EX.veiculos?.filter((v) => v.embarque) || [];
+  $$(".cp-pessoa").forEach((fs) => {
+    const p = S.pessoas.find((x) => x.uid === fs.dataset.uid), el = $("[data-emb-dica]", fs);
+    if (!p || !el) return;
+    const v = extras.find((x) => R.podeEmbarcar(x, cepDe(p)));
+    el.classList.toggle("hidden", !v);
+    if (v) el.innerHTML = `<i class="fa-solid fa-bus"></i> ${esc(v.embarque.texto)} — na escolha das poltronas aparece também o ônibus de ${esc(v.embarque.cidade || "embarque próprio")}.`;
+  });
 }
 function atualizarOpcionais(p, fs) { $$("[data-opc]", fs).forEach((s) => s.classList.toggle("hidden", !(p.colo && podeColo(p)))); }
 
@@ -393,10 +409,14 @@ async function atualizarOcupacao() {
   S.pessoas.forEach((p) => {
     if (!p.assento) return;
     const v = EX.veiculos.find((x) => x.id === p.assento.vk);
-    if (!ocupaPoltrona(p) || !v || v.ocupadas.includes(p.assento.n)) p.assento = null;
+    if (!ocupaPoltrona(p) || !v || v.ocupadas.includes(p.assento.n) || !podeNoVeiculo(p, v)) p.assento = null;
   });
 }
 const sentam = () => S.pessoas.map((p, i) => [p, i]).filter(([p]) => ocupaPoltrona(p));
+/** Veículos que a pessoa pode escolher: os abertos + os de embarque próprio da cidade do CEP dela */
+const cepDe = (p) => efetiva(p).endereco?.cep;
+const podeNoVeiculo = (p, v) => !v?.embarque || R.podeEmbarcar(v, cepDe(p));
+const veiculosDaPessoa = (p) => EX.veiculos.filter((v) => podeNoVeiculo(p, v));
 
 function renderPoltronas() {
   const lista = sentam();
@@ -415,14 +435,16 @@ function renderPoltronas() {
     if (p.assento) S.veic = p.assento.vk;
     renderPoltronas();
   }));
-  if (!EX.veiculos.find((v) => v.id === S.veic)) S.veic = EX.veiculos[0]?.id;
-  $("#veics").innerHTML = EX.veiculos.length > 1 ? EX.veiculos.map((v, i) => {
+  const meus = ativo ? veiculosDaPessoa(ativo) : EX.veiculos;
+  if (!meus.find((v) => v.id === S.veic)) S.veic = meus[0]?.id;
+  $("#veics").innerHTML = meus.length > 1 ? meus.map((v) => {
+    const i = EX.veiculos.indexOf(v);
     const livres = v.cap - v.ocupadas.length - S.pessoas.filter((p) => p.assento?.vk === v.id).length;
-    return `<button type="button" class="vtab ${v.id === S.veic ? "active" : ""}" data-vk="${v.id}">Veículo ${i + 1} · ${esc(v.nome)} <span class="pill">${livres} livres</span></button>`;
+    return `<button type="button" class="vtab ${v.id === S.veic ? "active" : ""}" data-vk="${v.id}">Veículo ${i + 1} · ${esc(v.nome)}${etiquetaEmbarque(v)} <span class="pill">${livres} livres</span></button>`;
   }).join("") : "";
   $$("#veics [data-vk]").forEach((b) => b.addEventListener("click", () => { S.veic = b.dataset.vk; renderPoltronas(); }));
   const v = EX.veiculos.find((x) => x.id === S.veic);
-  $("#mapa").innerHTML = v ? desenharVeiculo(v) : `<p class="vazio">Sem veículo cadastrado.</p>`;
+  $("#mapa").innerHTML = v ? avisoEmbarque(v) + desenharVeiculo(v) : `<p class="vazio">Sem veículo cadastrado.</p>`;
   $$("#mapa .seat[data-n]").forEach((el) => el.addEventListener("click", () => escolher(v.id, +el.dataset.n)));
   $("#btnIr3").disabled = falta > 0;
   msg(2, "", "");
@@ -449,7 +471,7 @@ function escolher(vk, n) {
   const dono = S.pessoas.find((p) => p.assento?.vk === vk && p.assento.n === n);
   if (dono) { dono.assento = null; S.ativo = S.pessoas.indexOf(dono); return renderPoltronas(); }
   const p = S.pessoas[S.ativo];
-  if (!p || !ocupaPoltrona(p)) return;
+  if (!p || !ocupaPoltrona(p) || !podeNoVeiculo(p, EX.veiculos.find((x) => x.id === vk))) return;
   p.assento = { vk, n };
   const prox = sentam().find(([x, i]) => !x.assento && i > S.ativo) || sentam().find(([x]) => !x.assento);
   if (prox) S.ativo = prox[1];

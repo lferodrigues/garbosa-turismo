@@ -29,3 +29,27 @@ export function htmlOnibus(planta, seat, cap = 0) {
   const pisos = planta.map((p) => piso(p, seat, van)).join("");
   return planta.length > 1 ? `<div class="bus-pisos">${pisos}</div>` : pisos;
 }
+
+/* ---------- embarque próprio (ônibus só para quem mora numa cidade, com saída própria) ---------- */
+const cepTxt = (c) => (String(c).length === 8 ? String(c).replace(/(\d{5})(\d{3})/, "$1-$2") : `${c}…`);
+/** Linhas extras para o quadro de informações do topo: "Saída de Descoberto · Praça, às 03:30" */
+export function htmlEmbarquesTopo(veiculos) {
+  const vistos = new Set();
+  return (veiculos || []).filter((v) => v.embarque).map((v) => {
+    const e = v.embarque, chave = [e.cidade, e.local, e.hora].join("|");
+    if (vistos.has(chave)) return "";
+    vistos.add(chave);
+    return `<div class="cp-emb-topo" style="grid-column:span 2"><i class="fa-solid fa-bus"></i><small>Saída de ${esc(e.cidade || "embarque próprio")}</small>
+      <strong>${esc([e.local, e.hora ? `às ${e.hora}` : ""].filter(Boolean).join(", ") || "A combinar")}</strong>
+      <em>Ônibus só para quem mora em ${esc(e.cidade || "outra cidade")} (CEP ${e.ceps.map(cepTxt).join(", ")})</em></div>`;
+  }).join("");
+}
+/** Aviso em cima do mapa de um veículo com embarque próprio */
+export function avisoEmbarque(v) {
+  const e = v?.embarque;
+  if (!e) return "";
+  return `<div class="cp-emb-aviso"><i class="fa-solid fa-location-dot"></i><span><strong>${esc(e.texto || `Saída de ${e.cidade}`)}</strong>
+    <small>Este ônibus é só para quem mora em ${esc(e.cidade || "outra cidade")}.</small></span></div>`;
+}
+/** Etiqueta curta na aba do veículo */
+export const etiquetaEmbarque = (v) => (v?.embarque ? `<em class="vtab-emb"><i class="fa-solid fa-location-dot"></i> ${esc(v.embarque.cidade || "embarque")}${v.embarque.hora ? ` · ${esc(v.embarque.hora)}` : ""}</em>` : "");
