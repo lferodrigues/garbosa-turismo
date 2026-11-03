@@ -2,6 +2,7 @@
 import * as R from "./venda-regras.js?v=23";
 import { htmlOnibus, htmlSaidasTopo, htmlEmbarquesTopo, avisoEmbarque, etiquetaEmbarque } from "./mapa-onibus.js?v=4";
 import { htmlOpcionais, ligarOpcionais, resumoOpcionais } from "./opcionais-ui.js?v=1";
+import { montarVitrine } from "./vitrine.js?v=1";
 
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
@@ -58,7 +59,13 @@ async function carregar() {
   S.veic = EX.veiculos[0]?.id || null;
   S.pessoas = [nova()];
   renderLista(); etapa(1, false);
-  mostrar("#pagina");
+  // primeiro a vitrine da viagem; o botão Escolher poltrona abre o cadastro
+  montarVitrine($("#vitrine"), EX, () => {
+    $("#vitrine").classList.add("hidden");
+    $("#pagina").classList.remove("hidden");
+    window.scrollTo(0, 0);
+  });
+  mostrar("#vitrine");
 }
 
 /** Selo automático no topo: "Últimas vagas" (faltando 40% ou menos) ou "Esgotado" */

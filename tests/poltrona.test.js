@@ -189,3 +189,12 @@ test("link de um veículo: mostra só ele, recusa poltrona em outro e não aplic
   r = await chamar({ method: "POST", body: { e: EX, v: "v1", pessoas: [{ ...ana, assento: { vk: "v1", n: 3 } }] } });
   assert.equal(r.statusCode, 200, JSON.stringify(r.body));
 });
+
+test("vitrine: GET traz preço e as fotos do local e dos veículos, sem entradas quebradas", async () => {
+  await db.ref(`excursoes/${OWN}/${EX}/fotosLocal`).set([{ caminho: "Assets/img/excursoes/local.jpg", raw: "https://raw/local.jpg" }]);
+  await db.ref(`excursoes/${OWN}/${EX}/fotosVeiculos`).set([{ caminho: "Assets/img/excursoes/bus.jpg" }, { raw: "sem-caminho" }]);
+  const g = await chamar({ method: "GET", query: { e: EX } });
+  assert.deepEqual(g.body.fotosLocal, [{ caminho: "Assets/img/excursoes/local.jpg", raw: "https://raw/local.jpg" }]);
+  assert.deepEqual(g.body.fotosVeiculos, [{ caminho: "Assets/img/excursoes/bus.jpg", raw: "" }]);
+  assert.ok(g.body.valorCent >= 0);
+});

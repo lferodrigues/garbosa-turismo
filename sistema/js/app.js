@@ -1040,6 +1040,8 @@ function formExcursao(id = null, viagemId = null) {
   const gerenciaColab = !id || souDono(id);
   const colabs = { ...(e.colaboradores || {}) };
   FOLDER_FORM = e.folder?.caminho ? { ...e.folder } : null;
+  FOTOS_FORM.local = Object.values(e.fotosLocal || {}).filter((x) => x?.caminho).map((x) => ({ ...x }));
+  FOTOS_FORM.veiculos = Object.values(e.fotosVeiculos || {}).filter((x) => x?.caminho).map((x) => ({ ...x }));
   // ingressos por pessoa (excursões antigas guardavam o valor total no veículo: converte para unitário)
   const capV0 = v0.tipo ? veic(v0.tipo).cap : 0;
   const ingLegado = !e.ingresso && num(v0.valorIngressos) > 0 && capV0 ? arred(num(v0.valorIngressos) / capV0) : 0;
@@ -1105,6 +1107,9 @@ function formExcursao(id = null, viagemId = null) {
       <label>Parcelar em até<select name="maxParcelas">${[1, 2, 3, 4, 5, 6].map((n) => `<option value="${n}" ${n === (parseInt(e.venda?.maxParcelas, 10) || 6) ? "selected" : ""}>${n === 1 ? "1x (à vista)" : n + "x"}</option>`).join("")}</select></label>
       <div class="section-label span2"><i class="fa-regular fa-image"></i> Folder da excursão</div>
       <div class="span2 folder-box" id="exFolderBox"></div>
+      <div class="section-label span2"><i class="fa-solid fa-bus"></i> Vitrine do link de poltrona</div>
+      <div class="span2" id="exFotosLocal"></div>
+      <div class="span2" id="exFotosVeic"></div>
       <label class="check span2"><input type="checkbox" name="publicarSite" id="exPublicar" ${e.publicarSite ? "checked" : ""}> Mostrar no catálogo do site (excursoes.html) com o folder e o link de compra</label>
       <small class="muted span2">Cartão: até o número escolhido, cobrado na compra. Boleto: uma parcela por mês a partir da data acima, sempre vencendo antes da saída. Pix: sempre à vista. Cupons e o link de venda ficam em <i class="fa-solid fa-cart-shopping"></i> Venda online.</small>
       <div class="section-label span2"><i class="fa-solid fa-user-group"></i> Colaboradores</div>
@@ -1251,6 +1256,8 @@ function formExcursao(id = null, viagemId = null) {
   $("#exSaidas").addEventListener("click", (ev) => ev.target.closest("[data-rm-saida]")?.closest(".saida-row").remove());
   $("#btnGrupoZap").addEventListener("click", () => { $("#btnGrupoZap").classList.add("hidden"); $("#grupoZapBox").classList.remove("hidden"); $("#exGrupo").focus(); });
   $("#btnGrupoRm").addEventListener("click", () => { $("#exGrupo").value = ""; $("#grupoZapBox").classList.add("hidden"); $("#btnGrupoZap").classList.remove("hidden"); });
+  caixaFotos($("#exFotosLocal"), "local", "Fotos do local", "Aparecem no alto da página. Sem fotos, aparece o folder.", () => f.elements.destino.value);
+  caixaFotos($("#exFotosVeic"), "veiculos", "Fotos dos veículos", 'Aparecem com o texto: "Os veículos podem mudar de acordo com a disponibilidade ou quantidade de passageiros."', () => f.elements.destino.value);
   caixaFolder($("#exFolderBox"), () => FOLDER_FORM, (f) => { FOLDER_FORM = f; if (f && !$("#exPublicar").checked) $("#exPublicar").checked = true; }, () => f.elements.destino.value);
   f.addEventListener("submit", (ev) => { ev.preventDefault(); salvarExcursao(id, vk, colabs, e.colaboradores || {}); });
 }
@@ -1277,7 +1284,7 @@ async function salvarExcursao(id, vk, colabs = {}, colabsAntes = {}) {
   const info = { grupoWhatsapp: grupoWhatsapp || null, ingresso: ing, produtos: Object.keys(precos.produtos || {}).length ? precos.produtos : null,
     opcionais: Object.keys(precos.opcionais || {}).length ? precos.opcionais : null,
     valorFinal: precos.valorFinal ?? null, valorFinalInfantil: precos.valorFinalInfantil ?? null, destino: d.destino, dataSaida: d.dataSaida, horaSaida: d.horaSaida, dataRetorno: d.dataRetorno || d.dataSaida, horaRetorno: d.horaRetorno, localSaida: d.localSaida, saidas: R.saidasDe({ saidas }).length ? R.saidasDe({ saidas }) : null, valorColo: num(d.valorColo),
-    descricao: d.descricao || null, folder: FOLDER_FORM || null, publicarSite: !!d.publicarSite, venda: { ativa: !!d.vendaAtiva, primeiraParcela: d.primeiraParcela || null, maxParcelas: Math.min(6, Math.max(1, parseInt(d.maxParcelas, 10) || 1)) } };
+    descricao: d.descricao || null, folder: FOLDER_FORM || null, fotosLocal: FOTOS_FORM.local.length ? FOTOS_FORM.local : null, fotosVeiculos: FOTOS_FORM.veiculos.length ? FOTOS_FORM.veiculos : null, publicarSite: !!d.publicarSite, venda: { ativa: !!d.vendaAtiva, primeiraParcela: d.primeiraParcela || null, maxParcelas: Math.min(6, Math.max(1, parseInt(d.maxParcelas, 10) || 1)) } };
   const podeColab = !id || souDono(id);
   try {
     let exId, own;
@@ -1621,6 +1628,8 @@ function formCupom(exId, own, codigo = null) {
    FOLDER (imagem enviada ao GitHub) E CATÁLOGO DO SITE
 ========================================================= */
 let FOLDER_FORM = null;
+const FOTOS_FORM = { local: [], veiculos: [] };
+const MAX_FOTOS = 6;
 let FORM_EX_TEMP = null;   // lê ingressos/produtos do formulário de excursão aberto
 const srcImg = (o) => (o?.caminho || o?.imagem ? `../${o.caminho || o.imagem}` : "");
 const rawImg = (o) => o?.raw || o?.imagemRaw || "";
@@ -1653,6 +1662,33 @@ async function enviarImagem(arquivo, nome) {
 }
 
 /** Caixa com prévia do folder + botões Adicionar/Trocar/Remover. aoMudar(folder|null) */
+/** Fotos da vitrine do link de poltrona (local ou veículos): salvas no GitHub do site, como o folder */
+function caixaFotos(el, tipo, titulo, dica, nomeBase) {
+  const desenhar = () => {
+    const fotos = FOTOS_FORM[tipo], cheio = fotos.length >= MAX_FOTOS;
+    el.innerHTML = `<strong style="display:block;font-size:.85rem;margin-bottom:6px">${esc(titulo)} (até ${MAX_FOTOS})</strong>
+      <div class="veic-fotos">${fotos.map((f, i) => `<div class="veic-foto">${imgTag(f)}<button type="button" class="ic danger" data-rm-foto="${i}" title="Remover foto"><i class="fa-solid fa-trash"></i></button></div>`).join("")}</div>
+      ${cheio ? "" : `<label class="btn btn-light btn-sm"><i class="fa-solid fa-upload"></i> Adicionar fotos<input type="file" accept="image/jpeg,image/png,image/webp" multiple hidden></label>`}
+      <small class="muted" style="display:block;margin-top:6px">${esc(dica)} Salve a excursão para gravar as fotos.</small>`;
+    $$("[data-rm-foto]", el).forEach((b) => b.addEventListener("click", () => { fotos.splice(+b.dataset.rmFoto, 1); desenhar(); }));
+    const inp = $("input[type=file]", el);
+    if (!inp) return;
+    inp.onchange = async (ev) => {
+      const arqs = [...ev.target.files].slice(0, MAX_FOTOS - fotos.length);
+      if (!arqs.length) return;
+      inp.closest("label").classList.add("enviando");
+      let ok = 0;
+      for (const arq of arqs) {
+        try { fotos.push(await enviarImagem(arq, `${tipo}-${nomeBase() || "excursao"}`)); ok++; }
+        catch (err) { toast(err.message, "erro"); }
+      }
+      desenhar();
+      if (ok) toast("Fotos enviadas. Salve a excursão para gravar.");
+    };
+  };
+  desenhar();
+}
+
 function caixaFolder(el, atual, aoMudar, nomeBase = () => "folder") {
   const desenhar = () => {
     const f = atual();

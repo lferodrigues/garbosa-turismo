@@ -1160,3 +1160,51 @@ input:-webkit-autofill{-webkit-text-fill-color:#fff;-webkit-box-shadow:0 0 0 40p
 .cp-cep-dica{font-size:.75rem;color:#7a5a00;background:#fffbea;border-radius:8px;padding:6px 10px;margin:0}
 .cp-mapa{flex-wrap:wrap}
 .cp-mapa>.cp-emb-aviso{flex:0 0 100%;box-sizing:border-box}
+
+/* Vitrine do link de poltrona */
+.vt{width:min(1120px,94%);margin:auto;display:grid;gap:16px;color:var(--text);align-self:start}
+.vt-barra,.vt-card,.vt-veiculos{background:#fff;border-radius:var(--radius);box-shadow:var(--shadow)}
+.vt-barra{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1.3fr) auto;gap:20px;align-items:center;padding:16px 20px}
+.vt-barra-nome strong{display:block;font-size:1rem;color:var(--dark)}
+.vt-barra small{display:block;font-size:.76rem;color:var(--muted)}
+.vt-barra-datas{display:flex;gap:24px;border-left:1px solid var(--line);padding-left:20px}
+.vt-barra-datas strong{font-size:.86rem;color:var(--dark)}
+.vt-barra-compra{display:flex;gap:16px;align-items:center}
+.vt-barra-compra strong{font-size:1.25rem;color:var(--primary);white-space:nowrap}
+.vt-barra-compra .btn{width:auto;padding-inline:30px}
+.vt-card{overflow:hidden}
+.vt-faixa{background:var(--primary);color:#fff;font-size:.9rem;margin:0;padding:10px 18px}
+.vt-corpo{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,5fr) 220px}
+.vt-fotos{position:relative;min-height:300px;background:var(--dark);overflow:hidden}
+.vt-foto{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.vt-foto-folder{object-fit:contain}
+.vt-sem-foto{position:absolute;inset:0;display:grid;place-items:center;font-size:2.4rem;color:rgba(255,255,255,.45)}
+.vt-seta{position:absolute;top:50%;transform:translateY(-50%);width:36px;height:36px;border:0;border-radius:50%;background:rgba(255,255,255,.9);color:var(--dark);cursor:pointer}
+.vt-seta.esq{left:10px}.vt-seta.dir{right:10px}
+.vt-info{padding:18px 20px;min-width:0}
+.vt-info h1{font-size:1.4rem;line-height:1.2;margin:0 0 4px;color:var(--dark);overflow-wrap:anywhere}
+.vt-agencia{margin:0 0 8px;font-size:.84rem;color:var(--muted)}
+.vt-selo{display:inline-block;margin-bottom:8px;padding:3px 10px;border-radius:6px;font-size:.78rem;font-weight:600;background:#fde2e2;color:#a22}
+.vt-desc{margin:0 0 10px;font-size:.86rem;white-space:pre-line}
+.vt-saidas{list-style:none;margin:0;padding:0;font-size:.82rem;display:grid;gap:3px}
+.vt-saidas i{color:var(--secondary)}
+.vt-preco{display:flex;flex-direction:column;justify-content:center;gap:4px;padding:18px;border-left:1px solid var(--line)}
+.vt-preco small{font-size:.78rem;color:var(--muted)}
+.vt-preco strong{font-size:1.7rem;color:var(--dark);margin-bottom:10px}
+.vt-veiculos{padding:18px 20px}
+.vt-veiculos h2{font-size:1.05rem;margin:0 0 12px;color:var(--dark)}
+.vt-veic-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
+.vt-veic{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:10px;display:block}
+.vt-nota{margin:12px 0 0;font-size:.82rem;color:var(--muted)}
+.veic-fotos{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px}
+.veic-foto{position:relative;width:96px;height:72px}
+.veic-foto img{width:100%;height:100%;object-fit:cover;border-radius:8px;display:block}
+.veic-foto .ic{position:absolute;top:2px;right:2px;width:26px;height:26px}
+@media(max-width:860px){
+  .vt-barra{grid-template-columns:minmax(0,1fr);gap:10px}
+  .vt-barra-datas{border-left:0;padding-left:0}
+  .vt-barra-compra{display:none}
+  .vt-corpo{grid-template-columns:minmax(0,1fr)}
+  .vt-fotos{min-height:230px}
+  .vt-preco{border-left:0;border-top:1px solid var(--line)}
+}

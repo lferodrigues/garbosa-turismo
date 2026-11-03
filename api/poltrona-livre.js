@@ -17,6 +17,7 @@ export const WHATSAPP_CERTIDAO = "5532999775281";
 const MAX = 10;
 const texto = (v, max) => String(v ?? "").replace(/\s+/g, " ").trim().slice(0, max);
 const primeiro = (n) => String(n || "").split(" ")[0];
+const fotosDe = (lista) => Object.values(lista || {}).filter((f) => f?.caminho).map((f) => ({ caminho: f.caminho, raw: f.raw || "" }));
 /** "Ana Paula Souza" → "Ana S." (não expõe o nome inteiro para quem só digitou um documento) */
 const abreviar = (n) => { const p = String(n || "").trim().split(/\s+/); return p.length > 1 ? `${p[0]} ${p.at(-1)[0]}.` : p[0] || ""; };
 
@@ -58,6 +59,7 @@ export default async function handler(req, res) {
         destino: ex.destino, agencia, dataSaida: ex.dataSaida, horaSaida: ex.horaSaida || "", dataRetorno: ex.dataRetorno || ex.dataSaida,
         horaRetorno: ex.horaRetorno || "", localSaida: ex.localSaida || "", saidas: R.saidasDe(ex), descricao: ex.descricao || "",
         folder: ex.folder?.caminho ? { caminho: ex.folder.caminho, raw: ex.folder.raw || "" } : null,
+        valorCent: R.precoPessoaCent(ex), fotosLocal: fotosDe(ex.fotosLocal), fotosVeiculos: fotosDe(ex.fotosVeiculos),
         whatsappCertidao: WHATSAPP_CERTIDAO, max: MAX, idadeColo: R.IDADE_COLO, valorColoCent: R.centavos(ex.valorColo),
         opcionais: R.opcionaisDe(ex),
         vagas: doLink ? null : await vagasDaExcursao(own, exId, ex),

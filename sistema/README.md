@@ -265,6 +265,12 @@ Menu **Operacional → Financeiro Asaas**: só o que está no Asaas, consultado 
 - API: `GET /api/relatorio-pagamentos?asaas=1` com o token do sistema.
 - Mês: usa a data do pagamento nas cobranças recebidas e o vencimento nas demais.
 
+## Vitrine do link de poltrona
+Todo link `poltrona.html` abre primeiro uma vitrine: fotos do local, resumo da viagem, preço, fotos dos veículos e o botão **Escolher poltrona**, que leva ao cadastro.
+- **Fotos do local e dos veículos:** enviadas no formulário da excursão (até 6 de cada) e salvas no GitHub do site, como o folder. Sem foto do local, aparece o folder.
+- Junto das fotos dos veículos vai o aviso de que eles podem mudar.
+- Banco: `excursoes/{uid}/{exId}/fotosLocal` e `fotosVeiculos` = `[{ caminho, raw }]` (sem mudança nas regras).
+
 ## Link de um veículo só
 Em **Poltronas**, com mais de um veículo, o link do topo acompanha a aba escolhida: `poltrona.html?e={id}&v={veículo}`.
 - O cliente vê só esse veículo, e o servidor recusa poltrona em outro.
