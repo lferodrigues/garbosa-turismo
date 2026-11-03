@@ -198,3 +198,11 @@ test("vitrine: GET traz preço e as fotos do local e dos veículos, sem entradas
   assert.deepEqual(g.body.fotosVeiculos, [{ caminho: "Assets/img/excursoes/bus.jpg", raw: "" }]);
   assert.ok(g.body.valorCent >= 0);
 });
+
+test("vitrine: personalização da página vem no GET, limpa e com valores padrão", async () => {
+  let g = await chamar({ method: "GET", query: { e: EX } });
+  assert.deepEqual(g.body.vitrine, { titulo: "", aviso: "", ocultarPreco: false });
+  await db.ref(`excursoes/${OWN}/${EX}/vitrine`).set({ titulo: " Rolê Maromba ", aviso: "Pode mudar.", ocultarPreco: true });
+  g = await chamar({ method: "GET", query: { e: EX } });
+  assert.deepEqual(g.body.vitrine, { titulo: "Rolê Maromba", aviso: "Pode mudar.", ocultarPreco: true });
+});

@@ -2,6 +2,7 @@
 import * as R from "./venda-regras.js?v=23";
 
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+export const AVISO_VEICULOS = "Os veículos podem mudar de acordo com a disponibilidade ou quantidade de passageiros.";
 const quando = (d, h) => `${R.fData(d)}${h ? ` às ${h}` : ""}`;
 const imgDoSite = (f, cls, alt) => `<img class="${cls}" src="../${esc(f.caminho)}" alt="${esc(alt)}" loading="lazy" data-raw="${esc(f.raw || "")}">`;
 
@@ -100,13 +101,14 @@ export function mostrarMoldura() {
 }
 
 export function montarVitrine(el, EX, aoComprar, rotulo = "Escolher poltrona") {
-  const preco = EX.valorCent > 0 ? R.brl(EX.valorCent) : "";
+  const titulo = EX.vitrine?.titulo || EX.destino;
+  const preco = EX.valorCent > 0 && !EX.vitrine?.ocultarPreco ? R.brl(EX.valorCent) : "";
   const selo = EX.vagas?.selo, livres = EX.vagas?.livres;
   const saidas = [[EX.localSaida, EX.horaSaida], ...(EX.saidas || []).map((s) => [s.local, s.hora])].filter(([l]) => l);
   const botao = `<button type="button" class="btn btn-primary btn-block vt-comprar">${esc(rotulo)}</button>`;
   el.innerHTML = `
     <div class="vt-barra">
-      <div class="vt-barra-nome"><strong>${esc(EX.destino)}</strong><small><i class="fa-solid fa-location-dot"></i> ${esc(EX.localSaida || "Local a combinar")}</small></div>
+      <div class="vt-barra-nome"><strong>${esc(titulo)}</strong><small><i class="fa-solid fa-location-dot"></i> ${esc(EX.localSaida || "Local a combinar")}</small></div>
       <div class="vt-barra-datas">
         <span><small>Ida</small><strong>${esc(quando(EX.dataSaida, EX.horaSaida))}</strong></span>
         <span><small>Volta</small><strong>${esc(quando(EX.dataRetorno, EX.horaRetorno))}</strong></span>
@@ -118,7 +120,7 @@ export function montarVitrine(el, EX, aoComprar, rotulo = "Escolher poltrona") {
       <div class="vt-corpo">
         <div class="vt-fotos" id="vtFotos"></div>
         <div class="vt-info">
-          <h1>${esc(EX.destino)}</h1>
+          <h1>${esc(titulo)}</h1>
           ${EX.agencia ? `<p class="vt-agencia">${esc(EX.agencia)}</p>` : ""}
           ${selo ? `<span class="vt-selo ${esc(selo)}">${selo === "esgotado" ? "Esgotado" : `Restam apenas ${livres}`}</span>` : ""}
           ${saidas.length ? `<ul class="vt-saidas">${saidas.map(([l, h]) => `<li><i class="fa-solid fa-location-dot"></i> ${esc(l)}${h ? `, às ${esc(h)}` : ""}</li>`).join("")}</ul>` : ""}
@@ -136,7 +138,7 @@ export function montarVitrine(el, EX, aoComprar, rotulo = "Escolher poltrona") {
     ${EX.fotosVeiculos?.length ? `<section class="vt-veiculos">
       <h2>Veículos</h2>
       <div class="vt-veic-grid">${EX.fotosVeiculos.map((f) => imgDoSite(f, "vt-veic", "Foto do veículo")).join("")}</div>
-      <p class="vt-nota"><i class="fa-solid fa-circle-info"></i> Os veículos podem mudar de acordo com a disponibilidade ou quantidade de passageiros.</p>
+      <p class="vt-nota"><i class="fa-solid fa-circle-info"></i> ${esc(EX.vitrine?.aviso || AVISO_VEICULOS)}</p>
     </section>` : ""}`;
   ligarRaw(el);
   el.querySelectorAll(".vt-comprar").forEach((b) => b.addEventListener("click", aoComprar));

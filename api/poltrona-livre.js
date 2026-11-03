@@ -11,7 +11,7 @@
 // Funciona enquanto as inscrições da excursão estiverem abertas (link de inscrição ativo).
 import { db } from "./_lib/firebase.js";
 import { enviar, lerCorpo, soMetodo, tratarErro, ErroUsuario } from "./_lib/http.js";
-import { carregarExcursao, veiculosComOcupacao, vagasDaExcursao, trocarPoltronas, liberarPoltronas, notificar, conferirEmbarque, fotosDe, R } from "./_lib/venda.js";
+import { carregarExcursao, veiculosComOcupacao, vagasDaExcursao, trocarPoltronas, liberarPoltronas, notificar, conferirEmbarque, fotosDe, vitrineDe, R } from "./_lib/venda.js";
 
 export const WHATSAPP_CERTIDAO = "5532999775281";
 const MAX = 10;
@@ -58,7 +58,7 @@ export default async function handler(req, res) {
         destino: ex.destino, agencia, dataSaida: ex.dataSaida, horaSaida: ex.horaSaida || "", dataRetorno: ex.dataRetorno || ex.dataSaida,
         horaRetorno: ex.horaRetorno || "", localSaida: ex.localSaida || "", saidas: R.saidasDe(ex), descricao: ex.descricao || "",
         folder: ex.folder?.caminho ? { caminho: ex.folder.caminho, raw: ex.folder.raw || "" } : null,
-        valorCent: R.precoPessoaCent(ex), fotosLocal: fotosDe(ex.fotosLocal), fotosVeiculos: fotosDe(ex.fotosVeiculos),
+        valorCent: R.precoPessoaCent(ex), fotosLocal: fotosDe(ex.fotosLocal), fotosVeiculos: fotosDe(ex.fotosVeiculos), vitrine: vitrineDe(ex),
         whatsappCertidao: WHATSAPP_CERTIDAO, max: MAX, idadeColo: R.IDADE_COLO, valorColoCent: R.centavos(ex.valorColo),
         opcionais: R.opcionaisDe(ex),
         vagas: doLink ? null : await vagasDaExcursao(own, exId, ex),

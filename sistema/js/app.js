@@ -2,6 +2,7 @@ import { auth, db, ADMIN_EMAIL, authSecundario } from "./firebase.js?v=8";
 import { baixarXLSX, baixarPDF, baixarPDFPoltronas, carregarXLSX } from "./exportar.js?v=9";
 import * as R from "./venda-regras.js?v=23";
 import { htmlOnibus } from "./mapa-onibus.js?v=3";
+import { montarVitrine, AVISO_VEICULOS } from "./vitrine.js?v=5";
 import {
   onAuthStateChanged, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword,
   sendPasswordResetEmail, updateProfile,
@@ -44,6 +45,7 @@ const ROTAS = {
   poltronas:  { nome: "Poltronas",            icone: "fa-couch",         cor: "c4", tipos: ["agencia", "admin"], compart: true },
   financeiro: { nome: "Financeiro",           icone: "fa-sack-dollar",   cor: "c3", tipos: ["agencia", "admin"], compart: true },
   asaas:      { nome: "Financeiro Asaas",     icone: "fa-building-columns", cor: "c3", tipos: ["agencia", "admin"] },
+  vitrine:    { nome: "Vitrine",              icone: "fa-store",         cor: "c2", tipos: ["agencia", "admin"], compart: true }, // abre pela lista de Excursões
   viagens:    { nome: "Viagens / Orçamentos", icone: "fa-bus",           cor: "c2", tipos: ["transportadora", "admin"] },
   usuarios:   { nome: "Usuários",             icone: "fa-user-gear",     cor: "c5", tipos: ["admin"] },
   logs:       { nome: "Logs de acesso",       icone: "fa-clipboard-list", cor: "c5", tipos: ["admin"] },
@@ -221,7 +223,7 @@ function rotear() {
     S.view = view; S.param = param;
     abrirAba(view, param);
     salvarAbas();
-    if (["viajantes", "poltronas", "financeiro"].includes(view) && param && param !== S.exSel) { S.exSel = param; S.veicSel = null; S.passSel = null; }
+    if (["viajantes", "poltronas", "financeiro", "vitrine"].includes(view) && param && param !== S.exSel) { S.exSel = param; S.veicSel = null; S.passSel = null; }
   }
   if (S.view === "logs" && S.logs === null) carregarLogs();
   render();
@@ -766,7 +768,7 @@ function render() {
   document.title = `${ROTAS[S.view]?.nome || "Início"} | Garbosa System`;
   S.exportar = null;
   $("#workspace").classList.toggle("em-inicio", S.view === "inicio");
-  const views = { site: viewSite, inicio: viewInicio, calendario: viewCalendario, excursoes: viewExcursoes, viajantes: viewViajantes, poltronas: viewPoltronas, financeiro: viewFinanceiro, asaas: viewAsaas, viagens: viewViagens, usuarios: viewUsuarios, logs: viewLogs };
+  const views = { site: viewSite, inicio: viewInicio, calendario: viewCalendario, excursoes: viewExcursoes, viajantes: viewViajantes, poltronas: viewPoltronas, financeiro: viewFinanceiro, asaas: viewAsaas, vitrine: viewVitrine, viagens: viewViagens, usuarios: viewUsuarios, logs: viewLogs };
   (views[S.view] || viewCalendario)();
   const bx = $("#btnXlsx"), bp = $("#btnPdf");
   if (bx) bx.onclick = () => exportar("xlsx", bx);
@@ -980,6 +982,7 @@ function viewExcursoes() {
             <button class="ic" title="Viajantes" data-a="via" data-id="${id}"><i class="fa-solid fa-users"></i></button>
             <button class="ic" title="Poltronas" data-a="pol" data-id="${id}"><i class="fa-solid fa-couch"></i></button>
             <button class="ic" title="Financeiro" data-a="fin" data-id="${id}"><i class="fa-solid fa-sack-dollar"></i></button>
+            <button class="ic" title="Personalizar vitrine" data-a="vitrine" data-id="${id}"><i class="fa-solid fa-store"></i></button>
             <button class="ic" title="Relatórios: custos e quem pagou (Asaas)" data-a="rel" data-id="${id}"><i class="fa-solid fa-file-invoice-dollar"></i></button>
             <button class="ic" title="Venda online (Asaas): link, cupons e pedidos" data-a="venda" data-id="${id}"><i class="fa-solid fa-cart-shopping"></i></button>
             <button class="ic" title="Link de inscrição" data-a="link" data-id="${id}"><i class="fa-solid fa-link"></i></button>
@@ -996,6 +999,7 @@ function viewExcursoes() {
     if (b.dataset.a === "pol") irPara("poltronas", id);
     if (b.dataset.a === "edit") formExcursao(id);
     if (b.dataset.a === "fin") irPara("financeiro", id);
+    if (b.dataset.a === "vitrine") irPara("vitrine", id);
     if (b.dataset.a === "rel") menuRelatorios(id);
     if (b.dataset.a === "link") mostrarLink(id, own);
     if (b.dataset.a === "venda") painelVenda(id, own);
@@ -1040,8 +1044,6 @@ function formExcursao(id = null, viagemId = null) {
   const gerenciaColab = !id || souDono(id);
   const colabs = { ...(e.colaboradores || {}) };
   FOLDER_FORM = e.folder?.caminho ? { ...e.folder } : null;
-  FOTOS_FORM.local = Object.values(e.fotosLocal || {}).filter((x) => x?.caminho).map((x) => ({ ...x }));
-  FOTOS_FORM.veiculos = Object.values(e.fotosVeiculos || {}).filter((x) => x?.caminho).map((x) => ({ ...x }));
   // ingressos por pessoa (excursões antigas guardavam o valor total no veículo: converte para unitário)
   const capV0 = v0.tipo ? veic(v0.tipo).cap : 0;
   const ingLegado = !e.ingresso && num(v0.valorIngressos) > 0 && capV0 ? arred(num(v0.valorIngressos) / capV0) : 0;
@@ -1106,10 +1108,6 @@ function formExcursao(id = null, viagemId = null) {
       <label>Parcelar em até<select name="maxParcelas">${[1, 2, 3, 4, 5, 6].map((n) => `<option value="${n}" ${n === (parseInt(e.venda?.maxParcelas, 10) || 6) ? "selected" : ""}>${n === 1 ? "1x (à vista)" : n + "x"}</option>`).join("")}</select></label>
       <div class="section-label span2"><i class="fa-regular fa-image"></i> Folder da excursão</div>
       <div class="span2 folder-box" id="exFolderBox"></div>
-      <div class="section-label span2"><i class="fa-solid fa-bus"></i> Vitrine do link de poltrona</div>
-      <label class="span2">Descrição da excursão (opcional)<textarea name="descricao" rows="5" maxlength="1500" placeholder="O que está incluso, roteiro, observações…">${esc(e.descricao)}</textarea><small class="muted">Aparece na vitrine e na página de venda.</small></label>
-      <div class="span2" id="exFotosLocal"></div>
-      <div class="span2" id="exFotosVeic"></div>
       <label class="check span2"><input type="checkbox" name="publicarSite" id="exPublicar" ${e.publicarSite ? "checked" : ""}> Mostrar no catálogo do site (excursoes.html) com o folder e o link de compra</label>
       <small class="muted span2">Cartão: até o número escolhido, cobrado na compra. Boleto: uma parcela por mês a partir da data acima, sempre vencendo antes da saída. Pix: sempre à vista. Cupons e o link de venda ficam em <i class="fa-solid fa-cart-shopping"></i> Venda online.</small>
       <div class="section-label span2"><i class="fa-solid fa-user-group"></i> Colaboradores</div>
@@ -1256,8 +1254,6 @@ function formExcursao(id = null, viagemId = null) {
   $("#exSaidas").addEventListener("click", (ev) => ev.target.closest("[data-rm-saida]")?.closest(".saida-row").remove());
   $("#btnGrupoZap").addEventListener("click", () => { $("#btnGrupoZap").classList.add("hidden"); $("#grupoZapBox").classList.remove("hidden"); $("#exGrupo").focus(); });
   $("#btnGrupoRm").addEventListener("click", () => { $("#exGrupo").value = ""; $("#grupoZapBox").classList.add("hidden"); $("#btnGrupoZap").classList.remove("hidden"); });
-  caixaFotos($("#exFotosLocal"), "local", "Fotos do local", "Aparecem no alto da página. Sem fotos, aparece o folder.", () => f.elements.destino.value);
-  caixaFotos($("#exFotosVeic"), "veiculos", "Fotos dos veículos", 'Aparecem com o texto: "Os veículos podem mudar de acordo com a disponibilidade ou quantidade de passageiros."', () => f.elements.destino.value);
   caixaFolder($("#exFolderBox"), () => FOLDER_FORM, (f) => { FOLDER_FORM = f; if (f && !$("#exPublicar").checked) $("#exPublicar").checked = true; }, () => f.elements.destino.value);
   f.addEventListener("submit", (ev) => { ev.preventDefault(); salvarExcursao(id, vk, colabs, e.colaboradores || {}); });
 }
@@ -1284,7 +1280,7 @@ async function salvarExcursao(id, vk, colabs = {}, colabsAntes = {}) {
   const info = { grupoWhatsapp: grupoWhatsapp || null, ingresso: ing, produtos: Object.keys(precos.produtos || {}).length ? precos.produtos : null,
     opcionais: Object.keys(precos.opcionais || {}).length ? precos.opcionais : null,
     valorFinal: precos.valorFinal ?? null, valorFinalInfantil: precos.valorFinalInfantil ?? null, destino: d.destino, dataSaida: d.dataSaida, horaSaida: d.horaSaida, dataRetorno: d.dataRetorno || d.dataSaida, horaRetorno: d.horaRetorno, localSaida: d.localSaida, saidas: R.saidasDe({ saidas }).length ? R.saidasDe({ saidas }) : null, valorColo: num(d.valorColo),
-    descricao: d.descricao || null, folder: FOLDER_FORM || null, fotosLocal: FOTOS_FORM.local.length ? FOTOS_FORM.local : null, fotosVeiculos: FOTOS_FORM.veiculos.length ? FOTOS_FORM.veiculos : null, publicarSite: !!d.publicarSite, venda: { ativa: !!d.vendaAtiva, primeiraParcela: d.primeiraParcela || null, maxParcelas: Math.min(6, Math.max(1, parseInt(d.maxParcelas, 10) || 1)) } };
+    folder: FOLDER_FORM || null, publicarSite: !!d.publicarSite, venda: { ativa: !!d.vendaAtiva, primeiraParcela: d.primeiraParcela || null, maxParcelas: Math.min(6, Math.max(1, parseInt(d.maxParcelas, 10) || 1)) } };
   const podeColab = !id || souDono(id);
   try {
     let exId, own;
@@ -1313,7 +1309,7 @@ async function salvarExcursao(id, vk, colabs = {}, colabsAntes = {}) {
       notificar(novos, { tipo: "colaboracao", titulo: "Você foi adicionado como colaborador", texto: `${P.empresa} compartilhou a excursão ${info.destino} (${fData(info.dataSaida)}) com você.`, link: `#/viajantes/${exId}`, exId });
     }
     const pub = await publicarInscricao(exId, own);
-    await sincronizarSite(exId, own, { ...info, colaboradores: colabs }).catch((err) => { console.warn("site", err); toast("Excursão salva, mas não foi possível atualizar o catálogo do site.", "erro"); });
+    await sincronizarSite(exId, own, { descricao: S.excursoes[exId]?.descricao, ...info, colaboradores: colabs }).catch((err) => { console.warn("site", err); toast("Excursão salva, mas não foi possível atualizar o catálogo do site.", "erro"); });
     fecharModal();
     if (!id) { if (info.venda.ativa) painelVenda(exId, own, true, { ...info, _owner: own, veiculos: { v0: { ...veiculo, ordem: 0 } } }); else mostrarLink(exId, own, true, pub); }
   } catch (e) { falha(e); }
@@ -1628,7 +1624,6 @@ function formCupom(exId, own, codigo = null) {
    FOLDER (imagem enviada ao GitHub) E CATÁLOGO DO SITE
 ========================================================= */
 let FOLDER_FORM = null;
-const FOTOS_FORM = { local: [], veiculos: [] };
 const MAX_FOTOS = 6;
 let FORM_EX_TEMP = null;   // lê ingressos/produtos do formulário de excursão aberto
 const srcImg = (o) => (o?.caminho || o?.imagem ? `../${o.caminho || o.imagem}` : "");
@@ -1662,15 +1657,15 @@ async function enviarImagem(arquivo, nome) {
 }
 
 /** Caixa com prévia do folder + botões Adicionar/Trocar/Remover. aoMudar(folder|null) */
-/** Fotos da vitrine do link de poltrona (local ou veículos): salvas no GitHub do site, como o folder */
-function caixaFotos(el, tipo, titulo, dica, nomeBase) {
+/** Lista de fotos da vitrine: salvas no GitHub do site, como o folder */
+function caixaFotos(el, fotos, titulo, dica, nomeBase, aoMudar) {
   const desenhar = () => {
-    const fotos = FOTOS_FORM[tipo], cheio = fotos.length >= MAX_FOTOS;
+    const cheio = fotos.length >= MAX_FOTOS;
     el.innerHTML = `<strong style="display:block;font-size:.85rem;margin-bottom:6px">${esc(titulo)} (até ${MAX_FOTOS})</strong>
       <div class="veic-fotos">${fotos.map((f, i) => `<div class="veic-foto">${imgTag(f)}<button type="button" class="ic danger" data-rm-foto="${i}" title="Remover foto"><i class="fa-solid fa-trash"></i></button></div>`).join("")}</div>
       ${cheio ? "" : `<label class="btn btn-light btn-sm"><i class="fa-solid fa-upload"></i> Adicionar fotos<input type="file" accept="image/jpeg,image/png,image/webp" multiple hidden></label>`}
-      <small class="muted" style="display:block;margin-top:6px">${esc(dica)} Salve a excursão para gravar as fotos.</small>`;
-    $$("[data-rm-foto]", el).forEach((b) => b.addEventListener("click", () => { fotos.splice(+b.dataset.rmFoto, 1); desenhar(); }));
+      <small class="muted" style="display:block;margin-top:6px">${esc(dica)}</small>`;
+    $$("[data-rm-foto]", el).forEach((b) => b.addEventListener("click", () => { fotos.splice(+b.dataset.rmFoto, 1); desenhar(); aoMudar(); }));
     const inp = $("input[type=file]", el);
     if (!inp) return;
     inp.onchange = async (ev) => {
@@ -1679,11 +1674,11 @@ function caixaFotos(el, tipo, titulo, dica, nomeBase) {
       inp.closest("label").classList.add("enviando");
       let ok = 0;
       for (const arq of arqs) {
-        try { fotos.push(await enviarImagem(arq, `${tipo}-${nomeBase() || "excursao"}`)); ok++; }
+        try { fotos.push(await enviarImagem(arq, nomeBase)); ok++; }
         catch (err) { toast(err.message, "erro"); }
       }
       desenhar();
-      if (ok) toast("Fotos enviadas. Salve a excursão para gravar.");
+      if (ok) { aoMudar(); toast("Fotos enviadas. Clique em Salvar para gravar."); }
     };
   };
   desenhar();
@@ -3076,6 +3071,63 @@ function viewAsaas() {
     ASAAS.busca = e.target.value; const pos = e.target.selectionStart; render();
     const b = $("#asaasBusca"); b.focus(); b.setSelectionRange(pos, pos);
   });
+}
+
+/* Vitrine: página para personalizar a vitrine de uma excursão, com prévia ao lado. Abre pela lista de Excursões. */
+const VIT = { exId: null, sujo: false };
+function carregarVit(exId, ex) {
+  const fotos = (l) => Object.values(l || {}).filter((x) => x?.caminho).map((x) => ({ ...x }));
+  Object.assign(VIT, { exId, sujo: false, titulo: ex.vitrine?.titulo || "", descricao: ex.descricao || "", aviso: ex.vitrine?.aviso || "",
+    ocultarPreco: ex.vitrine?.ocultarPreco === true, local: fotos(ex.fotosLocal), veiculos: fotos(ex.fotosVeiculos) });
+}
+function viewVitrine() {
+  const sel = seletorExcursao();
+  if (!sel) return semExcursao("Vitrine", "fa-store");
+  const exId = S.exSel, ex = S.excursoes[exId], own = dono(exId);
+  if ($("#fVit")?.dataset.ex === exId) return; // os dados mudaram no banco: não apaga o que está sendo digitado
+  if (VIT.exId !== exId || !VIT.sujo) carregarVit(exId, ex);
+  $("#workspace").innerHTML = `
+  <section class="panel">
+    ${toolbar("Vitrine da excursão", "fa-store", tbBtn("btnVitExc", "fa-arrow-left", "Excursões") + tbBtn("btnVitAbrir", "fa-arrow-up-right-from-square", "Abrir vitrine") + tbBtn("btnVitSalvar", "fa-floppy-disk", "Salvar", "tool-accent"), false)}
+    <div class="subbar">${sel}</div>
+    <div class="vit-grade">
+      <form id="fVit" data-ex="${esc(exId)}" class="form-grid">
+        <label class="span2">Título na vitrine (opcional)<input data-v="titulo" maxlength="120" value="${esc(VIT.titulo)}" placeholder="${esc(ex.destino)}"></label>
+        <label class="span2">Descrição da excursão (opcional)<textarea data-v="descricao" rows="6" maxlength="1500" placeholder="O que está incluso, roteiro, observações…">${esc(VIT.descricao)}</textarea><small class="muted">Aparece também na página de venda e no catálogo do site.</small></label>
+        <div class="span2" id="vitFotosLocal"></div>
+        <div class="span2" id="vitFotosVeic"></div>
+        <label class="span2">Aviso abaixo das fotos dos veículos<input data-v="aviso" maxlength="200" value="${esc(VIT.aviso)}" placeholder="${esc(AVISO_VEICULOS)}"></label>
+        <label class="check span2"><input type="checkbox" id="vitPreco" ${VIT.ocultarPreco ? "checked" : ""}> Não mostrar o preço na vitrine</label>
+      </form>
+      <aside class="vit-moldura" aria-label="Prévia da vitrine"><strong class="vit-rotulo">Prévia</strong><div class="vt vit-previa" id="vitPrevia"></div></aside>
+    </div>
+  </section>`;
+  ligarSeletor();
+  const previa = () => montarVitrine($("#vitPrevia"), {
+    destino: ex.destino, agencia: nomeAgencia(own), dataSaida: ex.dataSaida, horaSaida: ex.horaSaida, dataRetorno: ex.dataRetorno, horaRetorno: ex.horaRetorno,
+    localSaida: ex.localSaida, saidas: R.saidasDe(ex), valorCent: R.precoPessoaCent(ex), folder: ex.folder, descricao: VIT.descricao.trim(), fotosLocal: VIT.local, fotosVeiculos: VIT.veiculos,
+    vitrine: { titulo: VIT.titulo.trim(), aviso: VIT.aviso.trim(), ocultarPreco: VIT.ocultarPreco }
+  }, () => {}, ex.venda?.ativa ? "Comprar" : "Escolher poltrona");
+  const mudou = () => { VIT.sujo = true; previa(); };
+  caixaFotos($("#vitFotosLocal"), VIT.local, "Fotos do local", "Aparecem no alto da página. Sem fotos, aparece o folder.", `local-${ex.destino}`, mudou);
+  caixaFotos($("#vitFotosVeic"), VIT.veiculos, "Fotos dos veículos", "Sem fotos, a parte de veículos não aparece.", `veiculos-${ex.destino}`, mudou);
+  $$("[data-v]", $("#fVit")).forEach((el) => el.addEventListener("input", () => { VIT[el.dataset.v] = el.value; mudou(); }));
+  $("#vitPreco").onchange = (e) => { VIT.ocultarPreco = e.target.checked; mudou(); };
+  $("#fVit").addEventListener("submit", (e) => e.preventDefault());
+  $("#btnVitExc").onclick = () => navegar("excursoes");
+  $("#btnVitAbrir").onclick = () => window.open(urlPoltrona(exId), "_blank", "noopener");
+  $("#btnVitSalvar").onclick = async () => {
+    const titulo = VIT.titulo.trim(), aviso = VIT.aviso.trim(), descricao = VIT.descricao.trim();
+    const vitrine = titulo || aviso || VIT.ocultarPreco ? { titulo: titulo || null, aviso: aviso || null, ocultarPreco: VIT.ocultarPreco } : null;
+    try {
+      await update(ref(db, `excursoes/${own}/${exId}`), { descricao: descricao || null, vitrine, atualizadoEm: Date.now(),
+        fotosLocal: VIT.local.length ? VIT.local : null, fotosVeiculos: VIT.veiculos.length ? VIT.veiculos : null });
+      VIT.sujo = false;
+      toast("Vitrine salva");
+      await sincronizarSite(exId, own, { ...S.excursoes[exId], descricao }).catch((err) => console.warn("site", err));
+    } catch (err) { falha(err); }
+  };
+  previa();
 }
 
 function viewFinanceiro() {

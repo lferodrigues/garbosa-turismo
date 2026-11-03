@@ -1258,3 +1258,20 @@ input:-webkit-autofill{-webkit-text-fill-color:#fff;-webkit-box-shadow:0 0 0 40p
 .gt-rodape .gt-copy{text-align:center;border-top:1px solid rgba(255,255,255,.08);margin-top:40px;padding:18px 4%;font-size:.8rem}
 @media(max-width:980px){.gt-rodape-in{grid-template-columns:1fr 1fr}}
 @media(max-width:700px){.gt-rodape-in{grid-template-columns:1fr}}
+
+/* Página Vitrine do painel: formulário + prévia (sempre no formato de celular) */
+.vit-grade{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,400px);gap:20px;padding:18px;align-items:start}
+.vit-moldura{background:linear-gradient(135deg,#2A1F88,#5946da);border-radius:var(--radius);padding:12px;position:sticky;top:70px;max-height:calc(100vh - 90px);overflow:auto}
+#fVit label.btn{display:inline-flex;width:auto}
+#fVit label.btn input[type=file]{display:none}
+.vit-rotulo{display:block;color:#fff;font-size:.82rem;margin-bottom:8px}
+.vit-previa{width:100%;gap:10px}
+.vit-previa .vt-barra{grid-template-columns:minmax(0,1fr);gap:10px;padding:12px}
+.vit-previa .vt-barra-datas{border-left:0;padding-left:0}
+.vit-previa .vt-barra-compra{display:none}
+.vit-previa .vt-corpo{grid-template-columns:minmax(0,1fr)}
+.vit-previa .vt-fotos{min-height:200px}
+.vit-previa .vt-preco{border-left:0;border-top:1px solid var(--line)}
+.vit-previa .vt-veic-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+.vit-previa .vt-comprar{pointer-events:none}
+@media(max-width:1000px){.vit-grade{grid-template-columns:minmax(0,1fr)}.vit-moldura{position:static;max-height:none}}
