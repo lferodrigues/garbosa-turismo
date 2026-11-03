@@ -3,9 +3,13 @@
 //  - compras online: parcelas consultadas NA HORA no Asaas (se o Asaas não responder, usa o que o webhook já gravou);
 //  - demais viajantes (cadastro manual, link, reserva, planilha): pagamentos registrados no Financeiro do sistema.
 // Autenticação: Authorization: Bearer <token do Firebase do usuário logado no sistema> (agência dona, colaborador ou admin).
+// GET /api/relatorio-pagamentos?asaas=1 — página Financeiro Asaas: cobranças direto do Asaas.
+//  - admin: todas as cobranças da conta + saldo; agência: só as cobranças dos pedidos dela, sem o saldo da conta.
+//  Fica neste arquivo porque o plano da Vercel já está no limite de 12 funções.
 import { auth, db, ADMIN_EMAIL } from "./_lib/firebase.js";
 import { enviar, soMetodo, tratarErro, ErroUsuario } from "./_lib/http.js";
-import { parcelasDoPedido, situacaoDoPedido } from "./_lib/parcelas.js";
+import { parcelasDoPedido, situacaoDoPedido, PAGA, SITUACAO, FORMA } from "./_lib/parcelas.js";
+import { asaas } from "./_lib/asaas.js";
 import { R } from "./_lib/venda.js";
 
 const ID = /^[\w-]{1,64}$/;
@@ -15,6 +19,60 @@ async function emLotes(itens, tamanho, fn) {
   const out = [];
   for (let i = 0; i < itens.length; i += tamanho) out.push(...await Promise.all(itens.slice(i, i + tamanho).map(fn)));
   return out;
+}
+
+const MAX_PAGINAS = 40;      // 4.000 cobranças
+const MAX_CLIENTES = 60;     // nomes buscados um a um, para cobranças criadas fora do sistema
+
+async function financeiroAsaas(u) {
+  const d = await db();
+  const admin = (u.email || "").toLowerCase() === ADMIN_EMAIL;
+  if (!admin && (await d.ref(`usuarios/${u.uid}/tipo`).get()).val() !== "agencia") throw new ErroUsuario("Sem permissão para ver o financeiro do Asaas.", 403);
+
+  const arvore = admin ? (await d.ref("pedidos").get()).val() || {} : { [u.uid]: (await d.ref(`pedidos/${u.uid}`).get()).val() || {} };
+  const pedidos = new Map(), nomes = new Map();
+  for (const excursoes of Object.values(arvore)) {
+    for (const [exId, lista] of Object.entries(excursoes || {})) {
+      for (const [pid, p] of Object.entries(lista || {})) {
+        pedidos.set(pid, { exId, destino: p.excursao?.destino || "", nome: p.titular?.nome || "" });
+        if (p.asaas?.customer && p.titular?.nome) nomes.set(p.asaas.customer, p.titular.nome);
+      }
+    }
+  }
+
+  const todas = [];
+  let mais = true, paginas = 0;
+  while (mais && paginas < MAX_PAGINAS) {
+    const r = await asaas("GET", `/payments?limit=100&offset=${paginas * 100}`);
+    const data = r?.data || [];
+    todas.push(...data);
+    mais = !!r?.hasMore && data.length > 0;
+    paginas++;
+  }
+  const cobrancas = todas.filter((x) => x && !x.deleted && (admin || pedidos.has(x.externalReference)));
+
+  const semNome = [...new Set(cobrancas.filter((x) => !pedidos.has(x.externalReference) && !nomes.has(x.customer) && x.customer).map((x) => x.customer))].slice(0, MAX_CLIENTES);
+  await emLotes(semNome, 5, async (id) => {
+    const c = await asaas("GET", `/customers/${id}`).catch(() => null);
+    if (c?.name) nomes.set(id, c.name);
+  });
+  const saldo = admin ? await asaas("GET", "/finance/balance").catch(() => null) : null;
+
+  return {
+    geradoEm: Date.now(), hoje: R.hojeBR(), admin, truncado: mais,
+    saldoCent: Number.isFinite(saldo?.balance) ? R.centavos(saldo.balance) : null,
+    cobrancas: cobrancas.map((x) => {
+      const ped = pedidos.get(x.externalReference);
+      return {
+        id: x.id, nome: ped?.nome || nomes.get(x.customer) || "Cliente não identificado", exId: ped?.exId || "", destino: ped?.destino || "",
+        codigo: ped ? x.externalReference.slice(-6).toUpperCase() : "", parcela: x.installmentNumber || 1,
+        forma: FORMA[x.billingType] || x.billingType || "", situacao: SITUACAO[x.status] || "aberta",
+        valorCent: R.centavos(x.value), liquidoCent: R.centavos(x.netValue ?? x.value), vencimento: x.dueDate || "",
+        pagaEm: PAGA.has(x.status) ? String(x.paymentDate || x.clientPaymentDate || x.confirmedDate || "").slice(0, 10) : "",
+        link: x.invoiceUrl || ""
+      };
+    })
+  };
 }
 
 function situacaoManual(v) {
@@ -31,6 +89,7 @@ export default async function handler(req, res) {
     if (!token) throw new ErroUsuario("Faça login no sistema.", 401);
     const u = await (await auth()).verifyIdToken(token).catch(() => null);
     if (!u) throw new ErroUsuario("Sessão expirada. Entre de novo no sistema.", 401);
+    if (req.query.asaas) return enviar(res, 200, await financeiroAsaas(u));
 
     const exId = String(req.query.e || "");
     if (!ID.test(exId)) throw new ErroUsuario("Excursão inválida.", 400);

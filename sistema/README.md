@@ -258,6 +258,13 @@ No formulário da excursão, abaixo de **Local de saída**, toque em **Adicionar
 - Para separar um ônibus por cidade e CEP, continue usando o **Embarque do veículo** (acima).
 - Banco: `excursoes/{uid}/{exId}/saidas` = `[{ local, hora }]`, copiado para `inscricoes/{exId}` (sem mudança nas regras).
 
+## Financeiro Asaas
+Menu **Operacional → Financeiro Asaas**: só o que está no Asaas, consultado na hora, com filtros por cliente, excursão, mês e situação, e exportação em XLSX e PDF.
+- **Admin:** todas as cobranças da conta (inclusive as criadas direto no Asaas, como "Fora do sistema") e o saldo da conta.
+- **Agência:** só as cobranças dos pedidos dela, sem o saldo da conta.
+- API: `GET /api/relatorio-pagamentos?asaas=1` com o token do sistema.
+- Mês: usa a data do pagamento nas cobranças recebidas e o vencimento nas demais.
+
 ## Link de um veículo só
 Em **Poltronas**, com mais de um veículo, o link do topo acompanha a aba escolhida: `poltrona.html?e={id}&v={veículo}`.
 - O cliente vê só esse veículo, e o servidor recusa poltrona em outro.

@@ -43,6 +43,7 @@ const ROTAS = {
   viajantes:  { nome: "Viajantes",            icone: "fa-users",         cor: "c3", tipos: ["agencia", "admin"], compart: true },
   poltronas:  { nome: "Poltronas",            icone: "fa-couch",         cor: "c4", tipos: ["agencia", "admin"], compart: true },
   financeiro: { nome: "Financeiro",           icone: "fa-sack-dollar",   cor: "c3", tipos: ["agencia", "admin"], compart: true },
+  asaas:      { nome: "Financeiro Asaas",     icone: "fa-building-columns", cor: "c3", tipos: ["agencia", "admin"] },
   viagens:    { nome: "Viagens / Orçamentos", icone: "fa-bus",           cor: "c2", tipos: ["transportadora", "admin"] },
   usuarios:   { nome: "Usuários",             icone: "fa-user-gear",     cor: "c5", tipos: ["admin"] },
   logs:       { nome: "Logs de acesso",       icone: "fa-clipboard-list", cor: "c5", tipos: ["admin"] },
@@ -553,7 +554,7 @@ function assinar() {
 ========================================================= */
 /* ---------- menu lateral (estilo painel de controle) ---------- */
 const GRUPOS_MENU = [
-  { id: "operacional", nome: "Operacional", icone: "fa-briefcase", itens: ["calendario", "excursoes", "viajantes", "poltronas", "financeiro"] },
+  { id: "operacional", nome: "Operacional", icone: "fa-briefcase", itens: ["calendario", "excursoes", "viajantes", "poltronas", "financeiro", "asaas"] },
   { id: "transporte", nome: "Transporte", icone: "fa-bus", itens: ["viagens"] },
   { id: "admin", nome: "Administração", icone: "fa-shield-halved", itens: ["site", "usuarios", "logs"] }
 ];
@@ -765,7 +766,7 @@ function render() {
   document.title = `${ROTAS[S.view]?.nome || "Início"} | Garbosa System`;
   S.exportar = null;
   $("#workspace").classList.toggle("em-inicio", S.view === "inicio");
-  const views = { site: viewSite, inicio: viewInicio, calendario: viewCalendario, excursoes: viewExcursoes, viajantes: viewViajantes, poltronas: viewPoltronas, financeiro: viewFinanceiro, viagens: viewViagens, usuarios: viewUsuarios, logs: viewLogs };
+  const views = { site: viewSite, inicio: viewInicio, calendario: viewCalendario, excursoes: viewExcursoes, viajantes: viewViajantes, poltronas: viewPoltronas, financeiro: viewFinanceiro, asaas: viewAsaas, viagens: viewViagens, usuarios: viewUsuarios, logs: viewLogs };
   (views[S.view] || viewCalendario)();
   const bx = $("#btnXlsx"), bp = $("#btnPdf");
   if (bx) bx.onclick = () => exportar("xlsx", bx);
@@ -2962,6 +2963,85 @@ $("#btnLerTodas").addEventListener("click", () => {
 /* =========================================================
    FINANCEIRO
 ========================================================= */
+/* Financeiro Asaas: só as cobranças do Asaas, consultadas na hora (agência vê as dela; admin vê a conta toda e o saldo) */
+const SIT_ASAAS = { paga: ["Recebida", "pill-green"], aberta: ["Em aberto", "pill-yellow"], vencida: ["Vencida", "pill-red"], estornada: ["Estornada", ""] };
+const ASAAS_MAX_LINHAS = 500;
+const ASAAS = { dados: null, erro: "", carregando: false, situacao: "", ex: "", mes: "", busca: "" };
+async function carregarAsaas() {
+  ASAAS.carregando = true; ASAAS.erro = "";
+  try {
+    const resp = await fetch("/api/relatorio-pagamentos?asaas=1", { headers: { Authorization: `Bearer ${await auth.currentUser.getIdToken()}` } });
+    const r = await resp.json().catch(() => ({}));
+    if (!resp.ok) throw new Error(r.erro || `Erro ${resp.status} ao consultar o Asaas.`);
+    ASAAS.dados = r;
+  } catch (err) { ASAAS.erro = err.message; }
+  ASAAS.carregando = false;
+  if (S.view === "asaas") render();
+}
+function viewAsaas() {
+  if (!ASAAS.dados && !ASAAS.erro && !ASAAS.carregando) carregarAsaas();
+  const cab = toolbar("Financeiro Asaas", "fa-building-columns", tbBtn("btnAsaasAtualizar", "fa-rotate", "Atualizar"));
+  const atualizar = () => { const b = $("#btnAsaasAtualizar"); if (b) b.onclick = () => { ASAAS.dados = null; ASAAS.erro = ""; render(); }; };
+  const r = ASAAS.dados;
+  if (!r) {
+    $("#workspace").innerHTML = `<section class="panel">${cab}${ASAAS.erro
+      ? `<div class="alerta" style="margin:14px 18px"><i class="fa-solid fa-triangle-exclamation"></i> ${esc(ASAAS.erro)}</div>`
+      : `<div class="empty"><i class="fa-solid fa-spinner fa-spin"></i><p>Consultando o Asaas…</p></div>`}</section>`;
+    return atualizar();
+  }
+  const termo = semAcento(ASAAS.busca.toLowerCase());
+  const dataDe = (c) => c.pagaEm || c.vencimento;
+  const noPeriodo = r.cobrancas.filter((c) => (!ASAAS.ex || (c.exId || "-") === ASAAS.ex) && (!ASAAS.mes || dataDe(c).startsWith(ASAAS.mes)) && (!termo || semAcento(c.nome.toLowerCase()).includes(termo)));
+  const soma = (s, k = "valorCent") => noPeriodo.filter((c) => c.situacao === s).reduce((t, c) => t + c[k], 0);
+  const conta = (s) => noPeriodo.filter((c) => c.situacao === s).length;
+  const lista = noPeriodo.filter((c) => !ASAAS.situacao || c.situacao === ASAAS.situacao).sort((a, b) => dataDe(b).localeCompare(dataDe(a)));
+  const excursoes = [...new Map(r.cobrancas.map((c) => [c.exId || "-", c.destino || "Fora do sistema"])).entries()].sort((a, b) => a[1].localeCompare(b[1], "pt-BR"));
+  const sitTxt = (c) => SIT_ASAAS[c.situacao]?.[0] || c.situacao;
+  S.exportar = { titulo: "Financeiro Asaas", sub: `Consultado em ${fDataHora(r.geradoEm)}`, sheets: [{ nome: "Cobranças", colunas: ["Cliente", "Excursão", "Parcela", "Forma", "Situação", "Vencimento", "Pago em", "Valor", "Líquido"],
+    linhas: lista.map((c) => [c.nome, c.destino || "Fora do sistema", c.parcela, c.forma, sitTxt(c), fData(c.vencimento), c.pagaEm ? fData(c.pagaEm) : "", brlC(c.valorCent), brlC(c.liquidoCent)]) }] };
+
+  $("#workspace").innerHTML = `
+  <section class="panel">
+    ${cab}
+    <div class="subbar">
+      <input type="search" id="asaasBusca" class="search" placeholder="Buscar cliente..." value="${esc(ASAAS.busca)}">
+      <select id="asaasEx" class="search" aria-label="Excursão"><option value="">Todas as excursões</option>${excursoes.map(([k, n]) => `<option value="${esc(k)}" ${k === ASAAS.ex ? "selected" : ""}>${esc(n)}</option>`).join("")}</select>
+      <input type="month" id="asaasMes" class="search" style="flex:0 0 170px" aria-label="Mês do vencimento ou do pagamento" value="${esc(ASAAS.mes)}">
+    </div>
+    ${r.truncado ? `<div class="alerta" style="margin:10px 18px 0"><i class="fa-solid fa-triangle-exclamation"></i> O Asaas tem mais cobranças do que esta página consegue trazer de uma vez. Os totais podem estar incompletos.</div>` : ""}
+    <div class="cards-fin">
+      ${r.admin ? `<div class="card-fin"><small>Saldo na conta Asaas</small><strong>${r.saldoCent === null ? "—" : brlC(r.saldoCent)}</strong></div>` : ""}
+      <div class="card-fin verde"><small>Recebido · líquido ${brlC(soma("paga", "liquidoCent"))}</small><strong>${brlC(soma("paga"))}</strong></div>
+      <div class="card-fin"><small>Em aberto</small><strong>${brlC(soma("aberta"))}</strong></div>
+      <div class="card-fin vermelho"><small>Vencido</small><strong>${brlC(soma("vencida"))}</strong></div>
+    </div>
+    <div class="rel-filtros" style="margin:14px 18px 0">${[["", `Todas (${noPeriodo.length})`], ["paga", `Recebidas (${conta("paga")})`], ["aberta", `Em aberto (${conta("aberta")})`], ["vencida", `Vencidas (${conta("vencida")})`], ["estornada", `Estornadas (${conta("estornada")})`]]
+      .map(([k, n]) => `<button type="button" data-asaas-sit="${k}" class="${k === ASAAS.situacao ? "on" : ""}">${n}</button>`).join("")}</div>
+    ${lista.length ? `<div class="table-wrap" style="margin-top:12px"><table class="grid">
+      <thead><tr><th>Cliente</th><th>Excursão</th><th>Forma</th><th>Situação</th><th>Vencimento</th><th>Pago em</th><th>Valor</th><th>Líquido</th><th></th></tr></thead>
+      <tbody>${lista.slice(0, ASAAS_MAX_LINHAS).map((c) => `<tr>
+        <td><strong>${esc(c.nome)}</strong>${c.codigo ? `<br><small class="muted">#${esc(c.codigo)}</small>` : ""}</td>
+        <td>${esc(c.destino || "Fora do sistema")}</td>
+        <td>${esc(c.forma)}${c.parcela > 1 ? `<br><small class="muted">parcela ${c.parcela}</small>` : ""}</td>
+        <td><span class="pill ${SIT_ASAAS[c.situacao]?.[1] || ""}">${esc(sitTxt(c))}</span></td>
+        <td>${fData(c.vencimento)}</td><td>${c.pagaEm ? fData(c.pagaEm) : "—"}</td>
+        <td class="money">${brlC(c.valorCent)}</td><td>${brlC(c.liquidoCent)}</td>
+        <td class="acoes">${/^https:\/\//.test(c.link) ? `<a class="ic" style="display:inline-grid;place-items:center" target="_blank" rel="noopener" href="${esc(c.link)}" title="Abrir cobrança no Asaas"><i class="fa-solid fa-file-invoice-dollar"></i></a>` : ""}</td>
+      </tr>`).join("")}</tbody></table></div>
+      ${lista.length > ASAAS_MAX_LINHAS ? `<p class="muted" style="padding:8px 18px 0">Mostrando ${ASAAS_MAX_LINHAS} de ${lista.length} cobranças. Use os filtros para achar as outras; XLSX e PDF trazem todas.</p>` : ""}`
+    : `<div class="empty"><i class="fa-solid fa-building-columns"></i><p>Nenhuma cobrança nesta situação.</p></div>`}
+    <p class="muted" style="padding:10px 18px 14px"><small>Consultado em ${fDataHora(r.geradoEm)}.</small></p>
+  </section>`;
+  atualizar();
+  $$("[data-asaas-sit]").forEach((b) => b.addEventListener("click", () => { ASAAS.situacao = b.dataset.asaasSit; render(); }));
+  $("#asaasEx").onchange = (e) => { ASAAS.ex = e.target.value; render(); };
+  $("#asaasMes").onchange = (e) => { ASAAS.mes = e.target.value; render(); };
+  $("#asaasBusca").addEventListener("input", (e) => {
+    ASAAS.busca = e.target.value; const pos = e.target.selectionStart; render();
+    const b = $("#asaasBusca"); b.focus(); b.setSelectionRange(pos, pos);
+  });
+}
+
 function viewFinanceiro() {
   const sel = seletorExcursao();
   if (!sel) return semExcursao("Financeiro", "fa-sack-dollar");
