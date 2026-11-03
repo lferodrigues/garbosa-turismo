@@ -2752,6 +2752,35 @@ async function relatorioPagamentos(exId, filtro = "") {
 }
 let REL_PAG = null;
 
+/* Cobrar no WhatsApp: quem comprou online recebe também o boleto (ou o link) da próxima parcela em aberto.
+   O wa.me só leva texto, então o boleto vai como link + linha digitável. */
+const urlCobrar = (tel, inicio, extra = "") => `https://wa.me/55${tel}?text=${encodeURIComponent([inicio, extra, "Qualquer dúvida estou à disposição."].filter(Boolean).join("\n\n"))}`;
+const linkCobrar = (tel, inicio, pedido = "") => `<a class="ic" style="display:inline-grid;place-items:center;color:#1d9a55" title="Cobrar no WhatsApp" target="_blank" rel="noopener"
+  href="${esc(urlCobrar(tel, inicio))}"${pedido ? ` data-cobrar="${esc(pedido)}" data-tel="${esc(tel)}" data-msg="${esc(inicio)}"` : ""}><i class="fa-brands fa-whatsapp"></i></a>`;
+function textoCobranca(c) {
+  if (!c) return "";
+  const parcela = c.total > 1 ? ` da parcela ${c.numero} de ${c.total}` : "";
+  const dados = `(${brlC(c.valorCent)}${c.vencimento ? `, ${c.vencida ? "venceu em" : "vence em"} ${fData(c.vencimento)}` : ""})`;
+  if (c.boleto) return [`📄 Boleto${parcela} ${dados}:\n${c.boleto}`, c.linha ? `Linha digitável:\n${c.linha}` : ""].filter(Boolean).join("\n\n");
+  return c.link ? `💳 Link de pagamento${parcela} ${dados}:\n${c.link}` : "";
+}
+document.addEventListener("click", async (ev) => {
+  const a = ev.target.closest("[data-cobrar]");
+  if (!a) return;
+  ev.preventDefault();
+  const aba = window.open("", "_blank"); // abre antes da consulta: depois dela o navegador bloquearia a janela
+  let extra = "";
+  try {
+    const resp = await fetch("/api/asaas-whatsapp", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${await auth.currentUser.getIdToken()}` }, body: JSON.stringify({ pedido: a.dataset.cobrar, acao: "cobranca" }) });
+    const r = await resp.json().catch(() => ({}));
+    if (!resp.ok) throw new Error(r.erro || `Erro ${resp.status}`);
+    extra = textoCobranca(r.cobranca);
+    if (!extra) toast("Não há boleto em aberto para este pedido: a mensagem vai sem ele.", "erro");
+  } catch (err) { toast(`Não foi possível buscar o boleto (${err.message}). A mensagem vai sem ele.`, "erro"); }
+  const url = urlCobrar(a.dataset.tel, a.dataset.msg, extra);
+  if (aba) aba.location.href = url; else window.open(url, "_blank");
+});
+
 function desenharPagamentos(filtro = "") {
   const { exId, r } = REL_PAG, e = S.excursoes[exId] || r.excursao;
   const passa = (s) => !filtro || s === filtro;
@@ -2759,10 +2788,9 @@ function desenharPagamentos(filtro = "") {
   const outros = r.outros.filter((o) => passa(o.situacao));
   const conta = (s) => r.online.filter((o) => o.situacao === s).length + r.outros.filter((o) => o.situacao === s).length;
   const t = r.totais;
-  const zap = (tel, nome, valorC) => {
+  const zap = (tel, nome, valorC, pedido) => {
     const d = soDig(tel);
-    return d.length >= 10 && valorC > 0 ? `<a class="ic" style="display:inline-grid;place-items:center;color:#1d9a55" title="Cobrar no WhatsApp" target="_blank" rel="noopener"
-      href="https://wa.me/55${d}?text=${encodeURIComponent(`Olá, ${String(nome).split(" ")[0]}! Passando para lembrar do valor em aberto de ${brlC(valorC)} da excursão ${e.destino} (${fData(e.dataSaida)}). Qualquer dúvida estou à disposição.`)}"><i class="fa-brands fa-whatsapp"></i></a>` : "";
+    return d.length >= 10 && valorC > 0 ? linkCobrar(d, `Olá, ${String(nome).split(" ")[0]}! Passando para lembrar do valor em aberto de ${brlC(valorC)} da excursão ${e.destino} (${fData(e.dataSaida)}).`, pedido) : "";
   };
   $("#modalBody").innerHTML = `
     ${r.falhasAsaas ? `<div class="alerta" style="margin:0 0 10px"><i class="fa-solid fa-triangle-exclamation"></i> O Asaas não respondeu para ${r.falhasAsaas} compra(s); para elas aparece o que o sistema recebeu pelo webhook.</div>` : ""}
@@ -2783,7 +2811,7 @@ function desenharPagamentos(filtro = "") {
         <td class="n">${brlC(o.totalCent)}</td><td class="n">${brlC(o.pagoCent)}</td><td class="n">${brlC(o.abertoCent)}</td>
         <td>${pillSit(o.situacao)}<br><small class="muted">${o.parcelas.filter((x) => x.situacao === "paga").length}/${o.parcelas.length} parcela(s)</small></td>
         <td>${o.proxima ? fData(o.proxima.vencimento) : "—"}</td>
-        <td>${o.situacao === "cancelado" ? "" : zap(o.titular.whatsapp, o.titular.nome, o.abertoCent)}</td></tr>`).join("")}</tbody></table></div>`
+        <td>${o.situacao === "cancelado" ? "" : zap(o.titular.whatsapp, o.titular.nome, o.abertoCent, o.pedido)}</td></tr>`).join("")}</tbody></table></div>`
     : `<p class="muted">Nenhuma compra online${filtro ? " nesta situação" : ""}.</p>`}
     <h4 class="sub"><i class="fa-solid fa-users"></i> Outros viajantes (Financeiro do sistema) · ${outros.length}</h4>
     ${outros.length ? `<div class="rel-scroll"><table class="rel-tabela">
@@ -2977,8 +3005,7 @@ function viewFinanceiro() {
             ${saldo > 0 ? `<button class="ic" title="Marcar como pago (quitar)" data-a="quitar" data-id="${pid}"><i class="fa-solid fa-check-double"></i></button>` : ""}
             <button class="ic" title="Histórico e valor" data-a="hist" data-id="${pid}"><i class="fa-solid fa-clock-rotate-left"></i></button>
             <button class="ic danger" title="Excluir viajante${p.origem === "venda" ? " (cancela no Asaas)" : ""}" data-a="delv" data-id="${pid}"><i class="fa-solid fa-trash"></i></button>
-            ${saldo > 0 && tel.length >= 10 ? `<a class="ic" style="display:inline-grid;place-items:center;color:#1d9a55" title="Cobrar no WhatsApp" target="_blank" rel="noopener"
-              href="https://wa.me/55${tel}?text=${encodeURIComponent(`Olá, ${p.nome.split(" ")[0]}! Passando para lembrar do saldo de ${brl(saldo)} da excursão ${ex.destino} (${fData(ex.dataSaida)}). Qualquer dúvida estou à disposição.`)}"><i class="fa-brands fa-whatsapp"></i></a>` : ""}
+            ${saldo > 0 && tel.length >= 10 ? linkCobrar(tel, `Olá, ${p.nome.split(" ")[0]}! Passando para lembrar do saldo de ${brl(saldo)} da excursão ${ex.destino} (${fData(ex.dataSaida)}).`, p.pedido) : ""}
           </td></tr>`;
       }).join("")}</tbody></table></div>`
     : `<div class="empty"><i class="fa-solid fa-sack-dollar"></i><p>${todos.length ? "Nenhum viajante nesta situação." : "Cadastre viajantes para acompanhar os pagamentos."}</p></div>`}

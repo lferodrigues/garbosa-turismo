@@ -16,7 +16,7 @@ export async function parcelasAsaas(p) {
   if (a.installment) lista = (await asaas("GET", `/installments/${a.installment}/payments?limit=100`))?.data || [];
   else if (a.payment) lista = [await asaas("GET", `/payments/${a.payment}`)];
   return lista.filter((x) => x && !x.deleted).map((x) => ({
-    numero: x.installmentNumber || 1, valorCent: R.centavos(x.value), vencimento: x.dueDate || "",
+    id: x.id || "", numero: x.installmentNumber || 1, valorCent: R.centavos(x.value), vencimento: x.dueDate || "",
     situacao: SITUACAO[x.status] || "aberta", forma: FORMA[x.billingType] || x.billingType || "",
     pagaEm: PAGA.has(x.status) ? String(x.paymentDate || x.clientPaymentDate || x.confirmedDate || "").slice(0, 10) : "",
     link: x.invoiceUrl || "", boleto: x.billingType === "BOLETO" ? x.bankSlipUrl || "" : ""
@@ -49,6 +49,18 @@ export async function parcelasDoPedido(p) {
     console.warn("parcelas Asaas", e.message);
     return { parcelas: parcelasDoSistema(p), fonte: "sistema", erro: true };
   }
+}
+
+/** Próxima cobrança em aberto do pedido, com o boleto e a linha digitável (quando for boleto), para mandar ao cliente */
+export async function proximaCobranca(p) {
+  const { parcelas } = await parcelasDoPedido(p);
+  const x = situacaoDoPedido(p, parcelas).proxima;
+  if (!x) return null;
+  const linha = x.boleto && x.id
+    ? await asaas("GET", `/payments/${x.id}/identificationField`).then((r) => r?.identificationField || "").catch(() => "")
+    : "";
+  return { numero: x.numero, total: parcelas.length, valorCent: x.valorCent, vencimento: x.vencimento, vencida: x.situacao === "vencida",
+    boleto: x.boleto, linha, link: x.link };
 }
 
 /** Totais e situação geral de um pedido a partir das parcelas */

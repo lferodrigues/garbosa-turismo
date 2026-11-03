@@ -73,6 +73,9 @@ Depois da compra online o cliente vai direto para o grupo:
 - **Quem pagou e quem não pagou**: compras online com as parcelas consultadas **na hora no Asaas** (pago, parcial, vencido, aguardando, cancelado,
   próximo vencimento, cobrança pelo WhatsApp) + os demais viajantes com os pagamentos do Financeiro. Se o Asaas não responder, mostra o que o webhook já gravou.
   API: `GET /api/relatorio-pagamentos?e={exId}&own={uidAgencia}` com o token do sistema (agência dona, colaborador ou admin).
+  O botão do WhatsApp (Financeiro e Quem pagou) leva o boleto da próxima parcela em aberto de quem comprou online: link do PDF + linha
+  digitável (cartão ou Pix: link de pagamento). O wa.me só aceita texto, por isso o PDF não vai anexado.
+  API: `POST /api/asaas-whatsapp { pedido, acao: "cobranca" }`. Quem foi cadastrado à mão não tem boleto: a mensagem vai sem ele.
 
 | Veículo | Divisor |
 |---|---|
