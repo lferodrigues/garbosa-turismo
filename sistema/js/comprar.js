@@ -2,7 +2,7 @@
 import * as R from "./venda-regras.js?v=23";
 import { htmlOnibus, htmlSaidasTopo, htmlEmbarquesTopo, avisoEmbarque, etiquetaEmbarque } from "./mapa-onibus.js?v=4";
 import { htmlOpcionais, ligarOpcionais, resumoOpcionais } from "./opcionais-ui.js?v=1";
-import { montarVitrine, mostrarRodape } from "./vitrine.js?v=3";
+import { montarVitrine, mostrarMoldura } from "./vitrine.js?v=4";
 import { aoMudarSessao, telaAcesso, formPerfil, lerPerfil, salvarPerfil, paraPerfil, sair, api as apiConta } from "./conta-viajante.js?v=16";
 
 const $ = (s, el = document) => el.querySelector(s);
@@ -76,7 +76,7 @@ async function carregar() {
   S.veic = EX.veiculos[0]?.id || null;
   restaurar();
   if (!S.pessoas.length) S.pessoas = [novaPessoa(true)];
-  mostrarRodape();
+  mostrarMoldura();
   if (RESERVA) { renderPessoas(); irEtapa(1, false); return mostrar("#compra"); }
   // primeiro a vitrine; o login só começa depois do Comprar. Quem já passou por ela (voltou do login do Google ou recarregou) segue direto
   const chaveVitrine = `vitrine-${exId}`;

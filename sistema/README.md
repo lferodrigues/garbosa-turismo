@@ -271,7 +271,7 @@ A vitrine mostra: fotos do local, resumo da viagem, preço, fotos dos veículos 
 - **Fotos do local e dos veículos:** enviadas no formulário da excursão (até 6 de cada) e salvas no GitHub do site, como o folder. Sem foto do local, aparece o folder.
 - Junto das fotos dos veículos vai o aviso de que eles podem mudar.
 - **Descrição:** campo *Descrição da excursão* no mesmo bloco; aparece na vitrine e na página de venda.
-- **Rodapé:** igual ao do site principal (`index.html`), nas páginas de poltrona, compra e reserva. Quem mudar o rodapé do site precisa mudar também em `vitrine.js` (`mostrarRodape`) e copiar o estilo para `sistema.css`.
+- **Menu e rodapé:** iguais aos do site principal (`index.html`), nas páginas de poltrona, compra e reserva. Quem mudar o menu ou o rodapé do site precisa mudar também em `vitrine.js` (`mostrarMoldura`) e copiar o estilo para `sistema.css`.
 - Banco: `excursoes/{uid}/{exId}/fotosLocal` e `fotosVeiculos` = `[{ caminho, raw }]` (sem mudança nas regras).
 
 ## Link de um veículo só
