@@ -379,6 +379,7 @@ function irEtapa(n, rolar = true) {
   S.etapa = n;
   [0, 1, 2, 3].forEach((k) => $(`#etapa${k}`).classList.toggle("hidden", k !== n));
   $(".cp-passos").classList.toggle("hidden", n === 0);
+  $("#compra").classList.toggle("no-acesso", n === 0); // o quadro de login fica centralizado ao lado das informações
   if (n !== 0) $("#etapa0").innerHTML = "";
   $$(".cp-passos li").forEach((li) => { const k = +li.dataset.passo; li.classList.toggle("ativo", k === n); li.classList.toggle("feito", k < n); });
   if (n === 1) renderResumo1();

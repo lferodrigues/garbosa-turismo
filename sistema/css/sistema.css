@@ -817,6 +817,7 @@ input:-webkit-autofill{-webkit-text-fill-color:#fff;-webkit-box-shadow:0 0 0 40p
 .cp-formas i{color:var(--accent);font-size:1.2rem;width:22px;text-align:center}
 .cp-formas strong{display:block;font-size:.92rem}
 .cp-card{width:100%;padding:26px 28px}
+.cp-wrap.no-acesso .cp-card{align-self:center}
 .cp-passos{list-style:none;display:flex;gap:6px;margin-bottom:22px;counter-reset:p}
 .cp-passos li{flex:1;display:flex;align-items:center;gap:8px;font-size:.82rem;font-weight:600;color:var(--muted);padding:8px 10px;border-radius:12px;background:#f4f5fa}
 .cp-passos li span{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;background:#dfe1ec;color:#555;font-size:.78rem;flex:none}
