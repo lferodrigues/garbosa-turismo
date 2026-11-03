@@ -1197,8 +1197,10 @@ input:-webkit-autofill{-webkit-text-fill-color:#fff;-webkit-box-shadow:0 0 0 40p
 .vt-veic{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:10px;display:block}
 .vt-nota{margin:12px 0 0;font-size:.82rem;color:var(--muted)}
 .veic-fotos{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px}
-.veic-foto{position:relative;width:96px;height:72px}
-.veic-foto img{width:100%;height:100%;object-fit:cover;border-radius:8px;display:block}
+.veic-fotos{-webkit-user-select:none;user-select:none}
+.veic-foto{position:relative;width:96px;height:72px;cursor:grab}
+.veic-foto img{width:100%;height:100%;object-fit:cover;border-radius:8px;display:block;pointer-events:none;-webkit-touch-callout:none}
+.veic-foto.arrastando{cursor:grabbing;opacity:.6;outline:2px solid var(--secondary);border-radius:8px}
 .veic-foto .ic{position:absolute;top:2px;right:2px;width:26px;height:26px}
 @media(max-width:860px){
   .vt-barra{grid-template-columns:minmax(0,1fr);gap:10px}
@@ -1258,6 +1260,14 @@ input:-webkit-autofill{-webkit-text-fill-color:#fff;-webkit-box-shadow:0 0 0 40p
 .gt-rodape .gt-copy{text-align:center;border-top:1px solid rgba(255,255,255,.08);margin-top:40px;padding:18px 4%;font-size:.8rem}
 @media(max-width:980px){.gt-rodape-in{grid-template-columns:1fr 1fr}}
 @media(max-width:700px){.gt-rodape-in{grid-template-columns:1fr}}
+
+.vt-adicionais{display:grid;gap:14px}
+.vt-adicional+.vt-adicional{border-top:1px solid var(--line);padding-top:14px}
+.vt-adic-topo{display:flex;justify-content:space-between;gap:12px;align-items:baseline}
+.vt-adic-topo strong{color:var(--dark);font-size:.92rem}
+.vt-adic-topo em{font-style:normal;font-weight:600;font-size:.86rem;color:var(--primary);white-space:nowrap}
+.vt-adicional .vt-desc{margin:4px 0 0}
+.vt-adicional .vt-veic-grid{margin-top:8px}
 
 /* Página Vitrine do painel: formulário + prévia (sempre no formato de celular) */
 .vit-grade{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,400px);gap:20px;padding:18px;align-items:start}

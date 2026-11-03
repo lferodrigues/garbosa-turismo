@@ -139,6 +139,18 @@ export function montarVitrine(el, EX, aoComprar, rotulo = "Escolher poltrona") {
       <h2>Veículos</h2>
       <div class="vt-veic-grid">${EX.fotosVeiculos.map((f) => imgDoSite(f, "vt-veic", "Foto do veículo")).join("")}</div>
       <p class="vt-nota"><i class="fa-solid fa-circle-info"></i> ${esc(EX.vitrine?.aviso || AVISO_VEICULOS)}</p>
+    </section>` : ""}
+    ${EX.opcionais?.length ? `<section class="vt-veiculos">
+      <h2>Adicionais</h2>
+      <div class="vt-adicionais">${EX.opcionais.map((o) => {
+        const fotos = EX.fotosOpcionais?.[o.id] || [];
+        const valor = EX.vitrine?.ocultarPreco ? "" : o.valorCent ? `+ ${R.brl(o.valorCent)}` : "sem custo";
+        return `<div class="vt-adicional">
+          <div class="vt-adic-topo"><strong>${esc(o.titulo)}</strong>${valor ? `<em>${valor}</em>` : ""}</div>
+          ${o.descricao ? `<p class="vt-desc">${esc(o.descricao)}</p>` : ""}
+          ${fotos.length ? `<div class="vt-veic-grid">${fotos.map((f) => imgDoSite(f, "vt-veic", `Foto de ${o.titulo}`)).join("")}</div>` : ""}
+        </div>`;
+      }).join("")}</div>
     </section>` : ""}`;
   ligarRaw(el);
   el.querySelectorAll(".vt-comprar").forEach((b) => b.addEventListener("click", aoComprar));

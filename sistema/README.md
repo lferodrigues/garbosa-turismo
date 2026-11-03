@@ -268,9 +268,9 @@ Menu **Operacional → Financeiro Asaas**: só o que está no Asaas, consultado 
 ## Vitrine dos links de poltrona e de compra
 Os links `poltrona.html` e `comprar.html` (inclusive o botão Comprar do site) abrem primeiro uma vitrine; na compra, o botão é **Comprar** e leva ao login e ao pagamento. A reserva (`reservar.html`) não tem vitrine.
 A vitrine mostra: fotos do local, resumo da viagem, preço, fotos dos veículos e o botão **Escolher poltrona**, que leva ao cadastro.
-- **Personalizar:** em **Excursões**, botão **Personalizar vitrine** de cada excursão. A página tem prévia ao lado: título, descrição, fotos do local e dos veículos (até 6 de cada, salvas no GitHub do site), aviso dos veículos e opção de esconder o preço. Só grava ao clicar em **Salvar**.
+- **Personalizar:** em **Excursões**, botão **Personalizar vitrine** de cada excursão. A página tem prévia ao lado: título, descrição, fotos do local, dos veículos e de cada adicional (até 6 de cada, salvas no GitHub do site; segure e arraste para mudar a ordem), aviso dos veículos e opção de esconder os preços. Só grava ao clicar em **Salvar**.
 - Sem foto do local, aparece o folder. A descrição aparece também na página de venda e no catálogo do site.
-- Banco: `excursoes/{uid}/{exId}/descricao`, `fotosLocal`, `fotosVeiculos` = `[{ caminho, raw }]` e `vitrine` = `{ titulo, aviso, ocultarPreco }` (sem mudança nas regras).
+- Banco: `excursoes/{uid}/{exId}/descricao`, `fotosLocal`, `fotosVeiculos` = `[{ caminho, raw }]`, `fotosOpcionais` = `{ idDoOpcional: [fotos] }` e `vitrine` = `{ titulo, aviso, ocultarPreco }` (sem mudança nas regras).
 - **Menu e rodapé:** iguais aos do site principal (`index.html`), nas páginas de poltrona, compra e reserva. Quem mudar o menu ou o rodapé do site precisa mudar também em `vitrine.js` (`mostrarMoldura`) e copiar o estilo para `sistema.css`.
 - Banco: `excursoes/{uid}/{exId}/fotosLocal` e `fotosVeiculos` = `[{ caminho, raw }]` (sem mudança nas regras).
 

@@ -2,7 +2,7 @@ import { auth, db, ADMIN_EMAIL, authSecundario } from "./firebase.js?v=8";
 import { baixarXLSX, baixarPDF, baixarPDFPoltronas, carregarXLSX } from "./exportar.js?v=9";
 import * as R from "./venda-regras.js?v=23";
 import { htmlOnibus } from "./mapa-onibus.js?v=3";
-import { montarVitrine, AVISO_VEICULOS } from "./vitrine.js?v=5";
+import { montarVitrine, AVISO_VEICULOS } from "./vitrine.js?v=6";
 import {
   onAuthStateChanged, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword,
   sendPasswordResetEmail, updateProfile,
@@ -1657,14 +1657,58 @@ async function enviarImagem(arquivo, nome) {
 }
 
 /** Caixa com prévia do folder + botões Adicionar/Trocar/Remover. aoMudar(folder|null) */
+/** Muda a ordem das fotos segurando e arrastando, no mouse e no celular (no toque, segurar evita confundir com rolar a página) */
+function arrastarFotos(box, fotos, aoSoltar) {
+  const SEGURAR_MS = 300, TOLERANCIA_PX = 10;
+  let item = null, ativo = false, inicio = null, relogio = null;
+  const mover = (e) => {
+    if (!ativo) {
+      if (Math.hypot(e.clientX - inicio.x, e.clientY - inicio.y) > TOLERANCIA_PX) terminar();
+      return;
+    }
+    const sob = document.elementFromPoint(e.clientX, e.clientY)?.closest(".veic-foto");
+    if (!sob || sob === item || sob.parentElement !== box) return;
+    const r = sob.getBoundingClientRect();
+    box.insertBefore(item, e.clientX > r.left + r.width / 2 ? sob.nextSibling : sob);
+  };
+  const terminar = () => {
+    clearTimeout(relogio);
+    window.removeEventListener("pointermove", mover);
+    window.removeEventListener("pointerup", soltar);
+    window.removeEventListener("pointercancel", terminar);
+    item?.classList.remove("arrastando");
+    item = null; ativo = false;
+  };
+  const soltar = () => {
+    const ordem = [...box.children].map((el) => +el.dataset.i);
+    const mudou = ativo && ordem.some((v, i) => v !== i);
+    if (mudou) fotos.splice(0, fotos.length, ...ordem.map((i) => fotos[i]));
+    terminar();
+    if (mudou) aoSoltar();
+  };
+  box.addEventListener("pointerdown", (e) => {
+    const alvo = e.target.closest(".veic-foto");
+    if (!alvo || e.target.closest("button") || e.button > 0 || fotos.length < 2) return;
+    item = alvo; inicio = { x: e.clientX, y: e.clientY };
+    window.addEventListener("pointermove", mover);
+    window.addEventListener("pointerup", soltar);
+    window.addEventListener("pointercancel", terminar);
+    const ligar = () => { ativo = true; item?.classList.add("arrastando"); if (e.pointerType !== "mouse") navigator.vibrate?.(30); };
+    if (e.pointerType === "mouse") ligar(); else relogio = setTimeout(ligar, SEGURAR_MS);
+  });
+  box.addEventListener("touchmove", (e) => { if (ativo) e.preventDefault(); }, { passive: false }); // não rola a página durante o arrasto
+  box.addEventListener("contextmenu", (e) => e.preventDefault()); // o toque longo não abre o menu da imagem
+}
+
 /** Lista de fotos da vitrine: salvas no GitHub do site, como o folder */
 function caixaFotos(el, fotos, titulo, dica, nomeBase, aoMudar) {
   const desenhar = () => {
     const cheio = fotos.length >= MAX_FOTOS;
     el.innerHTML = `<strong style="display:block;font-size:.85rem;margin-bottom:6px">${esc(titulo)} (até ${MAX_FOTOS})</strong>
-      <div class="veic-fotos">${fotos.map((f, i) => `<div class="veic-foto">${imgTag(f)}<button type="button" class="ic danger" data-rm-foto="${i}" title="Remover foto"><i class="fa-solid fa-trash"></i></button></div>`).join("")}</div>
+      <div class="veic-fotos">${fotos.map((f, i) => `<div class="veic-foto" data-i="${i}">${imgTag(f)}<button type="button" class="ic danger" data-rm-foto="${i}" title="Remover foto"><i class="fa-solid fa-trash"></i></button></div>`).join("")}</div>
       ${cheio ? "" : `<label class="btn btn-light btn-sm"><i class="fa-solid fa-upload"></i> Adicionar fotos<input type="file" accept="image/jpeg,image/png,image/webp" multiple hidden></label>`}
-      <small class="muted" style="display:block;margin-top:6px">${esc(dica)}</small>`;
+      <small class="muted" style="display:block;margin-top:6px">${esc(dica)}${fotos.length > 1 ? " Segure uma foto e arraste para mudar a ordem." : ""}</small>`;
+    arrastarFotos($(".veic-fotos", el), fotos, () => { desenhar(); aoMudar(); });
     $$("[data-rm-foto]", el).forEach((b) => b.addEventListener("click", () => { fotos.splice(+b.dataset.rmFoto, 1); desenhar(); aoMudar(); }));
     const inp = $("input[type=file]", el);
     if (!inp) return;
@@ -3078,7 +3122,8 @@ const VIT = { exId: null, sujo: false };
 function carregarVit(exId, ex) {
   const fotos = (l) => Object.values(l || {}).filter((x) => x?.caminho).map((x) => ({ ...x }));
   Object.assign(VIT, { exId, sujo: false, titulo: ex.vitrine?.titulo || "", descricao: ex.descricao || "", aviso: ex.vitrine?.aviso || "",
-    ocultarPreco: ex.vitrine?.ocultarPreco === true, local: fotos(ex.fotosLocal), veiculos: fotos(ex.fotosVeiculos) });
+    ocultarPreco: ex.vitrine?.ocultarPreco === true, local: fotos(ex.fotosLocal), veiculos: fotos(ex.fotosVeiculos),
+    opcionais: Object.fromEntries(R.opcionaisDe(ex).map((o) => [o.id, fotos(ex.fotosOpcionais?.[o.id])])) });
 }
 function viewVitrine() {
   const sel = seletorExcursao();
@@ -3097,7 +3142,10 @@ function viewVitrine() {
         <div class="span2" id="vitFotosLocal"></div>
         <div class="span2" id="vitFotosVeic"></div>
         <label class="span2">Aviso abaixo das fotos dos veículos<input data-v="aviso" maxlength="200" value="${esc(VIT.aviso)}" placeholder="${esc(AVISO_VEICULOS)}"></label>
-        <label class="check span2"><input type="checkbox" id="vitPreco" ${VIT.ocultarPreco ? "checked" : ""}> Não mostrar o preço na vitrine</label>
+        <div class="span2" id="vitAdicionais">${R.opcionaisDe(ex).length
+          ? `<strong style="display:block;margin-bottom:8px">Adicionais</strong>${R.opcionaisDe(ex).map((o) => `<div data-adicional="${esc(o.id)}" style="margin-bottom:12px"></div>`).join("")}`
+          : `<small class="muted">Esta excursão não tem adicionais. Para cadastrar, use Editar na lista de Excursões.</small>`}</div>
+        <label class="check span2"><input type="checkbox" id="vitPreco" ${VIT.ocultarPreco ? "checked" : ""}> Não mostrar os preços na vitrine</label>
       </form>
       <aside class="vit-moldura" aria-label="Prévia da vitrine"><strong class="vit-rotulo">Prévia</strong><div class="vt vit-previa" id="vitPrevia"></div></aside>
     </div>
@@ -3106,11 +3154,13 @@ function viewVitrine() {
   const previa = () => montarVitrine($("#vitPrevia"), {
     destino: ex.destino, agencia: nomeAgencia(own), dataSaida: ex.dataSaida, horaSaida: ex.horaSaida, dataRetorno: ex.dataRetorno, horaRetorno: ex.horaRetorno,
     localSaida: ex.localSaida, saidas: R.saidasDe(ex), valorCent: R.precoPessoaCent(ex), folder: ex.folder, descricao: VIT.descricao.trim(), fotosLocal: VIT.local, fotosVeiculos: VIT.veiculos,
+    opcionais: R.opcionaisDe(ex), fotosOpcionais: VIT.opcionais,
     vitrine: { titulo: VIT.titulo.trim(), aviso: VIT.aviso.trim(), ocultarPreco: VIT.ocultarPreco }
   }, () => {}, ex.venda?.ativa ? "Comprar" : "Escolher poltrona");
   const mudou = () => { VIT.sujo = true; previa(); };
   caixaFotos($("#vitFotosLocal"), VIT.local, "Fotos do local", "Aparecem no alto da página. Sem fotos, aparece o folder.", `local-${ex.destino}`, mudou);
   caixaFotos($("#vitFotosVeic"), VIT.veiculos, "Fotos dos veículos", "Sem fotos, a parte de veículos não aparece.", `veiculos-${ex.destino}`, mudou);
+  R.opcionaisDe(ex).forEach((o) => caixaFotos($(`[data-adicional="${o.id}"]`), VIT.opcionais[o.id], `Fotos de ${o.titulo}`, "Sem fotos, aparece só o texto do adicional.", `adicional-${o.titulo}`, mudou));
   $$("[data-v]", $("#fVit")).forEach((el) => el.addEventListener("input", () => { VIT[el.dataset.v] = el.value; mudou(); }));
   $("#vitPreco").onchange = (e) => { VIT.ocultarPreco = e.target.checked; mudou(); };
   $("#fVit").addEventListener("submit", (e) => e.preventDefault());
@@ -3119,9 +3169,10 @@ function viewVitrine() {
   $("#btnVitSalvar").onclick = async () => {
     const titulo = VIT.titulo.trim(), aviso = VIT.aviso.trim(), descricao = VIT.descricao.trim();
     const vitrine = titulo || aviso || VIT.ocultarPreco ? { titulo: titulo || null, aviso: aviso || null, ocultarPreco: VIT.ocultarPreco } : null;
+    const fotosOpcionais = Object.fromEntries(Object.entries(VIT.opcionais).filter(([, l]) => l.length));
     try {
       await update(ref(db, `excursoes/${own}/${exId}`), { descricao: descricao || null, vitrine, atualizadoEm: Date.now(),
-        fotosLocal: VIT.local.length ? VIT.local : null, fotosVeiculos: VIT.veiculos.length ? VIT.veiculos : null });
+        fotosLocal: VIT.local.length ? VIT.local : null, fotosVeiculos: VIT.veiculos.length ? VIT.veiculos : null, fotosOpcionais: Object.keys(fotosOpcionais).length ? fotosOpcionais : null });
       VIT.sujo = false;
       toast("Vitrine salva");
       await sincronizarSite(exId, own, { ...S.excursoes[exId], descricao }).catch((err) => console.warn("site", err));

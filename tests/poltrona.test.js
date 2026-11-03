@@ -206,3 +206,11 @@ test("vitrine: personalização da página vem no GET, limpa e com valores padr�
   g = await chamar({ method: "GET", query: { e: EX } });
   assert.deepEqual(g.body.vitrine, { titulo: "Rolê Maromba", aviso: "Pode mudar.", ocultarPreco: true });
 });
+
+test("vitrine: fotos só dos adicionais que ainda existem", async () => {
+  await db.ref(`excursoes/${OWN}/${EX}/opcionais`).set({ o1: { titulo: "Almoço", valor: 50, ordem: 0 } });
+  await db.ref(`excursoes/${OWN}/${EX}/fotosOpcionais`).set({ o1: [{ caminho: "Assets/img/excursoes/almoco.jpg" }], apagado: [{ caminho: "Assets/img/excursoes/x.jpg" }] });
+  const g = await chamar({ method: "GET", query: { e: EX } });
+  assert.deepEqual(g.body.fotosOpcionais, { o1: [{ caminho: "Assets/img/excursoes/almoco.jpg", raw: "" }] });
+  assert.deepEqual(g.body.opcionais.map((o) => o.titulo), ["Almoço"]);
+});

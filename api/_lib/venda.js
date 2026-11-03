@@ -36,6 +36,9 @@ export function situacaoVenda(ex, hoje = R.hojeBR()) {
 /** Fotos da vitrine (local ou veículos) sem entradas quebradas */
 export const fotosDe = (lista) => Object.values(lista || {}).filter((f) => f?.caminho).map((f) => ({ caminho: f.caminho, raw: f.raw || "" }));
 
+/** Fotos de cada adicional que ainda existe: { idDoOpcional: [fotos] } */
+export const fotosOpcionaisDe = (ex) => Object.fromEntries(R.opcionaisDe(ex).map((o) => [o.id, fotosDe(ex.fotosOpcionais?.[o.id])]));
+
 /** Personalização da vitrine (página Vitrine do painel) */
 export const vitrineDe = (ex) => {
   const v = ex?.vitrine || {};
