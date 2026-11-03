@@ -348,6 +348,14 @@ export const normCupom = (v) => String(v || "").trim().toUpperCase().replace(/[^
  *  - porCompra: quantas pessoas da MESMA compra recebem o valor promocional (da 1ª até a N-ª)
  *  - limite: total de pessoas que podem usar o cupom (0 = sem limite)
  */
+/** Valor por pessoa com o cupom. tipo: "final" (valor pronto), "reais" (desconto em R$) ou "pct" (desconto em %). 0 = não se aplica */
+export function valorComCupom(cheio, tipo, valor) {
+  const c = Number(cheio) || 0, v = Number(valor) || 0;
+  const r = tipo === "reais" ? c - v : tipo === "pct" ? c * (1 - v / 100) : v;
+  const final = Math.round(r * 100) / 100;
+  return final > 0 && (!c || final < c) ? final : 0;
+}
+
 export function avaliarCupom(cupom, usos = 0, hoje = hojeBR()) {
   if (!cupom || cupom.ativo === false) return { ok: false, motivo: "Cupom inválido ou encerrado." };
   if (cupom.validade && isoValida(cupom.validade) && cupom.validade < hoje) return { ok: false, motivo: "Este cupom expirou." };

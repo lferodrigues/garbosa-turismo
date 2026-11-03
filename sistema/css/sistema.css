@@ -1302,6 +1302,14 @@ input:-webkit-autofill{-webkit-text-fill-color:#fff;-webkit-box-shadow:0 0 0 40p
 .vit-previa .vt-veic-lado.duplo{grid-template-columns:minmax(0,1fr)}
 .vit-previa .vt-fotos-veic{min-height:0}
 
+/* Cupons */
+.cup-lista{max-height:260px;overflow:auto;border:1px solid var(--line);border-radius:12px;margin-top:6px}
+.cup-ex{display:flex;align-items:flex-start;gap:10px;padding:9px 12px;border-bottom:1px solid var(--line);cursor:pointer;font-size:.86rem}
+.cup-ex:last-child{border-bottom:0}
+.cup-ex input{width:auto;margin-top:3px;flex:none}
+.cup-ex span,.cup-ex small{display:block}
+.cup-ex small{color:var(--muted);font-size:.76rem}
+
 /* Galeria */
 .gal-albuns{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;padding:18px}
 .gal-album{display:block;border:1px solid var(--line);border-radius:14px;overflow:hidden;text-decoration:none;color:var(--text);background:#fff;transition:.2s}

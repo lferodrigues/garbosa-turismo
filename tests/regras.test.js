@@ -179,3 +179,14 @@ test("veiculoLiberado: quem tem veículo pelo CEP só vai nele; outro CEP segue 
   assert.equal(R.veiculoLiberado(emb, emb[1], "36680-000"), false);
   assert.equal(R.veiculoLiberado(emb, emb[0], "36690-000"), false);
 });
+
+test("cupom: valor por pessoa por tipo de desconto, sem aceitar desconto inválido", () => {
+  assert.equal(R.valorComCupom(300, "reais", 50), 250);
+  assert.equal(R.valorComCupom(312.5, "pct", 10), 281.25);
+  assert.equal(R.valorComCupom(300, "final", 199.9), 199.9);
+  assert.equal(R.valorComCupom(300, "reais", 300), 0);
+  assert.equal(R.valorComCupom(300, "pct", 100), 0);
+  assert.equal(R.valorComCupom(300, "final", 300), 0);
+  assert.equal(R.valorComCupom(0, "final", 50), 50);
+  assert.equal(R.valorComCupom(300, "final", 0), 0);
+});

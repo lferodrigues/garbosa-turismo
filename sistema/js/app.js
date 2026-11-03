@@ -1,6 +1,6 @@
 import { auth, db, ADMIN_EMAIL, authSecundario } from "./firebase.js?v=8";
 import { baixarXLSX, baixarPDF, baixarPDFPoltronas, carregarXLSX } from "./exportar.js?v=9";
-import * as R from "./venda-regras.js?v=23";
+import * as R from "./venda-regras.js?v=24";
 import { htmlOnibus } from "./mapa-onibus.js?v=3";
 import { montarVitrine, AVISO_VEICULOS, CATEGORIAS_VEICULO, ITENS_VEICULO } from "./vitrine.js?v=9";
 import {
@@ -50,6 +50,7 @@ const ROTAS = {
   viagens:    { nome: "Viagens / Orçamentos", icone: "fa-bus",           cor: "c2", tipos: ["transportadora", "admin"] },
   usuarios:   { nome: "Usuários",             icone: "fa-user-gear",     cor: "c5", tipos: ["admin"] },
   logs:       { nome: "Logs de acesso",       icone: "fa-clipboard-list", cor: "c5", tipos: ["admin"] },
+  cupons:     { nome: "Cupons",               icone: "fa-tags",          cor: "c5", tipos: ["admin"] },
   site:       { nome: "Administrar site",     icone: "fa-globe",         cor: "c2", tipos: ["admin"] }
 };
 
@@ -559,7 +560,7 @@ function assinar() {
 const GRUPOS_MENU = [
   { id: "operacional", nome: "Operacional", icone: "fa-briefcase", itens: ["calendario", "excursoes", "galeria", "viajantes", "poltronas", "financeiro", "asaas"] },
   { id: "transporte", nome: "Transporte", icone: "fa-bus", itens: ["viagens"] },
-  { id: "admin", nome: "Administração", icone: "fa-shield-halved", itens: ["site", "usuarios", "logs"] }
+  { id: "admin", nome: "Administração", icone: "fa-shield-halved", itens: ["cupons", "site", "usuarios", "logs"] }
 ];
 let gruposAbertos = {};
 try { gruposAbertos = JSON.parse(localStorage.getItem("garbosa.gruposMenu") || "{}") || {}; } catch { gruposAbertos = {}; }
@@ -769,7 +770,7 @@ function render() {
   document.title = `${ROTAS[S.view]?.nome || "Início"} | Garbosa System`;
   S.exportar = null;
   $("#workspace").classList.toggle("em-inicio", S.view === "inicio");
-  const views = { site: viewSite, inicio: viewInicio, calendario: viewCalendario, excursoes: viewExcursoes, viajantes: viewViajantes, poltronas: viewPoltronas, financeiro: viewFinanceiro, asaas: viewAsaas, vitrine: viewVitrine, galeria: viewGaleria, viagens: viewViagens, usuarios: viewUsuarios, logs: viewLogs };
+  const views = { site: viewSite, inicio: viewInicio, calendario: viewCalendario, excursoes: viewExcursoes, viajantes: viewViajantes, poltronas: viewPoltronas, financeiro: viewFinanceiro, asaas: viewAsaas, vitrine: viewVitrine, galeria: viewGaleria, cupons: viewCupons, viagens: viewViagens, usuarios: viewUsuarios, logs: viewLogs };
   (views[S.view] || viewCalendario)();
   const bx = $("#btnXlsx"), bp = $("#btnPdf");
   if (bx) bx.onclick = () => exportar("xlsx", bx);
@@ -1577,7 +1578,7 @@ async function diagnosticoWhatsapp(exId, own, pedidoId) {
     <small class="muted">Avisos já enviados não são reenviados. Para mandar de novo esta cobrança, use o botão do WhatsApp no pedido (envia o link de pagamento) ou "Reenviar notificação" na cobrança dentro do Asaas.</small>`;
 }
 
-function formCupom(exId, own, codigo = null) {
+function formCupom(exId, own, codigo = null, voltar = () => painelVenda(exId, own)) {
   const e = S.excursoes[exId] || {};
   const c = codigo ? e.cupons?.[codigo] || {} : { porCompra: 5, ativo: true };
   const v0 = veiculosDe(e)[0]?.[1];
@@ -1592,7 +1593,7 @@ function formCupom(exId, own, codigo = null) {
       <label class="check" style="align-self:end"><input type="checkbox" name="ativo" ${c.ativo !== false ? "checked" : ""}> Cupom ativo</label>
       <div class="calc-box span2" id="cupCalc"></div>
     </form>`, [
-    { html: "Voltar", acao: () => painelVenda(exId, own) },
+    { html: "Voltar", acao: voltar },
     { html: `<i class="fa-solid fa-floppy-disk"></i> Salvar cupom`, classe: "btn-primary", acao: async () => {
       const f = $("#fCupom");
       if (!f.reportValidity()) return;
@@ -1607,7 +1608,7 @@ function formCupom(exId, own, codigo = null) {
           validade: d.validade || null, ativo: !!d.ativo, criadoEm: c.criadoEm || Date.now()
         });
         toast(codigo ? "Cupom atualizado" : `Cupom ${cod} criado`);
-        painelVenda(exId, own);
+        voltar();
       } catch (err) { falha(err); }
     } }
   ]);
@@ -3202,6 +3203,111 @@ function escolherDaGaleria(fotos, aoEscolher, comDados = false) {
   };
   $("#galAlbum").onchange = desenhar;
   desenhar(); contar();
+}
+
+/* Cupons (só administrador): todos os cupons de todas as excursões e criação em várias de uma vez.
+   Grava no mesmo lugar do painel de venda, então a compra funciona igual. */
+const CUP = { usos: {}, em: 0, busca: "", ex: "" };
+const cheioDe = (e) => { const v0 = veiculosDe(e)[0]?.[1]; return v0 ? arred(precoPoltrona(v0, e)) : 0; };
+async function carregarUsosCupons() {
+  CUP.em = Date.now();
+  const comCupom = Object.keys(S.excursoes).filter((id) => S.excursoes[id].cupons);
+  const lidos = await Promise.all(comCupom.map((id) => get(ref(db, `vendasUso/${id}`)).then((x) => [id, x.val() || {}]).catch(() => [id, {}])));
+  CUP.usos = Object.fromEntries(lidos);
+  if (S.view === "cupons") render();
+}
+function viewCupons() {
+  if (Date.now() - CUP.em > 60000) carregarUsosCupons();
+  const hoje = R.hojeBR(), termo = semAcento(CUP.busca);
+  const todos = ordenar(S.excursoes, "dataSaida").reverse().flatMap(([id, e]) => Object.entries(e.cupons || {}).map(([cod, c]) => ({ id, e, cod, c, usos: num(CUP.usos[id]?.[cod]) })));
+  const lista = todos.filter((x) => (!CUP.ex || x.id === CUP.ex) && (!termo || semAcento(`${x.cod} ${x.e.destino}`).includes(termo)));
+  const sit = (x) => (x.c.ativo === false ? ["Pausado", "pill-yellow"] : x.c.validade && x.c.validade < hoje ? ["Expirado", ""] : num(x.c.limite) && x.usos >= num(x.c.limite) ? ["Esgotado", "pill-red"] : ["Ativo", "pill-green"]);
+  const excursoes = [...new Map(todos.map((x) => [x.id, x.e.destino])).entries()];
+  S.exportar = { titulo: "Cupons", sub: `${lista.length} cupom(ns)`, sheets: [{ nome: "Cupons", colunas: ["Cupom", "Excursão", "Saída", "Agência", "Valor com cupom", "Pessoas por compra", "Usado", "Limite", "Validade", "Situação"],
+    linhas: lista.map((x) => [x.cod, x.e.destino, fData(x.e.dataSaida), nomeAgencia(x.e._owner), brl(x.c.valor), x.c.porCompra, x.usos, num(x.c.limite) || "Sem limite", x.c.validade ? fData(x.c.validade) : "", sit(x)[0]]) }] };
+  $("#workspace").innerHTML = `<section class="panel">
+    ${toolbar("Cupons de desconto", "fa-tags", tbBtn("btnNovoCup", "fa-plus", "Novo cupom", "tool-accent"))}
+    <div class="subbar">
+      <input type="search" id="cupBusca" class="search" placeholder="Buscar cupom ou excursão..." value="${esc(CUP.busca)}">
+      <select id="cupEx" class="search" aria-label="Excursão"><option value="">Todas as excursões</option>${excursoes.map(([id, n]) => `<option value="${esc(id)}" ${id === CUP.ex ? "selected" : ""}>${esc(n)}</option>`).join("")}</select>
+    </div>
+    ${lista.length ? `<div class="table-wrap"><table class="grid"><thead><tr><th>Cupom</th><th>Excursão</th><th>Valor c/ cupom</th><th>Por compra</th><th>Usado</th><th>Validade</th><th>Situação</th><th></th></tr></thead><tbody>
+      ${lista.map((x) => { const [txt, cls] = sit(x); return `<tr>
+        <td><strong>${esc(x.cod)}</strong></td>
+        <td>${esc(x.e.destino)}<br><small class="muted">${fData(x.e.dataSaida)} · ${esc(nomeAgencia(x.e._owner))}</small>${x.e.venda?.ativa ? "" : ` <span class="pill pill-yellow" title="O cupom só vale na compra online">sem venda online</span>`}</td>
+        <td class="money">${brl(x.c.valor)}<br><small class="muted">cheio ${brl(cheioDe(x.e))}</small></td>
+        <td>${esc(x.c.porCompra)}</td><td>${x.usos}${num(x.c.limite) ? ` / ${esc(x.c.limite)}` : ""}</td>
+        <td>${x.c.validade ? fData(x.c.validade) : "—"}</td>
+        <td><span class="pill ${cls}">${txt}</span></td>
+        <td class="acoes"><button class="ic" data-cup="ed" data-ex="${esc(x.id)}" data-cod="${esc(x.cod)}" title="Editar"><i class="fa-solid fa-pen"></i></button>
+          <button class="ic danger" data-cup="del" data-ex="${esc(x.id)}" data-cod="${esc(x.cod)}" title="Excluir"><i class="fa-solid fa-trash"></i></button></td></tr>`; }).join("")}
+    </tbody></table></div>` : `<div class="empty"><i class="fa-solid fa-tags"></i><p>${todos.length ? "Nenhum cupom com esse filtro." : "Nenhum cupom ainda. Crie o primeiro em Novo cupom."}</p></div>`}
+  </section>`;
+  $("#btnNovoCup").onclick = () => formCupomVarias();
+  $("#cupEx").onchange = (e) => { CUP.ex = e.target.value; render(); };
+  $("#cupBusca").addEventListener("input", (e) => { CUP.busca = e.target.value; const pos = e.target.selectionStart; render(); const b = $("#cupBusca"); b.focus(); b.setSelectionRange(pos, pos); });
+  $$("[data-cup]").forEach((b) => b.addEventListener("click", () => {
+    const { ex: id, cod } = b.dataset, own = dono(id);
+    if (b.dataset.cup === "ed") return formCupom(id, own, cod, () => { fecharModal(); render(); });
+    confirmar(`Excluir o cupom <strong>${esc(cod)}</strong> de ${esc(S.excursoes[id].destino)}? Quem já comprou com ele não é afetado.`, async () => {
+      await remove(ref(db, `excursoes/${own}/${id}/cupons/${cod}`)); toast("Cupom excluído");
+    }, "Excluir");
+  }));
+}
+/** Novo cupom em uma ou várias excursões: o valor com desconto é calculado para cada uma */
+function formCupomVarias() {
+  const hoje = R.hojeBR();
+  const lista = ordenar(S.excursoes, "dataSaida").filter(([, e]) => (e.dataSaida || "") >= hoje);
+  if (!lista.length) return toast("Não há excursões futuras para receber o cupom.", "erro");
+  abrirModal("Novo cupom", `
+    <form id="fCupV" class="form-grid">
+      <label>Código do cupom<input name="codigo" required maxlength="30" placeholder="Ex.: AMIGOS10" style="text-transform:uppercase"></label>
+      <label>Tipo de desconto<select name="tipo"><option value="reais">Desconto em R$</option><option value="pct">Desconto em %</option><option value="final">Valor final por pessoa (R$)</option></select></label>
+      <label>Valor<input type="number" step="0.01" min="0.01" name="valor" required></label>
+      <label>Vale para quantas pessoas por compra<input type="number" min="1" max="20" step="1" name="porCompra" required value="5"></label>
+      <label>Limite de pessoas por excursão (0 = sem limite)<input type="number" min="0" step="1" name="limite" value="0"></label>
+      <label>Válido até (opcional)<input type="date" name="validade"></label>
+      <label class="check span2"><input type="checkbox" name="ativo" checked> Cupom ativo</label>
+      <div class="span2">
+        <label class="check"><input type="checkbox" id="cupTodas"> Todas as excursões da lista</label>
+        <div class="cup-lista" id="cupLista">${lista.map(([id, e]) => `<label class="cup-ex"><input type="checkbox" data-ex="${esc(id)}"><span><strong>${esc(e.destino)}</strong><small data-prev="${esc(id)}"></small></span></label>`).join("")}</div>
+      </div>
+    </form>`, [
+    { html: "Cancelar", acao: fecharModal },
+    { html: `<i class="fa-solid fa-floppy-disk"></i> Criar cupom`, classe: "btn-primary", acao: async () => {
+      const f = $("#fCupV");
+      if (!f.reportValidity()) return;
+      const d = lerForm(f), cod = normCupom(d.codigo);
+      if (cod.length < 3) return toast("O código precisa de pelo menos 3 letras ou números.", "erro");
+      const marcadas = $$("#cupLista [data-ex]:checked").map((c) => c.dataset.ex);
+      if (!marcadas.length) return toast("Escolha pelo menos uma excursão.", "erro");
+      const upd = {}, pulou = [];
+      marcadas.forEach((id) => {
+        const e = S.excursoes[id], valor = R.valorComCupom(cheioDe(e), d.tipo, d.valor);
+        if (e.cupons?.[cod] || !valor) return pulou.push(e.destino);
+        upd[`excursoes/${dono(id)}/${id}/cupons/${cod}`] = { valor, porCompra: Math.max(1, parseInt(d.porCompra, 10) || 1), limite: Math.max(0, parseInt(d.limite, 10) || 0), validade: d.validade || null, ativo: !!d.ativo, criadoEm: Date.now() };
+      });
+      const n = Object.keys(upd).length;
+      if (!n) return toast("Nenhuma excursão marcada pode receber este cupom.", "erro");
+      try {
+        await update(ref(db), upd);
+        fecharModal();
+        toast(`Cupom ${cod} criado em ${n} excursão(ões)${pulou.length ? `. Fora: ${pulou.join(", ")}` : ""}`);
+      } catch (err) { falha(err); }
+    } }
+  ], true);
+  const f = $("#fCupV");
+  const previa = () => {
+    const d = lerForm(f), cod = normCupom(d.codigo);
+    lista.forEach(([id, e]) => {
+      const cheio = cheioDe(e), valor = R.valorComCupom(cheio, d.tipo, d.valor), el = $(`[data-prev="${id}"]`);
+      el.textContent = `${fData(e.dataSaida)} · cheio ${brl(cheio)}${e.cupons?.[cod] ? " · já tem este cupom" : !num(d.valor) ? "" : valor ? ` · com cupom ${brl(valor)}` : " · desconto não se aplica"}${e.venda?.ativa ? "" : " · sem venda online"}`;
+    });
+  };
+  f.addEventListener("input", previa);
+  f.addEventListener("submit", (ev) => ev.preventDefault());
+  $("#cupTodas").onchange = (ev) => $$("#cupLista [data-ex]").forEach((c) => { c.checked = ev.target.checked; });
+  previa();
 }
 
 /* Vitrine: página para personalizar a vitrine de uma excursão, com prévia ao lado. Abre pela lista de Excursões. */

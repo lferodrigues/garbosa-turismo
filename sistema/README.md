@@ -274,6 +274,12 @@ A vitrine mostra: fotos do local, resumo da viagem, preço, fotos dos veículos 
 - **Menu e rodapé:** iguais aos do site principal (`index.html`), nas páginas de poltrona, compra e reserva. Quem mudar o menu ou o rodapé do site precisa mudar também em `vitrine.js` (`mostrarMoldura`) e copiar o estilo para `sistema.css`.
 - Banco: `excursoes/{uid}/{exId}/fotosLocal` e `fotosVeiculos` = `[{ caminho, raw }]` (sem mudança nas regras).
 
+## Cupons (administrador)
+Menu **Administração → Cupons**: lista os cupons de todas as excursões, com uso e situação, e cria cupons sem limite de quantidade.
+- **Novo cupom** vale para uma ou várias excursões futuras: desconto em R$, em % ou valor final. O valor com cupom é calculado para cada excursão ao criar; depois é um valor fixo.
+- Quem já tem o mesmo código ou fica sem desconto válido é pulado, e o sistema avisa. Limite de pessoas e usos contam por excursão.
+- Cupom só vale na compra online. O painel **Venda online** de cada excursão continua funcionando, inclusive para as agências.
+
 ## Galeria
 Menu **Operacional → Galeria**: um álbum por excursão, com o nome dela, montado com as fotos que ela usa (local, veículos, adicionais e folder).
 - Na página **Vitrine**, o botão **Escolher da galeria** reaproveita fotos de qualquer álbum, sem enviar de novo.
