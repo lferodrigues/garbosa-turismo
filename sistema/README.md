@@ -286,10 +286,10 @@ Menu **Operacional → Galeria**: um álbum por excursão, com o nome dela, mont
 - Os álbuns vêm das próprias excursões: não há cópia no banco. Excluir a excursão ou tirar a foto da vitrine tira a foto da galeria (o arquivo continua no GitHub).
 
 ## Link de um veículo só
-Em **Poltronas**, com mais de um veículo, o link do topo acompanha a aba escolhida: `poltrona.html?e={id}&v={veículo}`.
+Em **Poltronas**, com mais de um veículo, os links do topo acompanham a aba escolhida: `poltrona.html?e={id}&v={veículo}` e, com a venda online ativa, o de pagamento `comprar.html?e={id}&v={veículo}`.
 - O cliente vê só esse veículo, e o servidor recusa poltrona em outro.
 - Esse link não pergunta o CEP, a não ser que o veículo tenha **Embarque do veículo** cadastrado. Como foi a agência que escolheu o veículo,
-  a regra do CEP 36690-000 não troca a pessoa de ônibus (só recusa quem já tem cadastro com esse CEP em outro veículo).
+  a regra do CEP 36690-000 não vale nesses links; no link de pagamento, o endereço é pedido normalmente, mas a pessoa fica no veículo do link.
 - O link geral, com todos os veículos, continua em **Link de inscrição**.
 
 ## Escolha de poltrona sem pagamento (sem login)

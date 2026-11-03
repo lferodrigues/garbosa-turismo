@@ -13,7 +13,9 @@ const primeiro = (n) => String(n || "").trim().split(/\s+/)[0] || "";
 const exId = new URLSearchParams(location.search).get("e") || "";
 // a mesma página serve para a reserva sem pagamento (reservar.html → <body data-modo="reserva">)
 const RESERVA = document.body.dataset.modo === "reserva";
+const vLink = RESERVA ? "" : new URLSearchParams(location.search).get("v") || ""; // link de pagamento de um veículo só
 const API_INFO = RESERVA ? "/api/reserva" : "/api/venda";
+const urlInfo = () => `${API_INFO}?e=${encodeURIComponent(exId)}${vLink ? `&v=${encodeURIComponent(vLink)}` : ""}`;
 const CHAVE = `garbosa.${RESERVA ? "reserva" : "compra"}.${exId}`;
 
 let EX = null, PERFIL = null, CONTA = null;
@@ -36,7 +38,7 @@ async function api(caminho, corpo) {
 
 async function carregar() {
   if (!/^[\w-]{6,40}$/.test(exId)) return fechada("Link inválido", "Confira o link enviado pela agência.");
-  try { EX = await api(`${API_INFO}?e=${encodeURIComponent(exId)}`); }
+  try { EX = await api(urlInfo()); }
   catch (e) { return fechada(e.status === 404 ? "Excursão não encontrada" : "Não foi possível carregar", e.message); }
   document.title = `${EX.destino} | ${EX.agencia || "Garbosa Turismo"}`;
   if (!EX.ativa) return fechada(RESERVA ? "Reservas encerradas" : "Vendas encerradas", EX.motivo || "Fale com a agência.");
@@ -54,7 +56,8 @@ async function carregar() {
   $("#cRetorno").textContent = `${R.fData(EX.dataRetorno)}${EX.horaRetorno ? " às " + EX.horaRetorno : ""}`;
   $("#cLocal").textContent = EX.localSaida || "A combinar";
   // outras saídas da excursão + ônibus com saída própria (ex.: Descoberto, praça às 03:30)
-  $("#cLocal").closest("div").insertAdjacentHTML("afterend", htmlSaidasTopo(EX.saidas) + htmlEmbarquesTopo(EX.veiculos));
+  const seuVeiculo = EX.veiculoLink ? `<div><i class="fa-solid fa-bus"></i><small>Seu veículo</small><strong>Veículo ${EX.veiculoLink.numero} · ${esc(EX.veiculoLink.nome)}</strong></div>` : "";
+  $("#cLocal").closest("div").insertAdjacentHTML("afterend", seuVeiculo + htmlSaidasTopo(EX.saidas) + htmlEmbarquesTopo(EX.veiculos));
   $("#cValor").textContent = R.brl(EX.valorCent);
   const infCent = EX.valorInfantilCent ?? EX.valorCent;
   $("#cColo").textContent = [
@@ -420,7 +423,7 @@ $("#btnVolta2").addEventListener("click", () => irEtapa(2));
 /* ---------- poltronas ---------- */
 async function atualizarOcupacao() {
   try {
-    const novo = await api(`${API_INFO}?e=${encodeURIComponent(exId)}`);
+    const novo = await api(urlInfo());
     if (novo.ativa) { EX.veiculos = novo.veiculos; EX.valorCent = novo.valorCent; EX.valorInfantilCent = novo.valorInfantilCent; }
   } catch { /* mantém o que já tinha */ }
   // escolhas que ficaram ocupadas ou de pessoas que agora vão no colo voltam a ficar em aberto
@@ -470,7 +473,7 @@ function renderPoltronas() {
   }).join("") : "";
   $$("#veics [data-vk]").forEach((b) => b.addEventListener("click", () => { S.veic = b.dataset.vk; renderPoltronas(); }));
   const v = EX.veiculos.find((x) => x.id === S.veic);
-  $("#mapa").innerHTML = v ? avisoEmbarque(v) + desenharVeiculo(v) : `<p class="vazio">Sem veículo cadastrado.</p>`;
+  $("#mapa").innerHTML = v ? avisoEmbarque(v) + desenharVeiculo(v) : `<p class="vazio">${EX.veiculoLink ? "Este veículo é só para quem mora em outra cidade. Confira o CEP ou peça outro link à agência." : "Sem veículo cadastrado."}</p>`;
   $$("#mapa .seat[data-n]").forEach((el) => el.addEventListener("click", () => escolher(v.id, +el.dataset.n)));
   $("#btnIr3").disabled = falta > 0;
   msg(2, "", "");
@@ -603,7 +606,7 @@ $("#btnPagar").addEventListener("click", async () => {
   $("#btnPagar").disabled = true;
   $("#gerando").classList.remove("hidden");
   try {
-    const r = await apiConta("/api/pedido", corpo);
+    const r = await apiConta("/api/pedido", { ...corpo, v: vLink || undefined });
     try { sessionStorage.removeItem(CHAVE); } catch { /* ignora */ }
     await guardarNaConta().catch((err) => console.warn("perfil", err));
     const grupo = R.linkGrupoWhatsapp(r.grupo);

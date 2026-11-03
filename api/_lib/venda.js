@@ -87,9 +87,13 @@ export function exIdDoSite(x) {
   return m ? m[1] : "";
 }
 
-/** Confere o CEP: quem tem veículo certo só vai nele, e veículo com embarque próprio só recebe CEP da cidade */
-export function conferirEmbarque(ex, pessoas, cepDe) {
-  const lista = R.veiculosDe(ex).map(([id, v]) => ({ ...v, id }));
+/**
+ * Confere o CEP: quem tem veículo certo só vai nele, e veículo com embarque próprio só recebe CEP da cidade.
+ * vLink: link de um veículo só. A agência escolheu o veículo, então só vale o embarque próprio dele.
+ */
+export function conferirEmbarque(ex, pessoas, cepDe, vLink = "") {
+  const todos = R.veiculosDe(ex).map(([id, v]) => ({ ...v, id }));
+  const lista = vLink ? todos.filter((v) => v.id === vLink) : todos;
   pessoas.forEach((p, i) => {
     const v = p.assento && lista.find((x) => x.id === p.assento.vk);
     if (!v || R.veiculoLiberado(lista, v, cepDe(p))) return;
@@ -98,6 +102,14 @@ export function conferirEmbarque(ex, pessoas, cepDe) {
     if (certo) throw new ErroUsuario(`Quem é do CEP ${R.mascaraCep(cepDe(p))} viaja no Veículo ${lista.indexOf(certo) + 1}. Escolha nele a poltrona de ${quem}.`, 400, { etapa: "poltronas", pessoa: i });
     const e = R.embarqueDe(v);
     throw new ErroUsuario(`O ônibus da poltrona de ${quem} é só para quem mora em ${e.cidade || "outra cidade"} (CEP ${e.ceps.map((c) => (c.length === 8 ? c.replace(/(\d{5})(\d{3})/, "$1-$2") : c)).join(", ")}). Escolha uma poltrona no outro ônibus.`, 400, { etapa: "poltronas", pessoa: i });
+  });
+}
+
+/** Link de um veículo só: a poltrona precisa ser nesse veículo */
+export function conferirVeiculoDoLink(pessoas, vLink) {
+  if (!vLink) return;
+  pessoas.forEach((p, i) => {
+    if (p.assento && p.assento.vk !== vLink) throw new ErroUsuario(`Este link é de outro veículo. Escolha de novo a poltrona de ${String(p.nome || "").split(" ")[0] || `a pessoa ${i + 1}`}.`, 400, { etapa: "poltronas", pessoa: i });
   });
 }
 

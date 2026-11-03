@@ -9,7 +9,7 @@ import { enviar, lerCorpo, soMetodo, tratarErro, ErroUsuario } from "./_lib/http
 import { asaas, clienteAsaas, cancelarCobranca, ErroAsaas, ligarWhatsapp } from "./_lib/asaas.js";
 import { clienteDoToken } from "./_lib/cliente.js";
 import {
-  carregarExcursao, situacaoVenda, lerCupom, usarCupom, reservarPoltronas, liberarPoltronas, notificar, conferirEmbarque, R
+  carregarExcursao, situacaoVenda, lerCupom, usarCupom, reservarPoltronas, liberarPoltronas, notificar, conferirEmbarque, conferirVeiculoDoLink, R
 } from "./_lib/venda.js";
 
 /** Endereço público do site (Vercel: SITE_URL; padrão garbosaturismo.com.br) */
@@ -79,7 +79,9 @@ export default async function handler(req, res) {
       if (usados.has(k)) throw new ErroUsuario("Duas pessoas escolheram a mesma poltrona.", 400, { etapa: "poltronas" });
       usados.add(k);
     }
-    conferirEmbarque(ex, pessoas, (p) => p.endereco?.cep);             // ônibus só para quem mora na cidade dele
+    const vLink = String(body.v || "");
+    conferirVeiculoDoLink(pessoas, vLink);
+    conferirEmbarque(ex, pessoas, (p) => p.endereco?.cep, vLink);      // ônibus só para quem mora na cidade dele
     pessoas.forEach((p) => {
       p.extraCent = R.extraAssentoCent(ex, p.assento);                 // leito: + R$ 20
       p.opcionais = R.opcionaisValidos(ex, p.opcionais);               // opcionais escolhidos

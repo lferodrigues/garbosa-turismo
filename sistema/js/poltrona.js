@@ -380,7 +380,7 @@ function renderMapa() {
   $("#veics").innerHTML = meus.length > 1 ? meus.map((v) => `<button type="button" class="vtab ${v.id === S.veic ? "active" : ""}" data-vk="${v.id}">Veículo ${EX.veiculos.indexOf(v) + 1} · ${esc(v.nome)}${etiquetaEmbarque(v)} <span class="pill">${v.cap - ocupadasDe(v).size - sentam.filter((p) => p.assento?.vk === v.id).length} livres</span></button>`).join("") : "";
   $$("#veics [data-vk]").forEach((b) => b.addEventListener("click", () => { S.veic = b.dataset.vk; renderMapa(); }));
   const v = EX.veiculos.find((x) => x.id === S.veic);
-  $("#mapa").innerHTML = v ? avisoEmbarque(v) + desenhar(v) : `<p class="vazio">Esta excursão ainda não tem veículo.</p>`;
+  $("#mapa").innerHTML = v ? avisoEmbarque(v) + desenhar(v) : `<p class="vazio">${EX.veiculoLink ? "Este veículo é só para quem mora em outra cidade. Confira o CEP ou peça outro link à agência." : "Esta excursão ainda não tem veículo."}</p>`;
   $$("#mapa .seat[data-n]").forEach((el) => el.addEventListener("click", () => escolher(v.id, +el.dataset.n)));
   $("#btnSalvar").disabled = falta > 0;
 }

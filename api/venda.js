@@ -3,7 +3,7 @@
 //                                    { [idNoSite]: { selo: "ultimas"|"esgotado"|"", livres, cap } }
 //                                    (fica nesta função para não passar do limite de funções da Vercel)
 import { db } from "./_lib/firebase.js";
-import { enviar, soMetodo, tratarErro } from "./_lib/http.js";
+import { enviar, soMetodo, tratarErro, ErroUsuario } from "./_lib/http.js";
 import { carregarExcursao, situacaoVenda, veiculosComOcupacao, vagasDaExcursao, exIdDoSite, fotosDe, fotosVeiculosDe, fotosOpcionaisDe, vitrineDe, R } from "./_lib/venda.js";
 
 async function vagasDoSite() {
@@ -36,6 +36,10 @@ export default async function handler(req, res) {
     }
     const { exId, own, ex, agencia } = await carregarExcursao(String(req.query.e || ""));
     const sit = situacaoVenda(ex);
+    // ?v={veículo}: link de pagamento de um veículo só (gerado no mapa de poltronas do painel)
+    const veiculos = await veiculosComOcupacao(own, exId, ex), vLink = String(req.query.v || "");
+    const doLink = vLink ? veiculos.find((v) => v.id === vLink) : null;
+    if (vLink && !doLink) throw new ErroUsuario("Este veículo não está mais na excursão. Peça um novo link à agência.", 410);
     const base = {
       destino: ex.destino, agencia, descricao: ex.descricao || "",
       dataSaida: ex.dataSaida, horaSaida: ex.horaSaida || "", dataRetorno: ex.dataRetorno || ex.dataSaida,
@@ -51,8 +55,9 @@ export default async function handler(req, res) {
       venda: { maxParcelas: Math.min(R.MAX_PARCELAS, parseInt(ex.venda.maxParcelas, 10) || 1), primeiraParcela: ex.venda.primeiraParcela || "" },
       temCupom: Object.values(ex.cupons || {}).some((c) => c && c.ativo !== false),
       opcionais: R.opcionaisDe(ex),
-      vagas: await vagasDaExcursao(own, exId, ex),
-      veiculos: await veiculosComOcupacao(own, exId, ex)
+      vagas: doLink ? null : await vagasDaExcursao(own, exId, ex),
+      veiculos: doLink ? [doLink] : veiculos,
+      veiculoLink: doLink ? { numero: veiculos.indexOf(doLink) + 1, nome: doLink.nome } : null
     });
   } catch (e) { tratarErro(res, e); }
 }

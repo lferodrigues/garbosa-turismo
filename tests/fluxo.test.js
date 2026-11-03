@@ -405,3 +405,20 @@ test("venda: traz as fotos da vitrine", async () => {
   assert.deepEqual(g.body.fotosLocal, [{ caminho: "Assets/img/excursoes/local.jpg", raw: "" }]);
   assert.deepEqual(g.body.fotosVeiculos.map((f) => [f.caminho, f.raw]), [["Assets/img/excursoes/bus.jpg", "https://raw/bus.jpg"]]);
 });
+
+test("link de pagamento de um veículo: mostra só ele, recusa outro e não aplica a regra do CEP", async () => {
+  await db.ref(`excursoes/${OWN}/${EX}/veiculos/v2`).set({ tipo: "onibus46", valorTransporte: 9000, ordem: 1 });
+  const g = await chamar(venda, { method: "GET", query: { e: EX, v: "v2" } });
+  assert.deepEqual(g.body.veiculos.map((v) => v.id), ["v2"]);
+  assert.equal(g.body.veiculoLink.numero, 2);
+  assert.equal((await chamar(venda, { method: "GET", query: { e: EX, v: "apagado" } })).statusCode, 410);
+  const extra = { cupom: "", forma: "PIX", parcelas: 1 };
+  let r = await comprar([pessoa(0, { assento: { vk: "v1", n: 5 } })], { ...extra, v: "v2" });
+  assert.equal(r.statusCode, 400); assert.match(r.body.erro, /outro veículo/);
+  // CEP de Descoberto iria para o veículo 2, mas o link é do veículo 1
+  const desc = { ...pessoa(0).endereco, cep: "36690-000", cidade: "Descoberto" };
+  r = await comprar([pessoa(0, { endereco: desc, assento: { vk: "v1", n: 5 } })], extra);
+  assert.equal(r.statusCode, 400); assert.match(r.body.erro, /Veículo 2/);
+  r = await comprar([pessoa(0, { endereco: desc, assento: { vk: "v1", n: 5 } })], { ...extra, v: "v1" });
+  assert.equal(r.statusCode, 200, JSON.stringify(r.body));
+});

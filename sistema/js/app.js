@@ -1415,7 +1415,7 @@ const STATUS_PEDIDO = {
   aguardando: { nome: "Aguardando pagamento", cls: "pendente" }, parcial: { nome: "Pagando (parcial)", cls: "parcial" },
   pago: { nome: "Pago", cls: "pago" }, expirado: { nome: "Expirado", cls: "isento" }, cancelado: { nome: "Cancelado", cls: "isento" }
 };
-const urlVenda = (exId) => `${location.origin}${location.pathname.replace(/[^/]*$/, "")}comprar.html?e=${encodeURIComponent(exId)}`;
+const urlVenda = (exId, vk = "") => `${location.origin}${location.pathname.replace(/[^/]*$/, "")}comprar.html?e=${encodeURIComponent(exId)}${vk ? `&v=${encodeURIComponent(vk)}` : ""}`;
 const normCupom = (v) => String(v || "").trim().toUpperCase().replace(/[^A-Z0-9_-]/g, "").slice(0, 30);
 const brlC = (c) => brl((c || 0) / 100);
 
@@ -2200,7 +2200,7 @@ function viewPoltronas() {
   const vk = S.veicSel, v = ex.veiculos[vk], vv = veic(v.tipo);
   // com mais de um veículo, o link do cliente é só do veículo da aba escolhida
   const nomeVeicLink = vs.length > 1 ? `Veículo ${vs.findIndex(([k]) => k === vk) + 1}` : "";
-  const linkPolt = urlPoltrona(exId, vs.length > 1 ? vk : "");
+  const linkPolt = urlPoltrona(exId, vs.length > 1 ? vk : ""), linkPag = urlVenda(exId, vs.length > 1 ? vk : "");
   const mapa = (S.poltronas[exId] || {})[vk] || {};
   const pessoas = ocupantes(exId);
   const nomes = Object.fromEntries(pessoas.map(([id, p]) => [id, p.nome]));
@@ -2231,6 +2231,13 @@ function viewPoltronas() {
       <a class="btn btn-wpp btn-sm" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(`Escolha sua poltrona ${nomeVeicLink ? `no ${nomeVeicLink} ` : ""}para a excursão *${ex.destino || ""}* (${fData(ex.dataSaida)}):\n${linkPolt}`)}"><i class="fa-brands fa-whatsapp"></i> WhatsApp</a>
       ${ex.linkAtivo === false ? `<span class="pill pill-red" title="Reabra as inscrições em Link de inscrição">inscrições encerradas</span>` : ""}
     </div>
+    ${ex.venda?.ativa ? `<div class="link-polt no-print">
+      <i class="fa-solid fa-credit-card"></i>
+      <span>${nomeVeicLink ? `Link de pagamento do ${nomeVeicLink}` : "Link de pagamento"} (cartão, Pix ou boleto):
+        <a href="${esc(linkPag)}" target="_blank" rel="noopener">${esc(linkPag.replace(/^https?:\/\//, ""))}</a></span>
+      <button type="button" class="btn btn-light btn-sm" id="btnCopiarPagLink"><i class="fa-solid fa-copy"></i> Copiar</button>
+      <a class="btn btn-wpp btn-sm" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(`Garanta sua vaga ${nomeVeicLink ? `no ${nomeVeicLink} ` : ""}da excursão *${ex.destino || ""}* (${fData(ex.dataSaida)}):\n${linkPag}`)}"><i class="fa-brands fa-whatsapp"></i> WhatsApp</a>
+    </div>` : ""}
     ${pessoas.length > capacidadeEx(ex) ? `<div class="alerta"><i class="fa-solid fa-triangle-exclamation"></i> Há ${pessoas.length - capacidadeEx(ex)} viajante(s) sem lugar. Insira mais um veículo.
       <button class="btn btn-primary btn-sm" id="btnVeicExtra2"><i class="fa-solid fa-plus"></i> Inserir mais um veículo</button></div>` : ""}
     <div class="veic-tabs">${vs.map(([k, x], i) => {
@@ -2339,6 +2346,10 @@ function viewPoltronas() {
   $("#btnCopiarPoltLink").onclick = async () => {
     try { await navigator.clipboard.writeText(linkPolt); } catch { /* sem área de transferência */ }
     toast(nomeVeicLink ? `Link do ${nomeVeicLink} copiado` : "Link da escolha de poltrona copiado");
+  };
+  if ($("#btnCopiarPagLink")) $("#btnCopiarPagLink").onclick = async () => {
+    try { await navigator.clipboard.writeText(linkPag); } catch { /* sem área de transferência */ }
+    toast(nomeVeicLink ? `Link de pagamento do ${nomeVeicLink} copiado` : "Link de pagamento copiado");
   };
   if ($("#btnDelVeic")) $("#btnDelVeic").onclick = () => confirmar(`Remover o veículo <strong>${esc(vv.nome)}</strong> desta excursão? As poltronas dele serão liberadas.`, async () => {
     await update(ref(db), { [`excursoes/${own}/${exId}/veiculos/${vk}`]: null, [`${base}/${vk}`]: null });

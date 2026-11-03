@@ -149,7 +149,7 @@ export default async function handler(req, res) {
       p.responsavel = resp.nome;
     });
 
-    conferirEmbarque(ex, pessoas.map((p) => (p.manter || p.colo ? { ...p, assento: null } : p)), (p) => p.cep || p.existente?.cep);
+    conferirEmbarque(ex, pessoas.map((p) => (p.manter || p.colo ? { ...p, assento: null } : p)), (p) => p.cep || p.existente?.cep, String(body.v || ""));
     const d = await db();
     pessoas.forEach((p) => { if (!p.vid) p.vid = d.ref(`viajantes/${own}/${exId}`).push().key; });
     const ativos = pessoas.filter((p) => !p.manter);
