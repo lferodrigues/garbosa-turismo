@@ -17,6 +17,15 @@ export async function carregarExcursao(exId) {
   return { exId, own: pub.owner, ex, agencia: pub.agencia || "" };
 }
 
+/** Excursão com o link aberto: é o que libera as páginas públicas sem login (poltrona, inscrição, certidão) */
+export async function excursaoAberta(exId) {
+  const c = await carregarExcursao(exId);
+  const pub = (await (await db()).ref(`inscricoes/${exId}`).get()).val() || {};
+  if (pub.ativa !== true || c.ex.linkAtivo === false) throw new ErroUsuario("A escolha de poltronas desta excursão está encerrada. Fale com a agência.", 409);
+  if (!c.ex.dataSaida || c.ex.dataSaida < R.hojeBR()) throw new ErroUsuario("Esta excursão já partiu.", 409);
+  return c;
+}
+
 /**
  * A excursão está oculta no site? Sim quando existe item no catálogo ligado a ela e todos esses itens estão ocultos
  * (ativo === false). Excursão que nunca foi para o catálogo não conta como oculta (o link enviado pela agência funciona).

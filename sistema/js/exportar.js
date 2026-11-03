@@ -108,7 +108,8 @@ export async function baixarPDF(titulo, sub, sheets) {
 }
 
 /** Mapa de poltronas desenhado: veiculos = [{ titulo, cap, planta (R.plantaVeiculo), nomes:{n:nome} }], lista = sheet de passageiros */
-export async function baixarPDFPoltronas(titulo, sub, veiculos, lista) {
+/** certidoes = { fotos: [{ legenda, dados (JPEG), w, h }], faltam: [nomes] }: uma página por foto, depois da lista */
+export async function baixarPDFPoltronas(titulo, sub, veiculos, lista, certidoes = null) {
   const doc = await novoPDF(false);
   veiculos.forEach((v, idx) => {
     if (idx > 0) doc.addPage();
@@ -197,6 +198,19 @@ export async function baixarPDFPoltronas(titulo, sub, veiculos, lista) {
   doc.addPage();
   cabecalho(doc, titulo, sub);
   tabela(doc, lista.colunas, lista.linhas, 30);
+  (certidoes?.fotos || []).forEach((c) => {
+    doc.addPage();
+    cabecalho(doc, titulo, sub);
+    doc.setFont("helvetica", "bold"); doc.setFontSize(11); doc.setTextColor(...ROXO);
+    doc.text(("Certidão de nascimento: " + c.legenda).slice(0, 90), 10, 31);
+    const maxW = 190, maxH = 250, k = Math.min(maxW / c.w, maxH / c.h), w = c.w * k, h = c.h * k;
+    doc.addImage(c.dados, "JPEG", (210 - w) / 2, 35, w, h);
+  });
+  if (certidoes?.faltam?.length) {
+    doc.addPage();
+    cabecalho(doc, titulo, sub);
+    tabela(doc, ["Certidões que não estão neste PDF"], certidoes.faltam.map((n) => [n]), 30);
+  }
   rodapes(doc);
   doc.save(nomeArquivo(titulo) + ".pdf");
 }

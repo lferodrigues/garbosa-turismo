@@ -4,6 +4,7 @@ import { htmlOnibus, htmlSaidasTopo, htmlEmbarquesTopo, avisoEmbarque, etiquetaE
 import { htmlOpcionais, ligarOpcionais, resumoOpcionais } from "./opcionais-ui.js?v=1";
 import { montarVitrine } from "./vitrine.js?v=10";
 import { mostrarMoldura } from "./moldura.js?v=1";
+import { apiCertidao, htmlFoto, ligarFoto } from "./certidao-foto.js?v=1";
 
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
@@ -18,7 +19,7 @@ const S = { pessoas: [], ativo: 0, veic: null };
  * + quando o documento já estava cadastrado: vid, existente { nome, poltrona, podeAlterar },
  *   manter (fica como está) ou original (poltrona de antes, enquanto altera)
  */
-const nova = (colo = false) => ({ id: "p" + seq++, nome: "", docTipo: colo ? "CERTIDAO" : "RG", docNumero: "", colo, nascimento: "", com: "", assento: null, opcionais: [], cep: "" });
+const nova = (colo = false) => ({ id: "p" + seq++, nome: "", docTipo: colo ? "CERTIDAO" : "RG", docNumero: "", colo, nascimento: "", com: "", assento: null, opcionais: [], cep: "", certidaoId: "", certidaoPrevia: "", enviandoFoto: false });
 const precisaPoltrona = (p) => !p.colo && !p.manter;
 const adultos = () => S.pessoas.filter((p) => !p.colo);
 const nomeCurto = (p) => primeiro(p.nome) || `Pessoa ${S.pessoas.indexOf(p) + 1}`;
@@ -131,7 +132,9 @@ function campoDoc(p) {
       <option value="CERTIDAO" ${cert ? "selected" : ""}>Certidão de nascimento</option></select></label>
     <label><span data-doc-rot>${cert ? 'Matrícula da certidão <small class="cp-opc">(opcional)</small>' : "Número do RG"}</span>
       <input data-c="docNumero" value="${esc(p.docNumero)}" maxlength="40" placeholder="${cert ? "Pode deixar em branco" : "MG-12.345.678 ou só os números"}"></label>
-    <p class="cp-nota span2 ${cert ? "" : "hidden"}" data-cert><i class="fa-brands fa-whatsapp"></i> A certidão será enviada pelo WhatsApp <strong>${wpp}</strong>. No final aparece o botão para enviar.</p>`;
+    ${EX.certidaoFoto
+      ? `<div class="span2 ${cert ? "" : "hidden"}" data-cert>${htmlFoto(p.certidaoPrevia, p.certidaoId ? "Foto enviada." : `Tire uma foto legível da certidão inteira. Se preferir, envie pelo WhatsApp ${wpp}: no final aparece o botão.`)}</div>`
+      : `<p class="cp-nota span2 ${cert ? "" : "hidden"}" data-cert><i class="fa-brands fa-whatsapp"></i> A certidão será enviada pelo WhatsApp <strong>${wpp}</strong>. No final aparece o botão para enviar.</p>`}`;
 }
 function cartaoMantido(p, i) {
   const x = p.existente;
@@ -178,6 +181,15 @@ function renderLista() {
     const p = S.pessoas.find((x) => x.id === fs.dataset.id);
     if (p.colo) mostrarIdade(p, fs);
     ligarOpcionais(fs, (ids) => { p.opcionais = ids; });
+    const certFoto = $(".cert-foto", fs);
+    if (certFoto) ligarFoto(certFoto, async (dados) => {
+      p.enviandoFoto = true;
+      try {
+        const { id } = await apiCertidao({ acao: "enviar", e: exId, base64: dados });
+        if (p.certidaoId) apiCertidao({ acao: "descartar", e: exId, id: p.certidaoId }).catch(() => {});
+        p.certidaoId = id; p.certidaoPrevia = dados;
+      } finally { p.enviandoFoto = false; }
+    });
     dicaCep(p, fs);
     $$("[data-c]", fs).forEach((el) => el.addEventListener(el.tagName === "SELECT" || el.type === "date" ? "change" : "input", () => {
       if (el.dataset.c === "cep") el.value = R.mascaraCep(el.value);
@@ -229,7 +241,8 @@ function validar() {
     const p = S.pessoas[i];
     if (p.manter) continue;
     const nome = p.nome.replace(/\s+/g, " ").trim(), quem = primeiro(nome) || `a pessoa ${i + 1}`, doc = R.normDoc(p.docNumero);
-    let erro = nome.split(" ").length < 2 ? `Informe o nome completo de ${quem}.`
+    let erro = p.enviandoFoto ? `Aguarde terminar o envio da foto de ${quem}.`
+      : nome.split(" ").length < 2 ? `Informe o nome completo de ${quem}.`
       : p.docTipo === "RG" && !doc ? `Informe o RG de ${quem} (com ou sem pontos, tanto faz).`
       : doc && vistos.has(doc) ? `${quem} e ${vistos.get(doc)} estão com o mesmo documento. Confira.` : "";
     if (!erro && p.colo) {
@@ -412,7 +425,8 @@ function corpoPessoa(p) {
   return {
     nome: p.nome, docTipo: p.docTipo, docNumero: p.docNumero, vid: p.vid || undefined,
     colo: p.colo, nascimento: p.colo ? p.nascimento : "", com: p.colo ? S.pessoas.findIndex((a) => a.id === p.com) : undefined,
-    assento: p.colo ? null : p.assento, opcionais: resumoOpcionais(EX.opcionais, p.opcionais).ids, cep: cepDe(p) || ""
+    assento: p.colo ? null : p.assento, opcionais: resumoOpcionais(EX.opcionais, p.opcionais).ids, cep: cepDe(p) || "",
+    certidaoId: p.docTipo === "CERTIDAO" && p.certidaoId ? p.certidaoId : undefined
   };
 }
 async function salvar(n) {
@@ -438,7 +452,7 @@ $("#btnSalvar").addEventListener("click", () => salvar(2));
 
 function mostrarResumo(lista, nadaMudou = false) {
   $("#etapa3 h2").textContent = nadaMudou ? "Tudo certo, nada mudou!" : lista.some((x) => x.alterado) ? "Cadastro atualizado!" : "Poltrona garantida!";
-  $("#resumo").innerHTML = lista.map((x) => `<div class="cp-linha"><span>${esc(x.nome)}${x.colo ? ` <em class="cp-tag colo">colo</em>` : ""}${x.certidao ? ` <em class="cp-tag colo">certidão</em>` : ""}${x.alterado ? ` <em class="cp-tag polt">alterado</em>` : ""}${x.mantido ? ` <em class="cp-tag cupom">já estava</em>` : ""}${(x.opcionais || []).map((t) => ` <em class="cp-tag opc">+ ${esc(t)}</em>`).join("")}</span><strong>${x.poltrona === "colo" ? "No colo" : `Poltrona ${esc(x.poltrona)}`}</strong></div>`).join("");
+  $("#resumo").innerHTML = lista.map((x) => `<div class="cp-linha"><span>${esc(x.nome)}${x.colo ? ` <em class="cp-tag colo">colo</em>` : ""}${x.certidao ? ` <em class="cp-tag colo">certidão</em>` : ""}${x.certidaoFoto ? ` <em class="cp-tag colo">certidão enviada</em>` : ""}${x.alterado ? ` <em class="cp-tag polt">alterado</em>` : ""}${x.mantido ? ` <em class="cp-tag cupom">já estava</em>` : ""}${(x.opcionais || []).map((t) => ` <em class="cp-tag opc">+ ${esc(t)}</em>`).join("")}</span><strong>${x.poltrona === "colo" ? "No colo" : `Poltrona ${esc(x.poltrona)}`}</strong></div>`).join("");
   const cert = lista.filter((x) => x.certidao);
   $("#certidao").classList.toggle("hidden", !cert.length);
   if (cert.length) {

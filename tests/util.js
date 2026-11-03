@@ -5,7 +5,7 @@ export function cpf(base) {
   return d.join("");
 }
 export function resposta() {
-  return { statusCode: 0, body: null, headers: {}, status(c) { this.statusCode = c; return this; }, json(o) { this.body = o; return this; }, setHeader(k, v) { this.headers[k] = v; } };
+  return { statusCode: 0, body: null, headers: {}, status(c) { this.statusCode = c; return this; }, json(o) { this.body = o; return this; }, send(b) { this.body = b; return this; }, setHeader(k, v) { this.headers[k] = v; } };
 }
 export const endereco = { cep: "36680-000", rua: "Rua Coronel Peixoto", numero: "100", complemento: "", bairro: "Centro", cidade: "São João Nepomuceno", uf: "MG" };
 export function pessoa(i, extra = {}) {

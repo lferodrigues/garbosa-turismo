@@ -1,5 +1,6 @@
 import { auth, db, ADMIN_EMAIL, authSecundario } from "./firebase.js?v=8";
-import { baixarXLSX, baixarPDF, baixarPDFPoltronas, carregarXLSX } from "./exportar.js?v=9";
+import { baixarXLSX, baixarPDF, baixarPDFPoltronas, carregarXLSX } from "./exportar.js?v=10";
+import { apiCertidao, htmlFoto, ligarFoto } from "./certidao-foto.js?v=1";
 import * as R from "./venda-regras.js?v=24";
 import { htmlOnibus } from "./mapa-onibus.js?v=3";
 import { montarVitrine, AVISO_VEICULOS, CATEGORIAS_VEICULO, ITENS_VEICULO } from "./vitrine.js?v=10";
@@ -1008,11 +1009,13 @@ function viewExcursoes() {
     if (b.dataset.a === "rel") menuRelatorios(id);
     if (b.dataset.a === "link") mostrarLink(id, own);
     if (b.dataset.a === "venda") painelVenda(id, own);
-    if (b.dataset.a === "del") confirmar(`Excluir a excursão <strong>${esc(S.excursoes[id].destino)}</strong> com todos os viajantes, pagamentos e o mapa de poltronas? O link de inscrição também deixa de funcionar.${viajantesEx(id).some(([, x]) => x.origem === "venda") ? "<br><br>As <strong>compras online</strong> desta excursão também são canceladas no Asaas (parcelas ainda não pagas)." : ""}`, async () => {
+    if (b.dataset.a === "del") confirmar(`Excluir a excursão <strong>${esc(S.excursoes[id].destino)}</strong> com todos os viajantes, pagamentos, certidões e o mapa de poltronas? O link de inscrição também deixa de funcionar.${viajantesEx(id).some(([, x]) => x.origem === "venda") ? "<br><br>As <strong>compras online</strong> desta excursão também são canceladas no Asaas (parcelas ainda não pagas)." : ""}`, async () => {
       const pedidos = [...new Set(viajantesEx(id).filter(([, x]) => x.origem === "venda" && x.pedido).map(([, x]) => x.pedido))];
       for (const ped of pedidos) {
         try { await encerrarCompraOnline(ped); } catch (e) { return falha(e); } // não apaga a excursão se o Asaas recusar
       }
+      // as certidões saem antes: se o GitHub recusar, a excursão fica e dá para tentar de novo, sem deixar foto esquecida
+      try { await apiCertidao({ acao: "excluir-excursao", e: id, own }, await auth.currentUser.getIdToken()); } catch (e) { return falha(e); }
       const upd = { [`excursoes/${own}/${id}`]: null, [`viajantes/${own}/${id}`]: null, [`poltronas/${own}/${id}`]: null, [`inscricoes/${id}`]: null };
       Object.keys(S.excursoes[id].colaboradores || {}).forEach((uid) => { upd[`compartilhadas/${uid}/${id}`] = null; });
       if ((await get(ref(db, `site/excursoes/${id}`)).catch(() => null))?.exists()) upd[`site/excursoes/${id}`] = null;
@@ -2090,6 +2093,41 @@ function viewViajantes() {
     sheets: [{ nome: "Viajantes", colunas: COLS_PASS, linhas: linhasPassageiros(exId) }] };
 }
 
+/* Certidões guardadas no repositório privado (só passam pelo servidor, com o login) */
+async function certidaoGet(exId, extra = "") {
+  const r = await fetch(`/api/site-imagem?certidao=1&e=${encodeURIComponent(exId)}&own=${encodeURIComponent(dono(exId))}${extra}`,
+    { headers: { Authorization: `Bearer ${await auth.currentUser.getIdToken()}` } });
+  if (!r.ok) throw new Error((await r.json().catch(() => ({}))).erro || "Não foi possível abrir as certidões.");
+  return r;
+}
+const certidoesDe = async (exId) => (await certidaoGet(exId)).json();
+const certidaoBlob = async (exId, id) => (await certidaoGet(exId, `&id=${encodeURIComponent(id)}`)).blob();
+/** Abre a imagem para o PDF: dados em base64 e o tamanho real */
+async function fotoParaPdf(blob) {
+  const bmp = await createImageBitmap(blob);
+  const dados = await new Promise((ok, erro) => { const l = new FileReader(); l.onload = () => ok(l.result); l.onerror = erro; l.readAsDataURL(blob); });
+  const t = { dados, w: bmp.width, h: bmp.height };
+  bmp.close();
+  return t;
+}
+/** Certidões da excursão para o PDF. Quem ficou sem foto aparece na lista "faltam", nunca é pulado em silêncio. */
+async function certidoesParaPdf(exId) {
+  const { certidoes } = await certidoesDe(exId).catch((e) => { console.warn("certidões", e); return { certidoes: null }; });
+  if (!certidoes) { toast("O PDF saiu sem as certidões: não foi possível buscá-las agora.", "erro"); return { fotos: [], faltam: ["Não foi possível buscar as certidões ao gerar este PDF. Gere de novo."] }; }
+  const porViajante = new Map(certidoes.map((c) => [c.vid, c]));
+  const viaj = viajantesEx(exId), fotos = [], faltam = [];
+  for (let i = 0; i < viaj.length; i += 4) {
+    await Promise.all(viaj.slice(i, i + 4).map(async ([pid, p], j) => {
+      const c = porViajante.get(pid), pos = i + j;
+      if (!c) { if (p.docTipo === "CERTIDAO") faltam.push(`${p.nome}: foto não enviada`); return; }
+      const legenda = `${p.nome}${p.colo ? " (colo)" : ` (poltrona ${rotuloPoltrona(exId, pid)})`}`;
+      try { fotos.push({ pos, legenda, ...(await fotoParaPdf(await certidaoBlob(exId, c.id))) }); }
+      catch { faltam.push(`${p.nome}: não foi possível abrir a foto`); }
+    }));
+  }
+  return { fotos: fotos.sort((a, b) => a.pos - b.pos), faltam };
+}
+
 /** Encerra a compra online no servidor (cancela/apaga no Asaas, libera poltronas, tira os viajantes dela) */
 async function encerrarCompraOnline(pedidoId) {
   const r = await fetch("/api/pedido-cancelar", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${await auth.currentUser.getIdToken()}` },
@@ -2118,6 +2156,7 @@ function excluirViajante(exId, pid) {
     const pos = poltronaDe(exId, pid);
     if (pos) upd[`poltronas/${own}/${exId}/${pos.vk}/${pos.n}`] = null;
     await update(ref(db), upd);
+    if (p.docTipo === "CERTIDAO") auth.currentUser.getIdToken().then((t) => apiCertidao({ acao: "remover", e: exId, own, vid: pid }, t)).catch((e) => console.warn("certidão", e));
     toast("Viajante excluído");
   });
 }
@@ -2129,6 +2168,7 @@ function formViajante(exId, pid = null) {
   const opcsEx = R.opcionaisDe(ex);
   const somaOpc = (ids) => R.reais(R.opcionaisCent(ex, ids));
   const opcMarcados = () => $$("#pOpcs [data-opc-id]:checked").map((c) => c.dataset.opcId);
+  let certNova = "", certEnviando = false;
   const salvar = async (continuar) => {
     const f = $("#fPass");
     if (!f.reportValidity()) return;
@@ -2142,8 +2182,15 @@ function formViajante(exId, pid = null) {
       dados.opcionais = Object.keys(todos).length ? todos : null;
     }
     try {
+      if (certEnviando) return toast("Aguarde terminar o envio da foto.", "erro");
+      let vid = pid;
       if (pid) await update(ref(db, `viajantes/${own}/${exId}/${pid}`), dados);
-      else await set(push(ref(db, `viajantes/${own}/${exId}`)), { ...dados, criadoEm: Date.now() });
+      else { const novo = push(ref(db, `viajantes/${own}/${exId}`)); vid = novo.key; await set(novo, { ...dados, criadoEm: Date.now() }); }
+      if (certNova && dados.docTipo === "CERTIDAO") {
+        await apiCertidao({ acao: "anexar", e: exId, own, vid, base64: certNova }, await auth.currentUser.getIdToken())
+          .catch((e) => toast(`Viajante salvo, mas a foto da certidão não foi enviada: ${e.message}`, "erro"));
+        certNova = "";
+      }
       if (dados.colo && pid) { const pos = poltronaDe(exId, pid); if (pos) await remove(ref(db, `poltronas/${own}/${exId}/${pos.vk}/${pos.n}`)); }
       toast(pid ? "Viajante atualizado" : "Viajante cadastrado");
       if (continuar) { f.reset(); f.elements.nome.focus(); } else fecharModal();
@@ -2157,6 +2204,7 @@ function formViajante(exId, pid = null) {
       <label class="span2">Nome completo<input name="nome" required value="${esc(p.nome)}" autocomplete="off"></label>
       <label>Tipo de documento<select name="docTipo" id="pDoc">${Object.entries(DOCS).map(([k, n]) => `<option value="${k}" ${k === p.docTipo ? "selected" : ""}>${n}</option>`).join("")}</select></label>
       <label>Número do documento<input name="docNumero" required value="${esc(p.docNumero)}"></label>
+      <div class="span2 hidden" id="pCert">${htmlFoto()}<button type="button" class="link-btn hidden" id="pCertVer">Ver a certidão salva</button></div>
       <label>Telefone<input name="telefone" data-mask="tel" inputmode="tel" required value="${esc(p.telefone)}" placeholder="(32) 99999-9999"></label>
       <label>Idade<input type="number" min="0" max="120" name="idade" id="pIdade" value="${esc(p.idade)}"></label>
       <label class="check span2"><input type="checkbox" name="colo" id="pColo" ${p.colo ? "checked" : ""}> Criança de colo (não ocupa poltrona)</label>
@@ -2179,6 +2227,24 @@ function formViajante(exId, pid = null) {
   const sug = () => { if (!pid && $("#pIdade").value !== "" && num($("#pIdade").value) <= 5 && $("#pDoc").value === "CERTIDAO") { $("#pColo").checked = true; if (!valorMexido) $("#pValor").value = arred(valorPadrao(exId, true) + somaOpc(opcMarcados())); } };
   $("#pIdade").addEventListener("change", sug);
   $("#pDoc").addEventListener("change", sug);
+  const verCert = () => $("#pCert").classList.toggle("hidden", $("#pDoc").value !== "CERTIDAO");
+  $("#pDoc").addEventListener("change", verCert); verCert();
+  ligarFoto($("#pCert .cert-foto"), async (dados) => {
+    certEnviando = true;
+    try {
+      if (!pid) { certNova = dados; return "Foto pronta. Ela será enviada quando você salvar."; }
+      await apiCertidao({ acao: "anexar", e: exId, own, vid: pid, base64: dados }, await auth.currentUser.getIdToken());
+    } finally { certEnviando = false; }
+  });
+  if (pid) certidoesDe(exId).then(async ({ certidoes }) => {
+    const c = certidoes.find((x) => x.vid === pid), bt = $("#pCertVer");
+    if (!c || !bt) return;
+    bt.classList.remove("hidden");
+    bt.addEventListener("click", async () => {
+      const aba = window.open("", "_blank"); // abre antes da espera, senão o celular bloqueia a nova aba
+      try { const u = URL.createObjectURL(await certidaoBlob(exId, c.id)); aba.location = u; setTimeout(() => URL.revokeObjectURL(u), 60000); } catch (e) { aba?.close(); falha(e); }
+    });
+  }).catch(() => {});
   $("#fPass").addEventListener("submit", (e) => { e.preventDefault(); salvar(!pid); });
 }
 
@@ -2371,9 +2437,9 @@ function viewPoltronas() {
           return [n, p?.nome || "", p ? `${DOCS[p.docTipo] || p.docTipo} ${p.docNumero}` : "", p?.telefone || "", p?.idade ?? ""]; }) })),
       { nome: "Todos os viajantes", colunas: COLS_POLT, linhas: linhasPoltronas(exId) }
     ],
-    pdf: () => baixarPDFPoltronas(titulo, sub,
+    pdf: async () => baixarPDFPoltronas(titulo, sub,
       porVeiculo.map(({ i, x, nm, cap }) => ({ titulo: `${vs.length > 1 ? `Veículo ${i + 1} · ` : ""}${veic(x.tipo).nome}${R.embarqueDe(x) ? ` · ${R.textoEmbarque(R.embarqueDe(x))}` : ""}`, cap, planta: R.plantaVeiculo(x.tipo, cap), nomes: nm })),
-      { colunas: COLS_POLT, linhas: linhasPoltronas(exId) })
+      { colunas: COLS_POLT, linhas: linhasPoltronas(exId) }, await certidoesParaPdf(exId))
   };
 }
 

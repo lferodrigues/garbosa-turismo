@@ -6,12 +6,14 @@
 // POST /api/poltrona-livre { e, pessoas: [...] } → salva. Cada pessoa:
 //      { nome, docTipo: "RG"|"CERTIDAO", docNumero, assento:{vk,n} }           pessoa nova com poltrona
 //      { ..., colo: true, nascimento: "AAAA-MM-DD", com: índice do adulto }    criança de colo (até 5 anos completos)
+//      { ..., certidaoId }                                                      foto da certidão já enviada (/api/site-imagem?certidao=1)
 //      { ..., vid }                                                             altera o cadastro feito antes por este link
 //      { vid, docNumero, manter: true }                                         já cadastrada, fica como está (pode levar criança no colo)
 // Funciona enquanto as inscrições da excursão estiverem abertas (link de inscrição ativo).
 import { db } from "./_lib/firebase.js";
 import { enviar, lerCorpo, soMetodo, tratarErro, ErroUsuario } from "./_lib/http.js";
-import { carregarExcursao, veiculosComOcupacao, vagasDaExcursao, trocarPoltronas, liberarPoltronas, notificar, conferirEmbarque, fotosDe, fotosVeiculosDe, fotosOpcionaisDe, vitrineDe, R } from "./_lib/venda.js";
+import { excursaoAberta as aberta, veiculosComOcupacao, vagasDaExcursao, trocarPoltronas, liberarPoltronas, notificar, conferirEmbarque, fotosDe, fotosVeiculosDe, fotosOpcionaisDe, vitrineDe, R } from "./_lib/venda.js";
+import * as Certidao from "./_lib/certidao.js";
 
 export const WHATSAPP_CERTIDAO = "5532999775281";
 const MAX = 10;
@@ -19,14 +21,6 @@ const texto = (v, max) => String(v ?? "").replace(/\s+/g, " ").trim().slice(0, m
 const primeiro = (n) => String(n || "").split(" ")[0];
 /** "Ana Paula Souza" → "Ana S." (não expõe o nome inteiro para quem só digitou um documento) */
 const abreviar = (n) => { const p = String(n || "").trim().split(/\s+/); return p.length > 1 ? `${p[0]} ${p.at(-1)[0]}.` : p[0] || ""; };
-
-async function aberta(exId) {
-  const c = await carregarExcursao(exId);
-  const pub = (await (await db()).ref(`inscricoes/${exId}`).get()).val() || {};
-  if (pub.ativa !== true || c.ex.linkAtivo === false) throw new ErroUsuario("A escolha de poltronas desta excursão está encerrada. Fale com a agência.", 409);
-  if (!c.ex.dataSaida || c.ex.dataSaida < R.hojeBR()) throw new ErroUsuario("Esta excursão já partiu.", 409);
-  return c;
-}
 
 /** Viajantes da excursão + onde cada um está sentado + índice documento → viajante */
 async function cadastros(own, exId) {
@@ -59,7 +53,7 @@ export default async function handler(req, res) {
         horaRetorno: ex.horaRetorno || "", localSaida: ex.localSaida || "", saidas: R.saidasDe(ex), descricao: ex.descricao || "",
         folder: ex.folder?.caminho ? { caminho: ex.folder.caminho, raw: ex.folder.raw || "" } : null,
         valorCent: R.precoPessoaCent(ex), fotosLocal: fotosDe(ex.fotosLocal), fotosVeiculos: fotosVeiculosDe(ex), fotosOpcionais: fotosOpcionaisDe(ex), vitrine: vitrineDe(ex),
-        whatsappCertidao: WHATSAPP_CERTIDAO, max: MAX, idadeColo: R.IDADE_COLO, valorColoCent: R.centavos(ex.valorColo),
+        whatsappCertidao: WHATSAPP_CERTIDAO, certidaoFoto: await Certidao.ativo(), max: MAX, idadeColo: R.IDADE_COLO, valorColoCent: R.centavos(ex.valorColo),
         opcionais: R.opcionaisDe(ex),
         vagas: doLink ? null : await vagasDaExcursao(own, exId, ex),
         veiculos: doLink ? [doLink] : veiculos,
@@ -93,7 +87,7 @@ export default async function handler(req, res) {
       colo: p?.colo === true, nascimento: texto(p?.nascimento, 10), com: Number.isInteger(p?.com) ? p.com : -1,
       vid: /^[\w-]{1,40}$/.test(p?.vid || "") ? p.vid : "", manter: p?.manter === true,
       assento: p?.assento ? { vk: texto(p.assento.vk, 40), n: parseInt(p.assento.n, 10) } : null,
-      cep: R.mascaraCep(p?.cep),
+      cep: R.mascaraCep(p?.cep), certidaoId: p?.docTipo === "CERTIDAO" && /^[\w-]{1,64}$/.test(p?.certidaoId || "") ? p.certidaoId : "",
       opcionais: R.opcionaisValidos(ex, (Array.isArray(p?.opcionais) ? p.opcionais : []).slice(0, 30).map((x) => texto(x, 40)))
     }));
     if (!pessoas.length) throw new ErroUsuario("Informe quem vai viajar.");
@@ -159,14 +153,17 @@ export default async function handler(req, res) {
       .map((p) => (p.assento ? { ...p.assento, vid: p.vid } : { vid: p.vid, sair: true })));
     novosReservados = novos;
 
+    const fotos = await Certidao.pendentes(own, exId, ativos.map((p) => p.certidaoId).filter(Boolean));
     const upd = {}, agora = Date.now();
     for (const p of ativos) {
+      p.comFoto = fotos.has(p.certidaoId);
+      if (p.comFoto) upd[`certidoes/${own}/${exId}/${p.certidaoId}/vid`] = p.vid;
       const base = `viajantes/${own}/${exId}/${p.vid}`;
       const opcCent = R.opcionaisCent(ex, p.opcionais);
       const valor = R.reais(R.precoDeCent(ex, { colo: p.colo, idade: p.colo ? p.idade : null }) + R.extraAssentoCent(ex, p.assento) + opcCent);
       const obs = [p.existente ? "Alterado pelo link de poltrona" : "Escolheu a poltrona pelo link",
         p.colo ? `colo de ${primeiro(p.responsavel)}` : "",
-        p.docTipo === "CERTIDAO" ? "certidão será enviada pelo WhatsApp" : ""].filter(Boolean).join(" · ").slice(0, 300);
+        p.docTipo !== "CERTIDAO" ? "" : p.comFoto ? "foto da certidão enviada" : "certidão será enviada pelo WhatsApp"].filter(Boolean).join(" · ").slice(0, 300);
       const dados = {
         nome: p.nome, docTipo: p.docTipo, docNumero: p.docNumero, colo: p.colo,
         nascimento: p.colo ? p.nascimento : p.existente?.nascimento || "", idade: p.colo ? p.idade : p.existente?.idade ?? null,
@@ -186,6 +183,8 @@ export default async function handler(req, res) {
     }
     await d.ref().update(upd);
     novosReservados = null;
+    // quem trocou a foto ao alterar o cadastro: a anterior sai do repositório
+    await Promise.all(ativos.filter((p) => p.comFoto && p.existente).map((p) => Certidao.apagarDoViajante(own, exId, p.vid, p.certidaoId).catch((e) => console.error("certidão antiga", e.message))));
 
     const alterados = ativos.filter((p) => p.existente), feitos = ativos.filter((p) => !p.existente);
     const desc = (p) => `${primeiro(p.nome)} (${p.colo ? `colo de ${primeiro(p.responsavel)}` : `poltrona ${rotulo(p.assento)}`})`;
@@ -198,7 +197,7 @@ export default async function handler(req, res) {
       ok: true,
       poltronas: pessoas.map((p) => ({
         nome: p.nome, poltrona: p.manter ? (assentoDe[p.vid] ? rotulo(assentoDe[p.vid]) : "colo") : rotulo(p.assento),
-        colo: p.colo, certidao: !p.manter && p.docTipo === "CERTIDAO", alterado: !!p.existente && !p.manter, mantido: p.manter,
+        colo: p.colo, certidao: !p.manter && p.docTipo === "CERTIDAO" && !p.comFoto, certidaoFoto: !p.manter && !!p.comFoto, alterado: !!p.existente && !p.manter, mantido: p.manter,
         opcionais: Object.values((p.manter ? p.existente?.opcionais : R.opcionaisRegistro(ex, p.opcionais)) || {}).map((o) => o.titulo)
       }))
     });

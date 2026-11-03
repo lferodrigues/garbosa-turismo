@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
-<link rel="stylesheet" href="css/sistema.css?v=37">
+<link rel="stylesheet" href="css/sistema.css?v=42">
 </head>
 <body class="insc-body">
 <div id="loading" class="loading-screen">
@@ -84,6 +84,7 @@
         <label>Documento<select id="iDocTipo"><option value="RG">RG</option><option value="CNH">CNH</option><option value="CERTIDAO">Certidão de Nascimento</option></select></label>
         <label>Número<input id="iDocNum" required></label>
       </div>
+      <div id="iCertFoto" class="hidden" style="margin-bottom:12px"></div>
       <div class="row2">
         <label>WhatsApp<input id="iTel" type="tel" inputmode="tel" required placeholder="(32) 99999-9999"></label>
         <label>Idade<input id="iIdade" type="number" min="0" max="120" required></label>
@@ -115,6 +116,6 @@
   </section>
 </main>
 
-<script type="module" src="js/inscricao.js?v=11"></script>
+<script type="module" src="js/inscricao.js?v=12"></script>
 </body>
 </html>

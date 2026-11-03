@@ -3,6 +3,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 import { getDatabase, ref, get, set, push, update, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 import { firebaseConfig } from "./firebase.js";
 import { htmlSaidasTopo } from "./mapa-onibus.js?v=4";
+import { apiCertidao, fotoAtiva, htmlFoto, ligarFoto } from "./certidao-foto.js?v=1";
 
 const db = getDatabase(initializeApp(firebaseConfig, "inscricao"));
 const $ = (s) => document.querySelector(s);
@@ -70,8 +71,26 @@ $("#iIdade").addEventListener("change", sugerirColo);
 $("#iIdade").addEventListener("input", atualizarTotal);
 $("#iDocTipo").addEventListener("change", sugerirColo);
 
+/* foto da certidão: enviada ao escolher; liga ao viajante depois que a inscrição é salva */
+let certidaoId = "", enviandoFoto = false, comFoto = false;
+function montarCertidao() {
+  $("#iCertFoto").innerHTML = htmlFoto("", "Tire uma foto legível da certidão inteira.");
+  ligarFoto($("#iCertFoto .cert-foto"), async (dados) => {
+    enviandoFoto = true;
+    try {
+      const { id } = await apiCertidao({ acao: "enviar", e: exId, base64: dados });
+      if (certidaoId) apiCertidao({ acao: "descartar", e: exId, id: certidaoId }).catch(() => {});
+      certidaoId = id;
+    } finally { enviandoFoto = false; }
+  });
+}
+const mostrarCertidao = () => $("#iCertFoto").classList.toggle("hidden", !comFoto || $("#iDocTipo").value !== "CERTIDAO");
+$("#iDocTipo").addEventListener("change", mostrarCertidao);
+fotoAtiva().then((ativo) => { comFoto = ativo; if (ativo) { montarCertidao(); mostrarCertidao(); } });
+
 $("#fInsc").addEventListener("submit", async (e) => {
   e.preventDefault();
+  if (enviandoFoto) return msg("Aguarde terminar o envio da foto.");
   const nome = $("#iNome").value.replace(/\s+/g, " ").trim();
   const docNumero = $("#iDocNum").value.trim();
   const telefone = $("#iTel").value.trim();
@@ -98,6 +117,8 @@ $("#fInsc").addEventListener("submit", async (e) => {
         link: `#/viajantes/${exId}`, exId, de: "publico", deNome: nome.slice(0, 120), lida: false, em: serverTimestamp() };
     });
     await update(ref(db), upd).catch((err) => console.warn("aviso", err));
+    if (certidaoId && $("#iDocTipo").value === "CERTIDAO") await apiCertidao({ acao: "vincular", e: exId, id: certidaoId, vid: k }).catch((err) => console.warn("aviso", err));
+    certidaoId = "";
     $("#fInsc").classList.add("hidden");
     $("#iOk").classList.remove("hidden");
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -110,6 +131,8 @@ $("#fInsc").addEventListener("submit", async (e) => {
 
 $("#btnOutra").addEventListener("click", () => {
   $("#fInsc").reset(); msg("", "");
+  if (comFoto) montarCertidao();
+  mostrarCertidao();
   atualizarTotal();
   $("#iOk").classList.add("hidden");
   $("#fInsc").classList.remove("hidden");
