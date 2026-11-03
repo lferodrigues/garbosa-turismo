@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Página não encontrada | Garbosa Turismo</title>
+<meta name="robots" content="noindex">
+<link rel="icon" type="image/png" sizes="192x192" href="/Assets/img/logo.ico">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+<link rel="stylesheet" href="/Assets/css/novosite/home.css?v=4">
+<style>
+/* Página 404: o avião da logo pousa uma vez e fica parado na pista */
+.nf{padding:40px 0 60px;text-align:center}
+.nf-cena{width:min(720px,100%);margin:0 auto 26px;filter:drop-shadow(0 24px 44px rgba(21,21,59,.28))}
+.nf-cena svg{width:100%;height:auto;display:block;border-radius:24px}
+.nf-num{font:800 120px Poppins,sans-serif;fill:#fff;opacity:.13}
+.nf h1{font-size:clamp(1.5rem,4vw,2.2rem);line-height:1.2;color:var(--noite);margin-bottom:8px}
+.nf p{color:var(--cinza);max-width:520px;margin:0 auto 22px}
+.nf-acoes{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
+.nuvens{animation:passa 30s linear infinite}
+@keyframes passa{to{transform:translateX(-640px)}}
+.av-voo{animation:pouso 3.6s cubic-bezier(.3,.2,.5,1) both}
+@keyframes pouso{
+  0%{transform:translateY(-120px) scale(.07);opacity:0}
+  8%{opacity:1}
+  30%{transform:translateY(-82px) scale(.2) rotate(-2.5deg)}
+  50%{transform:translateY(-40px) scale(.34) rotate(1.5deg)}
+  66%{transform:translateY(8px) scale(.5) rotate(0)}
+  100%{transform:translateY(18px) scale(.72);opacity:1}
+}
+.av-sombra{animation:sombra 3.6s cubic-bezier(.3,.2,.5,1) both}
+@keyframes sombra{
+  0%,25%{transform:translateY(8px) scale(.15);opacity:0}
+  66%{transform:translateY(46px) scale(.5);opacity:.4}
+  100%{transform:translateY(71px) scale(.72);opacity:.5}
+}
+.av-motor{fill:#1a0f6b;stroke:#fff;stroke-width:5}
+.av-helice{stroke:#fff;stroke-width:2.5;opacity:.75;animation:helice .3s linear 12,helice 1.6s linear .36s infinite}
+@keyframes helice{to{transform:rotate(360deg)}}
+.av-trem{stroke:#fff;stroke-width:5;animation:trem 3.6s linear both}
+.av-trem rect{fill:#15153b;stroke:none}
+@keyframes trem{0%,22%{opacity:0}32%,100%{opacity:1}}
+.av-toque circle{transform-box:fill-box;transform-origin:center;animation:toque 3.6s ease-out both}
+.av-toque circle:nth-child(n+3){animation-delay:.1s}
+@keyframes toque{0%,64%{opacity:0;transform:scale(.3)}68%{opacity:.75}88%,100%{opacity:0;transform:scale(2.4) translateY(-5px)}}
+@media (prefers-reduced-motion:reduce){
+  .nuvens,.av-helice{animation:none}
+  .av-voo,.av-sombra,.av-trem,.av-toque circle{animation-duration:.01s;animation-delay:0s}
+}
+</style>
+</head>
+<body>
+<header class="gt-header" id="topo">
+  <div class="gt-container gt-header-in">
+    <a href="/index.html" class="gt-marca" aria-label="Garbosa Turismo — início">
+      <img src="/Assets/img/logo.ico" alt="">
+      <span><strong>Garbosa</strong><em>Turismo</em></span>
+    </a>
+    <button class="gt-menu-btn" id="gtMenuBtn" aria-label="Abrir menu" aria-expanded="false" aria-controls="gtMenu"><i class="fa-solid fa-bars"></i></button>
+    <nav class="gt-menu" id="gtMenu" aria-label="Menu principal">
+      <ul>
+        <li><a href="/index.html#inicio">Início</a></li>
+        <li><a href="/index.html#destinos">Destinos</a></li>
+        <li><a href="/excursoes.html">Excursões</a></li>
+        <li><a href="/index.html#sobre">A agência</a></li>
+        <li><a href="/index.html#parceiros">Parceiros</a></li>
+        <li><a href="/contrato.html">Contrato</a></li>
+        <li><a href="#contato">Contato</a></li>
+        <li class="gt-menu-conta"><a href="/sistema/minha-conta.html"><i class="fa-regular fa-circle-user"></i> Área do cliente</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+
+<main class="nf">
+  <div class="gt-container">
+    <div class="nf-cena" aria-hidden="true">
+      <svg viewBox="0 0 640 280" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="ceu" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2A1F88"/><stop offset=".72" stop-color="#5946da"/><stop offset="1" stop-color="#a48cf0"/></linearGradient>
+          <clipPath id="recorte"><rect width="640" height="280" rx="24"/></clipPath>
+        </defs>
+        <g clip-path="url(#recorte)">
+          <rect width="640" height="280" fill="url(#ceu)"/>
+          <circle cx="520" cy="150" r="30" fill="#FFD54A" opacity=".95"/>
+          <text class="nf-num" x="320" y="128" text-anchor="middle">404</text>
+          <g class="nuvens" fill="#fff" opacity=".22">
+            <g><ellipse cx="120" cy="60" rx="38" ry="12"/><ellipse cx="140" cy="52" rx="22" ry="12"/><ellipse cx="420" cy="40" rx="44" ry="13"/><ellipse cx="444" cy="32" rx="24" ry="12"/><ellipse cx="270" cy="96" rx="30" ry="9"/></g>
+            <g transform="translate(640 0)"><ellipse cx="120" cy="60" rx="38" ry="12"/><ellipse cx="140" cy="52" rx="22" ry="12"/><ellipse cx="420" cy="40" rx="44" ry="13"/><ellipse cx="444" cy="32" rx="24" ry="12"/><ellipse cx="270" cy="96" rx="30" ry="9"/></g>
+          </g>
+          <path d="M0 190 V168 Q70 140 150 166 T300 164 T470 158 T640 170 V190 Z" fill="#3d2fb0" opacity=".75"/>
+          <rect y="190" width="640" height="90" fill="#1b1b33"/>
+          <path d="M304 190 H336 L600 280 H40 Z" fill="#2d2d52"/>
+          <g fill="#FFD54A"><path d="M318.5 196 H321.5 L322 204 H318 Z"/><path d="M317.5 212 H322.5 L323.5 226 H316.5 Z"/><path d="M316 240 H324 L326 266 H314 Z"/></g>
+          <g fill="#fff"><circle cx="262" cy="206" r="1.5"/><circle cx="378" cy="206" r="1.5"/><circle cx="200" cy="228" r="2.5"/><circle cx="440" cy="228" r="2.5"/><circle cx="110" cy="262" r="4"/><circle cx="530" cy="262" r="4"/></g>
+          <g transform="translate(320 190)">
+            <ellipse class="av-sombra" cx="0" cy="0" rx="170" ry="16" fill="#000"/>
+            <g class="av-voo" fill="#fff">
+              <path d="M-3 -22 L-1.5 -104 H1.5 L3 -22 Z"/>
+              <g>
+              <path d="M-30 -2 C-110 -8 -190 -22 -250 -64 C-192 -14 -110 10 -30 16 Z"/><path d="M-22 -18 Q-60 -28 -92 -24 Q-60 -18 -22 -8 Z"/>
+              <circle class="av-motor" cx="108" cy="32" r="19"/>
+              <g transform="translate(108 32)"><g class="av-helice"><line x1="-15" x2="15"/><line y1="-15" y2="15"/><line x1="-11" y1="-11" x2="11" y2="11"/><line x1="-11" y1="11" x2="11" y2="-11"/></g></g>
+              <g class="av-trem"><line x1="30" y1="30" x2="30" y2="62"/><rect x="23" y="58" width="14" height="16" rx="4"/></g>
+            </g>
+              <g transform="scale(-1 1)">
+              <path d="M-30 -2 C-110 -8 -190 -22 -250 -64 C-192 -14 -110 10 -30 16 Z"/><path d="M-22 -18 Q-60 -28 -92 -24 Q-60 -18 -22 -8 Z"/>
+              <circle class="av-motor" cx="108" cy="32" r="19"/>
+              <g transform="translate(108 32)"><g class="av-helice"><line x1="-15" x2="15"/><line y1="-15" y2="15"/><line x1="-11" y1="-11" x2="11" y2="11"/><line x1="-11" y1="11" x2="11" y2="-11"/></g></g>
+              <g class="av-trem"><line x1="30" y1="30" x2="30" y2="62"/><rect x="23" y="58" width="14" height="16" rx="4"/></g>
+            </g>
+              <g class="av-trem"><line x1="0" y1="30" x2="0" y2="58"/><rect x="-6" y="54" width="12" height="14" rx="4"/></g>
+              <ellipse rx="38" ry="36"/>
+              <path d="M-21 -10 Q0 -20 21 -10 L17 -3 Q0 -10 -17 -3 Z" fill="#1a0f6b"/>
+            </g>
+          </g>
+          <g class="av-toque" fill="#fff"><circle cx="281" cy="236" r="6"/><circle cx="359" cy="236" r="6"/><circle cx="272" cy="232" r="8"/><circle cx="368" cy="232" r="8"/></g>
+        </g>
+      </svg>
+    </div>
+    <h1>Esse voo pousou no lugar errado</h1>
+    <p>A página que você procurou não existe ou mudou de endereço. Que tal escolher um novo destino?</p>
+    <div class="nf-acoes">
+      <a class="gt-btn gt-btn-roxo" href="/excursoes.html">Ver excursões <i class="fa-solid fa-arrow-right"></i></a>
+      <a class="gt-btn gt-btn-amarelo" href="/index.html">Voltar ao início</a>
+    </div>
+  </div>
+</main>
+
+<footer class="gt-rodape" id="contato">
+  <div class="gt-container gt-rodape-in">
+    <div>
+      <a href="/index.html" class="gt-marca gt-marca-clara"><img src="/Assets/img/logo.ico" alt=""><span><strong>Garbosa</strong><em>Turismo</em></span></a>
+      <p>A viagem dos seus sonhos começa aqui. Excursões saindo de São João Nepomuceno, MG.</p>
+      <div class="gt-redes">
+        <a href="https://wa.me/5532999874657" target="_blank" rel="noopener" aria-label="WhatsApp"><i class="fa-brands fa-whatsapp"></i></a>
+        <a href="https://www.instagram.com/garbosaturismo/" target="_blank" rel="noopener" aria-label="Instagram"><i class="fa-brands fa-instagram"></i></a>
+        <a href="https://www.tiktok.com/@garbosaturismo" target="_blank" rel="noopener" aria-label="TikTok"><i class="fa-brands fa-tiktok"></i></a>
+        <a href="https://www.facebook.com/profile.php?id=100093055390780" target="_blank" rel="noopener" aria-label="Facebook"><i class="fa-brands fa-facebook-f"></i></a>
+      </div>
+    </div>
+    <div>
+      <h3>Navegue</h3>
+      <ul><li><a href="/excursoes.html">Excursões</a></li><li><a href="/index.html#destinos">Destinos em destaque</a></li><li><a href="/sistema/minha-conta.html">Área do cliente</a></li><li><a href="/contrato.html">Contrato de prestação de serviço</a></li><li><a href="/fale-conosco.html">Fale conosco</a></li></ul>
+    </div>
+    <div>
+      <h3>Atendimento</h3>
+      <ul><li><a href="https://wa.me/5532999874657" target="_blank" rel="noopener"><i class="fa-brands fa-whatsapp"></i> (32) 99987-4657</a></li><li><i class="fa-solid fa-location-dot"></i> São João Nepomuceno / MG</li></ul>
+    </div>
+    <div class="gt-cadastur">
+      <h3>Cadastur</h3>
+      <a href="/Assets/documentos/cadastro.pdf" target="_blank" rel="noopener" title="Clique para verificar o cadastro"><img loading="lazy" src="/Assets/img/cadastur.png" alt="Selo Cadastur — verificar cadastro"></a>
+      <small>Clique no selo para verificar o cadastro</small>
+    </div>
+  </div>
+  <p class="gt-copy">© <span id="ano">2026</span> Todos os direitos reservados | Garbosa Turismo</p>
+</footer>
+
+<script>
+  document.getElementById("ano").textContent = new Date().getFullYear();
+  const btn = document.getElementById("gtMenuBtn"), menu = document.getElementById("gtMenu");
+  const alternar = (abrir) => {
+    menu.classList.toggle("aberto", abrir);
+    btn.setAttribute("aria-expanded", String(abrir));
+    btn.innerHTML = `<i class="fa-solid fa-${abrir ? "xmark" : "bars"}"></i>`;
+  };
+  btn.addEventListener("click", () => alternar(!menu.classList.contains("aberto")));
+  menu.querySelectorAll("a").forEach((a) => a.addEventListener("click", () => alternar(false)));
+</script>
+</body>
+</html>
