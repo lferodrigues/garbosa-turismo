@@ -361,31 +361,49 @@ tr.inativo td{opacity:.55}
 }
 
 /* =========================================================
-   v3 — tela de carregamento: ônibus de dois andares na estrada
+   v3 — tela de carregamento: o avião da logo decolando, visto de frente
 ========================================================= */
 .loading-screen{gap:22px}
-.bus-scene{width:min(560px,92vw);filter:drop-shadow(0 30px 60px rgba(0,0,0,.35))}
+.aviao-cena{width:min(560px,92vw);filter:drop-shadow(0 30px 60px rgba(0,0,0,.35))}
 .scene{width:100%;height:auto;display:block;border-radius:24px}
 .load-text{display:flex;flex-direction:column;align-items:center;gap:2px}
 .load-text strong{font-size:1.35rem;letter-spacing:.5px}
 .load-text span{opacity:.85;font-size:.95rem}
 .load-text span::after{content:"";display:inline-block;width:1.2em;text-align:left;animation:pontos 1.4s steps(4) infinite}
 @keyframes pontos{0%{content:""}25%{content:"."}50%{content:".."}75%{content:"..."}}
-.faixa{animation:estrada .55s linear infinite}
-@keyframes estrada{to{stroke-dashoffset:60}}
 .nuvens{animation:passa 26s linear infinite}
-.morros{animation:passa 14s linear infinite}
-.arvores{animation:passa 5s linear infinite}
 @keyframes passa{to{transform:translateX(-640px)}}
-.dd-corpo{animation:balanco .36s ease-in-out infinite alternate}
-@keyframes balanco{to{transform:translateY(2px)}}
-.aro{transform-box:fill-box;transform-origin:center;animation:gira .5s linear infinite}
-.fumaca circle{animation:fumaca 1.2s ease-out infinite;opacity:0}
-.fumaca circle:nth-child(2){animation-delay:.3s}.fumaca circle:nth-child(3){animation-delay:.6s}
-@keyframes fumaca{0%{opacity:.5;transform:translateX(0)}100%{opacity:0;transform:translate(-30px,-14px)}}
-.farol{animation:farol 2s ease-in-out infinite alternate}
-@keyframes farol{to{opacity:.32}}
-@media (prefers-reduced-motion:reduce){.faixa,.nuvens,.morros,.arvores,.dd-corpo,.aro,.fumaca circle,.farol{animation:none}}
+.av-voo{animation:decola 2.4s cubic-bezier(.45,.05,.8,.6) infinite}
+@keyframes decola{
+  0%{transform:translateY(-4px) scale(.1);opacity:0}
+  6%{opacity:1}
+  35%{transform:translateY(8px) scale(.34)}
+  50%{transform:translateY(-14px) scale(.52) rotate(-1deg)}
+  80%{transform:translateY(-110px) scale(1.05) rotate(1.5deg);opacity:1}
+  100%{transform:translateY(-300px) scale(1.7) rotate(0);opacity:1}
+}
+.av-sombra{animation:sombra 2.4s cubic-bezier(.45,.05,.8,.6) infinite}
+@keyframes sombra{
+  0%{transform:translateY(4px) scale(.1);opacity:0}
+  35%{transform:translateY(32px) scale(.34);opacity:.45}
+  55%{transform:translateY(52px) scale(.5);opacity:.18}
+  70%,100%{transform:translateY(66px) scale(.6);opacity:0}
+}
+.av-motor{fill:#1a0f6b;stroke:#fff;stroke-width:5}
+.av-helice{stroke:#fff;stroke-width:2.5;opacity:.75;animation:helice .3s linear infinite}
+@keyframes helice{to{transform:rotate(360deg)}}
+.av-trem{stroke:#fff;stroke-width:5;animation:trem 2.4s linear infinite}
+.av-trem rect{fill:#15153b;stroke:none}
+@keyframes trem{0%,46%{opacity:1}58%,100%{opacity:0}}
+.av-pista rect,.av-luzes circle{transform-origin:320px 190px;animation:pista .9s linear infinite;opacity:0}
+.av-pista rect:nth-child(2){animation-delay:.3s}.av-pista rect:nth-child(3){animation-delay:.6s}
+.av-luzes circle:nth-child(n+3){animation-delay:.3s}.av-luzes circle:nth-child(n+5){animation-delay:.6s}
+@keyframes pista{0%{transform:scale(.02);opacity:0}25%{opacity:1}100%{transform:scale(1.25);opacity:1}}
+@media (prefers-reduced-motion:reduce){
+  .nuvens,.av-sombra,.av-helice,.av-trem,.av-pista rect,.av-luzes circle{animation:none}
+  .av-voo{animation:none;transform:translateY(-50px) scale(.8)}
+  .av-trem{opacity:0}.av-sombra{opacity:0}
+}
 .loading-screen.saindo{opacity:0;transition:opacity .4s}
 
 /* ---------- Instagram / sino / financeiro / link ---------- */
