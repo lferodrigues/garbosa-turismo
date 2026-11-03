@@ -2,7 +2,8 @@ import { auth, db, ADMIN_EMAIL, authSecundario } from "./firebase.js?v=8";
 import { baixarXLSX, baixarPDF, baixarPDFPoltronas, carregarXLSX } from "./exportar.js?v=9";
 import * as R from "./venda-regras.js?v=24";
 import { htmlOnibus } from "./mapa-onibus.js?v=3";
-import { montarVitrine, AVISO_VEICULOS, CATEGORIAS_VEICULO, ITENS_VEICULO } from "./vitrine.js?v=9";
+import { montarVitrine, AVISO_VEICULOS, CATEGORIAS_VEICULO, ITENS_VEICULO } from "./vitrine.js?v=10";
+import { mostrarMoldura, tirarMoldura } from "./moldura.js?v=1";
 import {
   onAuthStateChanged, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword,
   sendPasswordResetEmail, updateProfile,
@@ -257,6 +258,7 @@ function mostrarAuth(aba) {
   esconderLoading();
   $("#app").classList.add("hidden");
   $("#authScreen").classList.remove("hidden");
+  mostrarMoldura();
   const telas = { login: "#formEntrar", cadastro: "#formCadastrar", completar: "#formCompletar" };
   Object.entries(telas).forEach(([k, sel]) => $(sel).classList.toggle("hidden", k !== aba));
   document.title = ({ cadastro: "Criar conta", completar: "Completar cadastro" }[aba] || "Entrar") + " | Garbosa System";
@@ -453,6 +455,7 @@ async function iniciarSessao(user) {
   montarAbas();
   assinar();
   $("#authScreen").classList.add("hidden");
+  tirarMoldura();
   esconderLoading();
   $("#app").classList.remove("hidden");
   const { view } = lerHash();

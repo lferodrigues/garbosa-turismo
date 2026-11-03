@@ -1,5 +1,6 @@
 // Área do viajante: histórico de viagens, parcelas pagas e em aberto, meus dados
 import * as R from "./venda-regras.js?v=21";
+import { mostrarMoldura } from "./moldura.js?v=1";
 import { aoMudarSessao, telaAcesso, formPerfil, lerPerfil, salvarPerfil, sair, api, esc } from "./conta-viajante.js?v=16";
 
 const $ = (s, el = document) => el.querySelector(s);
@@ -25,6 +26,7 @@ const SIT = {
 const pill = (m, k) => { const s = m[k] || { nome: k, cls: "" }; return `<span class="pill st-${s.cls}">${esc(s.nome)}</span>`; };
 const quando = (v) => `${R.fData(v.dataSaida)}${v.horaSaida ? " às " + esc(v.horaSaida) : ""}`;
 
+mostrarMoldura();
 aoMudarSessao(async (u) => {
   CONTA = u;
   if (!u) {

@@ -271,7 +271,7 @@ A vitrine mostra: fotos do local, resumo da viagem, preço, fotos dos veículos 
 - **Personalizar:** em **Excursões**, botão **Personalizar vitrine** de cada excursão. A página tem prévia ao lado: título, descrição, fotos do local, dos veículos e de cada adicional (até 6 de cada, salvas no GitHub do site; segure e arraste para mudar a ordem), dados do veículo de cada foto (empresa, assentos, categoria, Wi-Fi, ar-condicionado, carregador, frigobar, banheiro e descrição, que mudam ao lado da foto no carrossel), aviso dos veículos e opção de esconder os preços. Só grava ao clicar em **Salvar**.
 - Sem foto do local, aparece o folder. A descrição aparece também na página de reserva e no catálogo do site; na compra, fica só na vitrine.
 - Banco: `excursoes/{uid}/{exId}/descricao`, `fotosLocal`, `fotosVeiculos` = `[{ caminho, raw, dados: { empresa, assentos, categoria, descricao, itens } }]`, `fotosOpcionais` = `{ idDoOpcional: [fotos] }` e `vitrine` = `{ titulo, aviso, ocultarPreco }` (sem mudança nas regras).
-- **Menu e rodapé:** iguais aos do site principal (`index.html`), nas páginas de poltrona, compra e reserva. Quem mudar o menu ou o rodapé do site precisa mudar também em `vitrine.js` (`mostrarMoldura`) e copiar o estilo para `sistema.css`.
+- **Menu e rodapé:** iguais aos do site principal (`index.html`), nas páginas de poltrona, compra, reserva e Área do cliente e na tela de login do painel. Quem mudar o menu ou o rodapé do site precisa mudar também em `moldura.js` e copiar o estilo para `sistema.css`.
 - Banco: `excursoes/{uid}/{exId}/fotosLocal` e `fotosVeiculos` = `[{ caminho, raw }]` (sem mudança nas regras).
 
 ## Cupons (administrador)

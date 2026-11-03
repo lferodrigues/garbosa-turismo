@@ -2,7 +2,8 @@
 import * as R from "./venda-regras.js?v=23";
 import { htmlOnibus, htmlSaidasTopo, htmlEmbarquesTopo, avisoEmbarque, etiquetaEmbarque } from "./mapa-onibus.js?v=4";
 import { htmlOpcionais, ligarOpcionais, resumoOpcionais } from "./opcionais-ui.js?v=1";
-import { montarVitrine, mostrarMoldura } from "./vitrine.js?v=9";
+import { montarVitrine } from "./vitrine.js?v=10";
+import { mostrarMoldura } from "./moldura.js?v=1";
 
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];

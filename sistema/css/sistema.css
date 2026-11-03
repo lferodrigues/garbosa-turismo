@@ -1233,7 +1233,12 @@ input:-webkit-autofill{-webkit-text-fill-color:#fff;-webkit-box-shadow:0 0 0 40p
 
 /* Menu e rodapé do site principal (mesmo estilo de Assets/css/novosite/home.css) */
 .com-moldura{padding-top:0;padding-bottom:0}
-.com-moldura>.vt,.com-moldura>.cp-wrap{margin-top:24px}
+.com-moldura>.vt,.com-moldura>.cp-wrap,.com-moldura>.mc-wrap{margin-top:24px}
+.com-moldura .auth{position:relative;inset:auto;height:auto;min-height:calc(100vh - 74px);overflow:clip;z-index:auto}
+.com-moldura .auth-arte{top:74px;min-height:calc(100vh - 74px)}
+@media(max-width:980px){.com-moldura .auth-arte{top:auto;min-height:300px}}
+.com-moldura .gt-rodape{position:relative;margin-top:0}
+.com-moldura>.vt~.gt-rodape,.com-moldura>.cp-wrap~.gt-rodape,.com-moldura>.mc-wrap~.gt-rodape{margin-top:40px}
 .gt-header{position:sticky;top:0;z-index:40;background:rgba(255,255,255,.92);backdrop-filter:blur(14px);box-shadow:0 6px 24px rgba(21,21,59,.07)}
 .gt-header-in{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:12px 0}
 .gt-header .gt-marca{color:#2A1F88}
