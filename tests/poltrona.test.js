@@ -172,3 +172,20 @@ test("escolha rápida: ônibus de Descoberto só com CEP 36690-000 (criança de 
   assert.equal(vs.find((v) => v.nome === "Ana Paula Souza").cep, "36690-000");
   assert.equal(vs.find((v) => v.nome === "Lia Souza").cep, "36690-000");
 });
+
+test("link de um veículo: mostra só ele, recusa poltrona em outro e não aplica o CEP", async () => {
+  await db.ref(`excursoes/${OWN}/${EX}/veiculos/v2`).set({ tipo: "van15", valorTransporte: 1000, ordem: 1 });
+  const g = await chamar({ method: "GET", query: { e: EX, v: "v2" } });
+  assert.deepEqual(g.body.veiculos.map((v) => v.id), ["v2"]);
+  assert.equal(g.body.veiculoLink.numero, 2);
+  assert.equal(g.body.vagas, null);
+  const todos = await chamar({ method: "GET", query: { e: EX } });
+  assert.equal(todos.body.veiculos.length, 2);
+  const velho = await chamar({ method: "GET", query: { e: EX, v: "vApagado" } });
+  assert.equal(velho.statusCode, 410);
+  const ana = { nome: "Ana Paula Souza", docTipo: "RG", docNumero: "MG-8.888.888" };
+  let r = await chamar({ method: "POST", body: { e: EX, v: "v2", pessoas: [{ ...ana, assento: { vk: "v1", n: 3 } }] } });
+  assert.equal(r.statusCode, 400); assert.match(r.body.erro, /outro veículo/);
+  r = await chamar({ method: "POST", body: { e: EX, v: "v1", pessoas: [{ ...ana, assento: { vk: "v1", n: 3 } }] } });
+  assert.equal(r.statusCode, 200, JSON.stringify(r.body));
+});

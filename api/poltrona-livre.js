@@ -50,14 +50,19 @@ export default async function handler(req, res) {
   try {
     if (req.method === "GET") {
       const { exId, own, ex, agencia } = await aberta(String(req.query.e || ""));
+      // ?v={veículo}: link de um veículo só (gerado no mapa de poltronas do painel)
+      const veiculos = await veiculosComOcupacao(own, exId, ex), vLink = String(req.query.v || "");
+      const doLink = vLink ? veiculos.find((v) => v.id === vLink) : null;
+      if (vLink && !doLink) throw new ErroUsuario("Este veículo não está mais na excursão. Peça um novo link à agência.", 410);
       return enviar(res, 200, {
         destino: ex.destino, agencia, dataSaida: ex.dataSaida, horaSaida: ex.horaSaida || "", dataRetorno: ex.dataRetorno || ex.dataSaida,
         horaRetorno: ex.horaRetorno || "", localSaida: ex.localSaida || "", saidas: R.saidasDe(ex), descricao: ex.descricao || "",
         folder: ex.folder?.caminho ? { caminho: ex.folder.caminho, raw: ex.folder.raw || "" } : null,
         whatsappCertidao: WHATSAPP_CERTIDAO, max: MAX, idadeColo: R.IDADE_COLO, valorColoCent: R.centavos(ex.valorColo),
         opcionais: R.opcionaisDe(ex),
-        vagas: await vagasDaExcursao(own, exId, ex),
-        veiculos: await veiculosComOcupacao(own, exId, ex)
+        vagas: doLink ? null : await vagasDaExcursao(own, exId, ex),
+        veiculos: doLink ? [doLink] : veiculos,
+        veiculoLink: doLink ? { numero: veiculos.indexOf(doLink) + 1, nome: doLink.nome } : null
       });
     }
 
@@ -127,6 +132,7 @@ export default async function handler(req, res) {
       }
       const a = p.assento;
       if (!a || !caps[a.vk] || !(a.n >= 1 && a.n <= caps[a.vk])) throw new ErroUsuario(`Escolha a poltrona de ${quem}.`, 400, { pessoa: i });
+      if (body.v && a.vk !== body.v) throw new ErroUsuario(`Este link é de outro veículo. Escolha de novo a poltrona de ${quem}.`, 400, { etapa: "poltronas", pessoa: i });
       const k = `${a.vk}/${a.n}`;
       if (usados.has(k)) throw new ErroUsuario("Duas pessoas escolheram a mesma poltrona.");
       usados.add(k);

@@ -1312,7 +1312,7 @@ async function salvarExcursao(id, vk, colabs = {}, colabsAntes = {}) {
 }
 
 /* ---------- link público de inscrição ---------- */
-const urlPoltrona = (exId) => `${location.origin}${location.pathname.replace(/[^/]*$/, "")}poltrona.html?e=${encodeURIComponent(exId)}`;
+const urlPoltrona = (exId, vk = "") => `${location.origin}${location.pathname.replace(/[^/]*$/, "")}poltrona.html?e=${encodeURIComponent(exId)}${vk ? `&v=${encodeURIComponent(vk)}` : ""}`;
 const urlReserva = (exId) => `${location.origin}${location.pathname.replace(/[^/]*$/, "")}reservar.html?e=${encodeURIComponent(exId)}`;
 const urlInscricao = (exId) => `${location.origin}${location.pathname.replace(/[^/]*$/, "")}inscricao.html?e=${encodeURIComponent(exId)}`;
 
@@ -2112,6 +2112,9 @@ function viewPoltronas() {
   const vs = veiculosDe(ex);
   if (!S.veicSel || !ex.veiculos?.[S.veicSel]) S.veicSel = vs[0]?.[0];
   const vk = S.veicSel, v = ex.veiculos[vk], vv = veic(v.tipo);
+  // com mais de um veículo, o link do cliente é só do veículo da aba escolhida
+  const nomeVeicLink = vs.length > 1 ? `Veículo ${vs.findIndex(([k]) => k === vk) + 1}` : "";
+  const linkPolt = urlPoltrona(exId, vs.length > 1 ? vk : "");
   const mapa = (S.poltronas[exId] || {})[vk] || {};
   const pessoas = ocupantes(exId);
   const nomes = Object.fromEntries(pessoas.map(([id, p]) => [id, p.nome]));
@@ -2136,10 +2139,10 @@ function viewPoltronas() {
     </div>
     <div class="link-polt no-print">
       <i class="fa-solid fa-chair"></i>
-      <span>Link para o cliente escolher a poltrona (nome e RG, sem pagamento):
-        <a href="${esc(urlPoltrona(exId))}" target="_blank" rel="noopener">${esc(urlPoltrona(exId).replace(/^https?:\/\//, ""))}</a></span>
+      <span>${nomeVeicLink ? `Link do ${nomeVeicLink} para` : "Link para"} o cliente escolher a poltrona (nome e RG, sem pagamento):
+        <a href="${esc(linkPolt)}" target="_blank" rel="noopener">${esc(linkPolt.replace(/^https?:\/\//, ""))}</a></span>
       <button type="button" class="btn btn-light btn-sm" id="btnCopiarPoltLink"><i class="fa-solid fa-copy"></i> Copiar</button>
-      <a class="btn btn-wpp btn-sm" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(`Escolha sua poltrona para a excursão *${ex.destino || ""}* (${fData(ex.dataSaida)}):\n${urlPoltrona(exId)}`)}"><i class="fa-brands fa-whatsapp"></i> WhatsApp</a>
+      <a class="btn btn-wpp btn-sm" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(`Escolha sua poltrona ${nomeVeicLink ? `no ${nomeVeicLink} ` : ""}para a excursão *${ex.destino || ""}* (${fData(ex.dataSaida)}):\n${linkPolt}`)}"><i class="fa-brands fa-whatsapp"></i> WhatsApp</a>
       ${ex.linkAtivo === false ? `<span class="pill pill-red" title="Reabra as inscrições em Link de inscrição">inscrições encerradas</span>` : ""}
     </div>
     ${pessoas.length > capacidadeEx(ex) ? `<div class="alerta"><i class="fa-solid fa-triangle-exclamation"></i> Há ${pessoas.length - capacidadeEx(ex)} viajante(s) sem lugar. Insira mais um veículo.
@@ -2248,8 +2251,8 @@ function viewPoltronas() {
   if ($("#btnVeicExtra2")) $("#btnVeicExtra2").onclick = () => formVeiculoExtra(exId);
   $("#btnPrint").onclick = () => window.print();
   $("#btnCopiarPoltLink").onclick = async () => {
-    try { await navigator.clipboard.writeText(urlPoltrona(exId)); } catch { /* sem área de transferência */ }
-    toast("Link da escolha de poltrona copiado");
+    try { await navigator.clipboard.writeText(linkPolt); } catch { /* sem área de transferência */ }
+    toast(nomeVeicLink ? `Link do ${nomeVeicLink} copiado` : "Link da escolha de poltrona copiado");
   };
   if ($("#btnDelVeic")) $("#btnDelVeic").onclick = () => confirmar(`Remover o veículo <strong>${esc(vv.nome)}</strong> desta excursão? As poltronas dele serão liberadas.`, async () => {
     await update(ref(db), { [`excursoes/${own}/${exId}/veiculos/${vk}`]: null, [`${base}/${vk}`]: null });

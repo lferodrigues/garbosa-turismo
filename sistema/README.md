@@ -258,6 +258,13 @@ No formulário da excursão, abaixo de **Local de saída**, toque em **Adicionar
 - Para separar um ônibus por cidade e CEP, continue usando o **Embarque do veículo** (acima).
 - Banco: `excursoes/{uid}/{exId}/saidas` = `[{ local, hora }]`, copiado para `inscricoes/{exId}` (sem mudança nas regras).
 
+## Link de um veículo só
+Em **Poltronas**, com mais de um veículo, o link do topo acompanha a aba escolhida: `poltrona.html?e={id}&v={veículo}`.
+- O cliente vê só esse veículo, e o servidor recusa poltrona em outro.
+- Esse link não pergunta o CEP, a não ser que o veículo tenha **Embarque do veículo** cadastrado. Como foi a agência que escolheu o veículo,
+  a regra do CEP 36690-000 não troca a pessoa de ônibus (só recusa quem já tem cadastro com esse CEP em outro veículo).
+- O link geral, com todos os veículos, continua em **Link de inscrição**.
+
 ## Escolha de poltrona sem pagamento (sem login)
 Os dois links ficam em **Link de inscrição** de cada excursão e funcionam enquanto as inscrições estiverem abertas.
 - `sistema/poltrona.html?e={id}` — **escolha rápida**: nome completo + RG (ou certidão de nascimento, com botão para enviar

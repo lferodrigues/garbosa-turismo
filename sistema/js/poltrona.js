@@ -8,6 +8,7 @@ const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const primeiro = (n) => String(n || "").trim().split(/\s+/)[0] || "";
 const exId = new URLSearchParams(location.search).get("e") || "";
+const vLink = new URLSearchParams(location.search).get("v") || ""; // link de um veículo só
 let EX = null, seq = 0;
 const S = { pessoas: [], ativo: 0, veic: null };
 /*
@@ -26,7 +27,7 @@ const fechada = (t, x) => { $("#fechTitulo").textContent = t; $("#fechTexto").te
 const msg = (n, t, tipo = "erro") => { const m = $(`#msg${n}`); m.textContent = t; m.className = "login-msg " + tipo; };
 
 async function api(corpo) {
-  const r = await fetch(corpo ? "/api/poltrona-livre" : `/api/poltrona-livre?e=${encodeURIComponent(exId)}`,
+  const r = await fetch(corpo ? "/api/poltrona-livre" : `/api/poltrona-livre?e=${encodeURIComponent(exId)}${vLink ? `&v=${encodeURIComponent(vLink)}` : ""}`,
     corpo ? { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(corpo) } : {});
   let d = {}; try { d = await r.json(); } catch { /* vazio */ }
   if (!r.ok) { const e = new Error(d.erro || "Não foi possível falar com o servidor."); e.dados = d; e.status = r.status; throw e; }
@@ -45,7 +46,8 @@ async function carregar() {
   $("#pRetorno").textContent = `${R.fData(EX.dataRetorno)}${EX.horaRetorno ? " às " + EX.horaRetorno : ""}`;
   $("#pLocal").textContent = EX.localSaida || "A combinar";
   // outras saídas da excursão + ônibus com saída própria (ex.: Descoberto, praça às 03:30)
-  const embTopo = htmlSaidasTopo(EX.saidas) + htmlEmbarquesTopo(EX.veiculos);
+  const seuVeiculo = EX.veiculoLink ? `<div><i class="fa-solid fa-bus"></i><small>Seu veículo</small><strong>Veículo ${EX.veiculoLink.numero} · ${esc(EX.veiculoLink.nome)}</strong></div>` : "";
+  const embTopo = seuVeiculo + htmlSaidasTopo(EX.saidas) + htmlEmbarquesTopo(EX.veiculos);
   if (embTopo) { $("#pLocal").closest("div").style.gridColumn = "auto"; $("#pLocal").closest("div").insertAdjacentHTML("afterend", embTopo); }
   $("#idadeColo").textContent = EX.idadeColo;
   if (EX.folder?.caminho) {
@@ -409,7 +411,7 @@ async function salvar(n) {
   msg(n, "Salvando…", "info");
   $("#btnSalvar").disabled = true;
   try {
-    const r = await api({ e: exId, pessoas: S.pessoas.map(corpoPessoa) });
+    const r = await api({ e: exId, v: vLink || undefined, pessoas: S.pessoas.map(corpoPessoa) });
     msg(n, "");
     mostrarResumo(r.poltronas);
   } catch (e) {
