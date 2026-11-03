@@ -48,8 +48,7 @@ async function carregar() {
   $("#pRetorno").textContent = `${R.fData(EX.dataRetorno)}${EX.horaRetorno ? " às " + EX.horaRetorno : ""}`;
   $("#pLocal").textContent = EX.localSaida || "A combinar";
   // outras saídas da excursão + ônibus com saída própria (ex.: Descoberto, praça às 03:30)
-  const seuVeiculo = EX.veiculoLink ? `<div><i class="fa-solid fa-bus"></i><small>Seu veículo</small><strong>Veículo ${EX.veiculoLink.numero} · ${esc(EX.veiculoLink.nome)}</strong></div>` : "";
-  const embTopo = seuVeiculo + htmlSaidasTopo(EX.saidas) + htmlEmbarquesTopo(EX.veiculos);
+  const embTopo = htmlSaidasTopo(EX.saidas) + htmlEmbarquesTopo(EX.veiculos);
   if (embTopo) { $("#pLocal").closest("div").style.gridColumn = "auto"; $("#pLocal").closest("div").insertAdjacentHTML("afterend", embTopo); }
   $("#idadeColo").textContent = EX.idadeColo;
   if (EX.folder?.caminho) {

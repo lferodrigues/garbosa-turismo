@@ -56,8 +56,7 @@ async function carregar() {
   $("#cRetorno").textContent = `${R.fData(EX.dataRetorno)}${EX.horaRetorno ? " às " + EX.horaRetorno : ""}`;
   $("#cLocal").textContent = EX.localSaida || "A combinar";
   // outras saídas da excursão + ônibus com saída própria (ex.: Descoberto, praça às 03:30)
-  const seuVeiculo = EX.veiculoLink ? `<div><i class="fa-solid fa-bus"></i><small>Seu veículo</small><strong>Veículo ${EX.veiculoLink.numero} · ${esc(EX.veiculoLink.nome)}</strong></div>` : "";
-  $("#cLocal").closest("div").insertAdjacentHTML("afterend", seuVeiculo + htmlSaidasTopo(EX.saidas) + htmlEmbarquesTopo(EX.veiculos));
+  $("#cLocal").closest("div").insertAdjacentHTML("afterend", htmlSaidasTopo(EX.saidas) + htmlEmbarquesTopo(EX.veiculos));
   $("#cValor").textContent = R.brl(EX.valorCent);
   const infCent = EX.valorInfantilCent ?? EX.valorCent;
   $("#cColo").textContent = [
