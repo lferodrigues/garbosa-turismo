@@ -397,3 +397,11 @@ test("selo do catálogo leva também as saídas de outras cidades (Descoberto) p
   const r = await chamar(venda, { method: "GET", query: { vagas: "1" } });
   assert.deepEqual(r.body.s1.saidas, ["Descoberto: Praça, 03:30"]);
 });
+
+test("venda: traz as fotos da vitrine", async () => {
+  await db.ref(`excursoes/${OWN}/${EX}/fotosLocal`).set([{ caminho: "Assets/img/excursoes/local.jpg" }, { raw: "sem-caminho" }]);
+  await db.ref(`excursoes/${OWN}/${EX}/fotosVeiculos`).set([{ caminho: "Assets/img/excursoes/bus.jpg", raw: "https://raw/bus.jpg" }]);
+  const g = await chamar(venda, { method: "GET", query: { e: EX } });
+  assert.deepEqual(g.body.fotosLocal, [{ caminho: "Assets/img/excursoes/local.jpg", raw: "" }]);
+  assert.deepEqual(g.body.fotosVeiculos, [{ caminho: "Assets/img/excursoes/bus.jpg", raw: "https://raw/bus.jpg" }]);
+});

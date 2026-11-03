@@ -1,4 +1,4 @@
-// Vitrine do link de escolha de poltrona: fotos do local, resumo da viagem, fotos dos veículos e botão Escolher poltrona.
+// Vitrine dos links de poltrona e de compra: fotos do local, resumo da viagem, fotos dos veículos e botão para seguir (escolher poltrona ou comprar).
 import * as R from "./venda-regras.js?v=23";
 
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -27,11 +27,11 @@ function desenharFotos(box, fotos, classe, destino) {
   pintar();
 }
 
-export function montarVitrine(el, EX, aoComprar) {
+export function montarVitrine(el, EX, aoComprar, rotulo = "Escolher poltrona") {
   const preco = EX.valorCent > 0 ? R.brl(EX.valorCent) : "";
   const selo = EX.vagas?.selo, livres = EX.vagas?.livres;
   const saidas = [[EX.localSaida, EX.horaSaida], ...(EX.saidas || []).map((s) => [s.local, s.hora])].filter(([l]) => l);
-  const botao = `<button type="button" class="btn btn-primary btn-block vt-comprar">Escolher poltrona</button>`;
+  const botao = `<button type="button" class="btn btn-primary btn-block vt-comprar">${esc(rotulo)}</button>`;
   el.innerHTML = `
     <div class="vt-barra">
       <div class="vt-barra-nome"><strong>${esc(EX.destino)}</strong><small><i class="fa-solid fa-location-dot"></i> ${esc(EX.localSaida || "Local a combinar")}</small></div>

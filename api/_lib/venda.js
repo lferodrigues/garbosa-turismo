@@ -33,6 +33,9 @@ export function situacaoVenda(ex, hoje = R.hojeBR()) {
   return { ativa: true };
 }
 
+/** Fotos da vitrine (local ou veículos) sem entradas quebradas */
+export const fotosDe = (lista) => Object.values(lista || {}).filter((f) => f?.caminho).map((f) => ({ caminho: f.caminho, raw: f.raw || "" }));
+
 /** Lista de veículos com as poltronas já ocupadas (só números — nunca nomes) */
 export async function veiculosComOcupacao(own, exId, ex) {
   const pol = (await (await db()).ref(`poltronas/${own}/${exId}`).get()).val() || {};

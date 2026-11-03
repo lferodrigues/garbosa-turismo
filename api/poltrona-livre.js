@@ -11,13 +11,12 @@
 // Funciona enquanto as inscrições da excursão estiverem abertas (link de inscrição ativo).
 import { db } from "./_lib/firebase.js";
 import { enviar, lerCorpo, soMetodo, tratarErro, ErroUsuario } from "./_lib/http.js";
-import { carregarExcursao, veiculosComOcupacao, vagasDaExcursao, trocarPoltronas, liberarPoltronas, notificar, conferirEmbarque, R } from "./_lib/venda.js";
+import { carregarExcursao, veiculosComOcupacao, vagasDaExcursao, trocarPoltronas, liberarPoltronas, notificar, conferirEmbarque, fotosDe, R } from "./_lib/venda.js";
 
 export const WHATSAPP_CERTIDAO = "5532999775281";
 const MAX = 10;
 const texto = (v, max) => String(v ?? "").replace(/\s+/g, " ").trim().slice(0, max);
 const primeiro = (n) => String(n || "").split(" ")[0];
-const fotosDe = (lista) => Object.values(lista || {}).filter((f) => f?.caminho).map((f) => ({ caminho: f.caminho, raw: f.raw || "" }));
 /** "Ana Paula Souza" → "Ana S." (não expõe o nome inteiro para quem só digitou um documento) */
 const abreviar = (n) => { const p = String(n || "").trim().split(/\s+/); return p.length > 1 ? `${p[0]} ${p.at(-1)[0]}.` : p[0] || ""; };
 

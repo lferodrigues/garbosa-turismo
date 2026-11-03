@@ -2,6 +2,7 @@
 import * as R from "./venda-regras.js?v=23";
 import { htmlOnibus, htmlSaidasTopo, htmlEmbarquesTopo, avisoEmbarque, etiquetaEmbarque } from "./mapa-onibus.js?v=4";
 import { htmlOpcionais, ligarOpcionais, resumoOpcionais } from "./opcionais-ui.js?v=1";
+import { montarVitrine } from "./vitrine.js?v=2";
 import { aoMudarSessao, telaAcesso, formPerfil, lerPerfil, salvarPerfil, paraPerfil, sair, api as apiConta } from "./conta-viajante.js?v=16";
 
 const $ = (s, el = document) => el.querySelector(s);
@@ -76,7 +77,19 @@ async function carregar() {
   restaurar();
   if (!S.pessoas.length) S.pessoas = [novaPessoa(true)];
   if (RESERVA) { renderPessoas(); irEtapa(1, false); return mostrar("#compra"); }
-  aoMudarSessao(entrouOuSaiu);
+  // primeiro a vitrine; o login só começa depois do Comprar. Quem já passou por ela (voltou do login do Google ou recarregou) segue direto
+  const chaveVitrine = `vitrine-${exId}`;
+  let jaViu = false;
+  try { jaViu = sessionStorage.getItem(chaveVitrine) === "1"; } catch { /* sem armazenamento */ }
+  if (jaViu) return aoMudarSessao(entrouOuSaiu);
+  montarVitrine($("#vitrine"), EX, () => {
+    try { sessionStorage.setItem(chaveVitrine, "1"); } catch { /* sem armazenamento */ }
+    $("#vitrine").classList.add("hidden");
+    $("#loading").classList.remove("hidden");
+    window.scrollTo(0, 0);
+    aoMudarSessao(entrouOuSaiu);
+  }, "Comprar");
+  mostrar("#vitrine");
 }
 
 /* ---------- conta do viajante (login + pré-cadastro) ---------- */
