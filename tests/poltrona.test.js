@@ -201,10 +201,12 @@ test("vitrine: GET traz preço e as fotos do local e dos veículos, sem entradas
 
 test("vitrine: personalização da página vem no GET, limpa e com valores padrão", async () => {
   let g = await chamar({ method: "GET", query: { e: EX } });
-  assert.deepEqual(g.body.vitrine, { titulo: "", aviso: "", ocultarPreco: false });
-  await db.ref(`excursoes/${OWN}/${EX}/vitrine`).set({ titulo: " Rolê Maromba ", aviso: "Pode mudar.", ocultarPreco: true });
+  assert.deepEqual(g.body.vitrine, { titulo: "", aviso: "", ocultarPreco: false, veiculo: { empresa: "", assentos: 0, categoria: "", descricao: "", itens: [] } });
+  await db.ref(`excursoes/${OWN}/${EX}/vitrine`).set({ titulo: " Rolê Maromba ", aviso: "Pode mudar.", ocultarPreco: true,
+    veiculo: { empresa: " Rio Novo ", assentos: "46", categoria: "Semi-leito", descricao: "Poltronas reclináveis", itens: ["wifi", "banheiro"] } });
   g = await chamar({ method: "GET", query: { e: EX } });
-  assert.deepEqual(g.body.vitrine, { titulo: "Rolê Maromba", aviso: "Pode mudar.", ocultarPreco: true });
+  assert.deepEqual(g.body.vitrine, { titulo: "Rolê Maromba", aviso: "Pode mudar.", ocultarPreco: true,
+    veiculo: { empresa: "Rio Novo", assentos: 46, categoria: "Semi-leito", descricao: "Poltronas reclináveis", itens: ["wifi", "banheiro"] } });
 });
 
 test("vitrine: fotos só dos adicionais que ainda existem", async () => {

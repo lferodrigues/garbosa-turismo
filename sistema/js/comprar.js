@@ -2,7 +2,7 @@
 import * as R from "./venda-regras.js?v=23";
 import { htmlOnibus, htmlSaidasTopo, htmlEmbarquesTopo, avisoEmbarque, etiquetaEmbarque } from "./mapa-onibus.js?v=4";
 import { htmlOpcionais, ligarOpcionais, resumoOpcionais } from "./opcionais-ui.js?v=1";
-import { montarVitrine, mostrarMoldura } from "./vitrine.js?v=7";
+import { montarVitrine, mostrarMoldura } from "./vitrine.js?v=8";
 import { aoMudarSessao, telaAcesso, formPerfil, lerPerfil, salvarPerfil, paraPerfil, sair, api as apiConta } from "./conta-viajante.js?v=16";
 
 const $ = (s, el = document) => el.querySelector(s);

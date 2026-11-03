@@ -3,8 +3,23 @@ import * as R from "./venda-regras.js?v=23";
 
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 export const AVISO_VEICULOS = "Os veículos podem mudar de acordo com a disponibilidade ou quantidade de passageiros.";
+export const CATEGORIAS_VEICULO = ["Executivo", "Double Decker (DD)", "Semi-leito"];
+export const ITENS_VEICULO = [["wifi", "Wi-Fi", "fa-wifi"], ["ar", "Ar-condicionado", "fa-snowflake"], ["carregador", "Carregador", "fa-plug"], ["frigobar", "Frigobar", "fa-bottle-water"], ["banheiro", "Banheiro", "fa-restroom"]];
 const quando = (d, h) => `${R.fData(d)}${h ? ` às ${h}` : ""}`;
 const imgDoSite = (f, cls, alt) => `<img class="${cls}" src="../${esc(f.caminho)}" alt="${esc(alt)}" loading="lazy" data-raw="${esc(f.raw || "")}">`;
+
+/** Dados que ficam ao lado da foto dos veículos */
+function htmlDadosVeiculo(d) {
+  if (!d) return "";
+  const linhas = [["Empresa", d.empresa], ["Assentos", d.assentos > 0 ? d.assentos : ""], ["Categoria", d.categoria]].filter(([, v]) => v);
+  const itens = ITENS_VEICULO.filter(([k]) => (d.itens || []).includes(k));
+  if (!linhas.length && !itens.length && !d.descricao) return "";
+  return `<div class="vt-veic-dados">
+    ${linhas.length ? `<dl>${linhas.map(([k, v]) => `<div><dt>${k}</dt><dd>${esc(v)}</dd></div>`).join("")}</dl>` : ""}
+    ${d.descricao ? `<p class="vt-desc">${esc(d.descricao)}</p>` : ""}
+    ${itens.length ? `<ul class="vt-veic-itens">${itens.map(([, nome, ic]) => `<li><i class="fa-solid ${ic}"></i> ${nome}</li>`).join("")}</ul>` : ""}
+  </div>`;
+}
 
 function ligarRaw(el) {
   el.querySelectorAll("img[data-raw]").forEach((img) => {
@@ -103,6 +118,7 @@ export function mostrarMoldura() {
 export function montarVitrine(el, EX, aoComprar, rotulo = "Escolher poltrona") {
   const titulo = EX.vitrine?.titulo || EX.destino;
   const preco = EX.valorCent > 0 && !EX.vitrine?.ocultarPreco ? R.brl(EX.valorCent) : "";
+  const dadosVeiculo = htmlDadosVeiculo(EX.vitrine?.veiculo);
   const selo = EX.vagas?.selo, livres = EX.vagas?.livres;
   const saidas = [[EX.localSaida, EX.horaSaida], ...(EX.saidas || []).map((s) => [s.local, s.hora])].filter(([l]) => l);
   const botao = `<button type="button" class="btn btn-primary btn-block vt-comprar">${esc(rotulo)}</button>`;
@@ -135,9 +151,12 @@ export function montarVitrine(el, EX, aoComprar, rotulo = "Escolher poltrona") {
       <h2>Descrição</h2>
       <p class="vt-desc">${esc(EX.descricao)}</p>
     </section>` : ""}
-    ${EX.fotosVeiculos?.length ? `<section class="vt-veiculos">
+    ${EX.fotosVeiculos?.length || dadosVeiculo ? `<section class="vt-veiculos">
       <h2>Veículos</h2>
-      <div class="vt-fotos vt-fotos-veic"></div>
+      <div class="vt-veic-lado ${EX.fotosVeiculos?.length && dadosVeiculo ? "duplo" : ""}">
+        ${EX.fotosVeiculos?.length ? `<div class="vt-fotos vt-fotos-veic"></div>` : ""}
+        ${dadosVeiculo}
+      </div>
       <p class="vt-nota"><i class="fa-solid fa-circle-info"></i> ${esc(EX.vitrine?.aviso || AVISO_VEICULOS)}</p>
     </section>` : ""}
     ${EX.opcionais?.length ? `<section class="vt-veiculos">
