@@ -403,5 +403,5 @@ test("venda: traz as fotos da vitrine", async () => {
   await db.ref(`excursoes/${OWN}/${EX}/fotosVeiculos`).set([{ caminho: "Assets/img/excursoes/bus.jpg", raw: "https://raw/bus.jpg" }]);
   const g = await chamar(venda, { method: "GET", query: { e: EX } });
   assert.deepEqual(g.body.fotosLocal, [{ caminho: "Assets/img/excursoes/local.jpg", raw: "" }]);
-  assert.deepEqual(g.body.fotosVeiculos, [{ caminho: "Assets/img/excursoes/bus.jpg", raw: "https://raw/bus.jpg" }]);
+  assert.deepEqual(g.body.fotosVeiculos.map((f) => [f.caminho, f.raw]), [["Assets/img/excursoes/bus.jpg", "https://raw/bus.jpg"]]);
 });

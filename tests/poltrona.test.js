@@ -195,7 +195,7 @@ test("vitrine: GET traz preço e as fotos do local e dos veículos, sem entradas
   await db.ref(`excursoes/${OWN}/${EX}/fotosVeiculos`).set([{ caminho: "Assets/img/excursoes/bus.jpg" }, { raw: "sem-caminho" }]);
   const g = await chamar({ method: "GET", query: { e: EX } });
   assert.deepEqual(g.body.fotosLocal, [{ caminho: "Assets/img/excursoes/local.jpg", raw: "https://raw/local.jpg" }]);
-  assert.deepEqual(g.body.fotosVeiculos, [{ caminho: "Assets/img/excursoes/bus.jpg", raw: "" }]);
+  assert.deepEqual(g.body.fotosVeiculos, [{ caminho: "Assets/img/excursoes/bus.jpg", raw: "", dados: { empresa: "", assentos: 0, categoria: "", descricao: "", itens: [] } }]);
   assert.ok(g.body.valorCent >= 0);
 });
 
@@ -215,4 +215,14 @@ test("vitrine: fotos só dos adicionais que ainda existem", async () => {
   const g = await chamar({ method: "GET", query: { e: EX } });
   assert.deepEqual(g.body.fotosOpcionais, { o1: [{ caminho: "Assets/img/excursoes/almoco.jpg", raw: "" }] });
   assert.deepEqual(g.body.opcionais.map((o) => o.titulo), ["Almoço"]);
+});
+
+test("vitrine: cada foto de veículo traz os dados dela", async () => {
+  await db.ref(`excursoes/${OWN}/${EX}/fotosVeiculos`).set([
+    { caminho: "Assets/img/a.jpg", dados: { empresa: " Rio Novo ", assentos: "46", categoria: "Executivo", itens: ["wifi"] } },
+    { caminho: "Assets/img/b.jpg", dados: { empresa: "Outra", assentos: 60, categoria: "Double Decker (DD)", descricao: "Leito", itens: ["banheiro"] } }
+  ]);
+  const g = await chamar({ method: "GET", query: { e: EX } });
+  assert.deepEqual(g.body.fotosVeiculos.map((f) => [f.dados.empresa, f.dados.assentos, f.dados.categoria, f.dados.itens]),
+    [["Rio Novo", 46, "Executivo", ["wifi"]], ["Outra", 60, "Double Decker (DD)", ["banheiro"]]]);
 });

@@ -39,15 +39,18 @@ export const fotosDe = (lista) => Object.values(lista || {}).filter((f) => f?.ca
 /** Fotos de cada adicional que ainda existe: { idDoOpcional: [fotos] } */
 export const fotosOpcionaisDe = (ex) => Object.fromEntries(R.opcionaisDe(ex).map((o) => [o.id, fotosDe(ex.fotosOpcionais?.[o.id])]));
 
-/** Personalização da vitrine (página Vitrine do painel) */
+const txt = (t, max) => String(t || "").trim().slice(0, max);
+const dadosVeiculoDe = (d) => ({ empresa: txt(d?.empresa, 80), assentos: Math.max(0, parseInt(d?.assentos, 10) || 0), categoria: txt(d?.categoria, 40), descricao: txt(d?.descricao, 500),
+  itens: Object.values(d?.itens || {}).map((x) => txt(x, 20)).filter(Boolean) });
+
+/** Fotos dos veículos, cada uma com os dados do seu veículo */
+export const fotosVeiculosDe = (ex) => Object.values(ex?.fotosVeiculos || {}).filter((f) => f?.caminho)
+  .map((f) => ({ caminho: f.caminho, raw: f.raw || "", dados: dadosVeiculoDe(f.dados) }));
+
+/** Personalização da vitrine (página Vitrine do painel); veiculo: dados antigos, comuns a todas as fotos */
 export const vitrineDe = (ex) => {
-  const v = ex?.vitrine || {}, d = v.veiculo || {};
-  const txt = (t, max) => String(t || "").trim().slice(0, max);
-  return {
-    titulo: txt(v.titulo, 120), aviso: txt(v.aviso, 200), ocultarPreco: v.ocultarPreco === true,
-    veiculo: { empresa: txt(d.empresa, 80), assentos: Math.max(0, parseInt(d.assentos, 10) || 0), categoria: txt(d.categoria, 40), descricao: txt(d.descricao, 500),
-      itens: Object.values(d.itens || {}).map((x) => txt(x, 20)).filter(Boolean) }
-  };
+  const v = ex?.vitrine || {};
+  return { titulo: txt(v.titulo, 120), aviso: txt(v.aviso, 200), ocultarPreco: v.ocultarPreco === true, veiculo: dadosVeiculoDe(v.veiculo) };
 };
 
 /** Lista de veículos com as poltronas já ocupadas (só números — nunca nomes) */

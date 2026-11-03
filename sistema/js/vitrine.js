@@ -8,7 +8,7 @@ export const ITENS_VEICULO = [["wifi", "Wi-Fi", "fa-wifi"], ["ar", "Ar-condicion
 const quando = (d, h) => `${R.fData(d)}${h ? ` às ${h}` : ""}`;
 const imgDoSite = (f, cls, alt) => `<img class="${cls}" src="../${esc(f.caminho)}" alt="${esc(alt)}" loading="lazy" data-raw="${esc(f.raw || "")}">`;
 
-/** Dados que ficam ao lado da foto dos veículos */
+/** Dados que ficam ao lado da foto do veículo; mudam junto com a foto */
 function htmlDadosVeiculo(d) {
   if (!d) return "";
   const linhas = [["Empresa", d.empresa], ["Assentos", d.assentos > 0 ? d.assentos : ""], ["Categoria", d.categoria]].filter(([, v]) => v);
@@ -28,10 +28,11 @@ function ligarRaw(el) {
 }
 
 /** Carrossel com botões de voltar e avançar (fotos do local e dos veículos) */
-function desenharFotos(box, fotos, classe, alt) {
-  let i = 0;
+function desenharFotos(box, fotos, classe, alt, inicio = 0, aoTrocar = () => {}) {
+  let i = inicio;
   const pintar = () => {
     const f = fotos[i];
+    aoTrocar(f);
     box.innerHTML = !f ? `<div class="vt-sem-foto"><i class="fa-regular fa-image"></i></div>` : `
       ${imgDoSite(f, classe, alt)}
       ${fotos.length > 1 ? `<button type="button" class="vt-seta esq" aria-label="Foto anterior"><i class="fa-solid fa-chevron-left"></i></button>
@@ -115,10 +116,12 @@ export function mostrarMoldura() {
     </footer>`);
 }
 
-export function montarVitrine(el, EX, aoComprar, rotulo = "Escolher poltrona") {
+export function montarVitrine(el, EX, aoComprar, rotulo = "Escolher poltrona", fotoVeiculoInicial = 0) {
   const titulo = EX.vitrine?.titulo || EX.destino;
   const preco = EX.valorCent > 0 && !EX.vitrine?.ocultarPreco ? R.brl(EX.valorCent) : "";
-  const dadosVeiculo = htmlDadosVeiculo(EX.vitrine?.veiculo);
+  const fotosVeic = EX.fotosVeiculos || [], dadosComuns = htmlDadosVeiculo(EX.vitrine?.veiculo); // dadosComuns: gravados antes de cada foto ter os seus
+  const dadosDaFoto = (f) => htmlDadosVeiculo(f?.dados) || dadosComuns;
+  const temDados = fotosVeic.some((f) => dadosDaFoto(f));
   const selo = EX.vagas?.selo, livres = EX.vagas?.livres;
   const saidas = [[EX.localSaida, EX.horaSaida], ...(EX.saidas || []).map((s) => [s.local, s.hora])].filter(([l]) => l);
   const botao = `<button type="button" class="btn btn-primary btn-block vt-comprar">${esc(rotulo)}</button>`;
@@ -151,11 +154,11 @@ export function montarVitrine(el, EX, aoComprar, rotulo = "Escolher poltrona") {
       <h2>Descrição</h2>
       <p class="vt-desc">${esc(EX.descricao)}</p>
     </section>` : ""}
-    ${EX.fotosVeiculos?.length || dadosVeiculo ? `<section class="vt-veiculos">
+    ${fotosVeic.length || dadosComuns ? `<section class="vt-veiculos">
       <h2>Veículos</h2>
-      <div class="vt-veic-lado ${EX.fotosVeiculos?.length && dadosVeiculo ? "duplo" : ""}">
-        ${EX.fotosVeiculos?.length ? `<div class="vt-fotos vt-fotos-veic"></div>` : ""}
-        ${dadosVeiculo}
+      <div class="vt-veic-lado ${fotosVeic.length && temDados ? "duplo" : ""}">
+        ${fotosVeic.length ? `<div class="vt-fotos vt-fotos-veic"></div>` : ""}
+        <div class="vt-veic-texto">${fotosVeic.length ? "" : dadosComuns}</div>
       </div>
       <p class="vt-nota"><i class="fa-solid fa-circle-info"></i> ${esc(EX.vitrine?.aviso || AVISO_VEICULOS)}</p>
     </section>` : ""}
@@ -177,5 +180,6 @@ export function montarVitrine(el, EX, aoComprar, rotulo = "Escolher poltrona") {
   if (EX.fotosLocal?.length) desenharFotos(box, EX.fotosLocal, "vt-foto", `Foto de ${EX.destino}`);
   else desenharFotos(box, EX.folder?.caminho ? [EX.folder] : [], "vt-foto vt-foto-folder", `Folder de ${EX.destino}`);
   const veiculos = el.querySelector(".vt-fotos-veic");
-  if (veiculos) desenharFotos(veiculos, EX.fotosVeiculos, "vt-foto", "Foto do veículo");
+  const texto = el.querySelector(".vt-veic-texto");
+  if (veiculos) desenharFotos(veiculos, fotosVeic, "vt-foto", "Foto do veículo", Math.max(0, fotoVeiculoInicial), (f) => { texto.innerHTML = dadosDaFoto(f); });
 }

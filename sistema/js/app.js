@@ -2,7 +2,7 @@ import { auth, db, ADMIN_EMAIL, authSecundario } from "./firebase.js?v=8";
 import { baixarXLSX, baixarPDF, baixarPDFPoltronas, carregarXLSX } from "./exportar.js?v=9";
 import * as R from "./venda-regras.js?v=23";
 import { htmlOnibus } from "./mapa-onibus.js?v=3";
-import { montarVitrine, AVISO_VEICULOS, CATEGORIAS_VEICULO, ITENS_VEICULO } from "./vitrine.js?v=8";
+import { montarVitrine, AVISO_VEICULOS, CATEGORIAS_VEICULO, ITENS_VEICULO } from "./vitrine.js?v=9";
 import {
   onAuthStateChanged, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword,
   sendPasswordResetEmail, updateProfile,
@@ -1702,7 +1702,7 @@ function arrastarFotos(box, fotos, aoSoltar) {
 }
 
 /** Lista de fotos da vitrine: salvas no GitHub do site, como o folder */
-function caixaFotos(el, fotos, titulo, dica, nomeBase, aoMudar) {
+function caixaFotos(el, fotos, titulo, dica, nomeBase, aoMudar, comDados = false) {
   const desenhar = () => {
     const cheio = fotos.length >= MAX_FOTOS;
     el.innerHTML = `<strong style="display:block;font-size:.85rem;margin-bottom:6px">${esc(titulo)} (até ${MAX_FOTOS})</strong>
@@ -1713,7 +1713,7 @@ function caixaFotos(el, fotos, titulo, dica, nomeBase, aoMudar) {
     arrastarFotos($(".veic-fotos", el), fotos, () => { desenhar(); aoMudar(); });
     $$("[data-rm-foto]", el).forEach((b) => b.addEventListener("click", () => { fotos.splice(+b.dataset.rmFoto, 1); desenhar(); aoMudar(); }));
     const daGaleria = $("[data-da-galeria]", el);
-    if (daGaleria) daGaleria.onclick = () => escolherDaGaleria(fotos, () => { desenhar(); aoMudar(); });
+    if (daGaleria) daGaleria.onclick = () => escolherDaGaleria(fotos, () => { desenhar(); aoMudar(); }, comDados);
     const inp = $("input[type=file]", el);
     if (!inp) return;
     inp.onchange = async (ev) => {
@@ -3128,7 +3128,7 @@ function albunsGaleria() {
     const juntar = (lista, tipo) => Object.values(lista || {}).forEach((f) => {
       if (!f?.caminho || vistos.has(f.caminho)) return;
       vistos.add(f.caminho);
-      fotos.push({ caminho: f.caminho, raw: f.raw || "", tipo });
+      fotos.push({ caminho: f.caminho, raw: f.raw || "", tipo, dados: f.dados || null });
     });
     juntar(e.fotosLocal, "Local");
     juntar(e.fotosVeiculos, "Veículo");
@@ -3171,7 +3171,7 @@ function viewGaleria() {
   if (b) b.addEventListener("input", () => { S.galBusca = b.value; const pos = b.selectionStart; render(); const n = $("#galBusca"); n.focus(); n.setSelectionRange(pos, pos); });
 }
 /** Escolhe fotos dos álbuns para reaproveitar: ficam no mesmo arquivo, sem enviar de novo */
-function escolherDaGaleria(fotos, aoEscolher) {
+function escolherDaGaleria(fotos, aoEscolher, comDados = false) {
   const albuns = albunsGaleria();
   if (!albuns.length) return toast("A galeria ainda não tem fotos.", "erro");
   const resta = MAX_FOTOS - fotos.length, ja = new Set(fotos.map((f) => f.caminho)), marcadas = new Map();
@@ -3182,7 +3182,7 @@ function escolherDaGaleria(fotos, aoEscolher) {
     { html: "Cancelar", acao: fecharModal },
     { html: `<i class="fa-solid fa-plus"></i> Adicionar`, classe: "btn-primary", acao: () => {
       if (!marcadas.size) return toast("Toque nas fotos que quer usar.", "erro");
-      marcadas.forEach((f) => fotos.push({ caminho: f.caminho, raw: f.raw }));
+      marcadas.forEach((f) => fotos.push({ caminho: f.caminho, raw: f.raw, ...(comDados && f.dados ? { dados: novosDados(f.dados) } : {}) }));
       fecharModal(); aoEscolher();
     } }
   ], true);
@@ -3206,12 +3206,12 @@ function escolherDaGaleria(fotos, aoEscolher) {
 
 /* Vitrine: página para personalizar a vitrine de uma excursão, com prévia ao lado. Abre pela lista de Excursões. */
 const VIT = { exId: null, sujo: false };
+const novosDados = (d) => ({ empresa: d?.empresa || "", assentos: d?.assentos || "", categoria: d?.categoria || "", descricao: d?.descricao || "", itens: Object.values(d?.itens || {}) });
 function carregarVit(exId, ex) {
   const fotos = (l) => Object.values(l || {}).filter((x) => x?.caminho).map((x) => ({ ...x }));
-  const d = ex.vitrine?.veiculo || {};
-  Object.assign(VIT, { exId, sujo: false, titulo: ex.vitrine?.titulo || "",
-    veiculo: { empresa: d.empresa || "", assentos: d.assentos || "", categoria: d.categoria || "", descricao: d.descricao || "", itens: Object.values(d.itens || {}) }, descricao: ex.descricao || "", aviso: ex.vitrine?.aviso || "",
-    ocultarPreco: ex.vitrine?.ocultarPreco === true, local: fotos(ex.fotosLocal), veiculos: fotos(ex.fotosVeiculos),
+  const comum = ex.vitrine?.veiculo; // dados antigos, de quando valiam para todas as fotos
+  Object.assign(VIT, { exId, sujo: false, comum: comum || null, fotoSel: null, titulo: ex.vitrine?.titulo || "", descricao: ex.descricao || "", aviso: ex.vitrine?.aviso || "",
+    ocultarPreco: ex.vitrine?.ocultarPreco === true, local: fotos(ex.fotosLocal), veiculos: fotos(ex.fotosVeiculos).map((f) => ({ ...f, dados: novosDados(f.dados || comum) })),
     opcionais: Object.fromEntries(R.opcionaisDe(ex).map((o) => [o.id, fotos(ex.fotosOpcionais?.[o.id])])) });
 }
 function viewVitrine() {
@@ -3230,12 +3230,7 @@ function viewVitrine() {
         <label class="span2">Descrição da excursão (opcional)<textarea data-v="descricao" rows="6" maxlength="1500" placeholder="O que está incluso, roteiro, observações…">${esc(VIT.descricao)}</textarea><small class="muted">Aparece também na página de venda e no catálogo do site.</small></label>
         <div class="span2" id="vitFotosLocal"></div>
         <div class="span2" id="vitFotosVeic"></div>
-        <strong class="span2">Dados dos veículos</strong>
-        <label>Empresa de transporte<input data-vv="empresa" maxlength="80" value="${esc(VIT.veiculo.empresa)}"></label>
-        <label>Quantidade de assentos<input data-vv="assentos" type="number" min="1" max="99" value="${esc(VIT.veiculo.assentos)}" placeholder="${veiculosDe(ex)[0] ? veic(veiculosDe(ex)[0][1].tipo).cap : ""}"></label>
-        <label class="span2">Categoria<select data-vv="categoria"><option value="">Não informar</option>${CATEGORIAS_VEICULO.map((c) => `<option ${c === VIT.veiculo.categoria ? "selected" : ""}>${esc(c)}</option>`).join("")}</select></label>
-        <div class="span2 vit-itens">${ITENS_VEICULO.map(([k, nome]) => `<label class="check"><input type="checkbox" data-item="${k}" ${VIT.veiculo.itens.includes(k) ? "checked" : ""}> ${nome}</label>`).join("")}</div>
-        <label class="span2">Descrição do veículo (opcional)<textarea data-vv="descricao" rows="3" maxlength="500" placeholder="Aparece ao lado da foto">${esc(VIT.veiculo.descricao)}</textarea></label>
+        <div class="span2" id="vitDadosVeic"></div>
         <label class="span2">Aviso abaixo das fotos dos veículos<input data-v="aviso" maxlength="200" value="${esc(VIT.aviso)}" placeholder="${esc(AVISO_VEICULOS)}"></label>
         <div class="span2" id="vitAdicionais">${R.opcionaisDe(ex).length
           ? `<strong style="display:block;margin-bottom:8px">Adicionais</strong>${R.opcionaisDe(ex).map((o) => `<div data-adicional="${esc(o.id)}" style="margin-bottom:12px"></div>`).join("")}`
@@ -3250,29 +3245,58 @@ function viewVitrine() {
     destino: ex.destino, agencia: nomeAgencia(own), dataSaida: ex.dataSaida, horaSaida: ex.horaSaida, dataRetorno: ex.dataRetorno, horaRetorno: ex.horaRetorno,
     localSaida: ex.localSaida, saidas: R.saidasDe(ex), valorCent: R.precoPessoaCent(ex), folder: ex.folder, descricao: VIT.descricao.trim(), fotosLocal: VIT.local, fotosVeiculos: VIT.veiculos,
     opcionais: R.opcionaisDe(ex), fotosOpcionais: VIT.opcionais,
-    vitrine: { titulo: VIT.titulo.trim(), aviso: VIT.aviso.trim(), ocultarPreco: VIT.ocultarPreco, veiculo: VIT.veiculo }
-  }, () => {}, ex.venda?.ativa ? "Comprar" : "Escolher poltrona");
+    vitrine: { titulo: VIT.titulo.trim(), aviso: VIT.aviso.trim(), ocultarPreco: VIT.ocultarPreco, veiculo: VIT.veiculos.length ? null : VIT.comum }
+  }, () => {}, ex.venda?.ativa ? "Comprar" : "Escolher poltrona", VIT.veiculos.indexOf(VIT.fotoSel));
   const mudou = () => { VIT.sujo = true; previa(); };
   caixaFotos($("#vitFotosLocal"), VIT.local, "Fotos do local", "Aparecem no alto da página. Sem fotos, aparece o folder.", `local-${ex.destino}`, mudou);
-  caixaFotos($("#vitFotosVeic"), VIT.veiculos, "Fotos dos veículos", "Sem fotos e sem dados, a parte de veículos não aparece.", `veiculos-${ex.destino}`, mudou);
+  /* Dados do veículo: valem para a foto escolhida; cada foto guarda os seus */
+  const formDados = () => {
+    const box = $("#vitDadosVeic"), lista = VIT.veiculos;
+    if (!lista.length) { box.innerHTML = `<small class="muted">Adicione uma foto para preencher os dados do veículo.</small>`; return; }
+    if (!lista.includes(VIT.fotoSel)) VIT.fotoSel = lista[0];
+    const f = VIT.fotoSel, d = f.dados ||= novosDados();
+    $$("#vitFotosVeic .veic-foto").forEach((el) => el.classList.toggle("sel", lista[+el.dataset.i] === f));
+    box.innerHTML = `<div class="form-grid">
+      <strong class="span2">Dados do veículo da foto ${lista.indexOf(f) + 1}</strong>
+      <label>Empresa de transporte<input data-vv="empresa" maxlength="80" value="${esc(d.empresa)}"></label>
+      <label>Quantidade de assentos<input data-vv="assentos" type="number" min="1" max="99" value="${esc(d.assentos)}" placeholder="${veiculosDe(ex)[0] ? veic(veiculosDe(ex)[0][1].tipo).cap : ""}"></label>
+      <label class="span2">Categoria<select data-vv="categoria"><option value="">Não informar</option>${CATEGORIAS_VEICULO.map((c) => `<option ${c === d.categoria ? "selected" : ""}>${esc(c)}</option>`).join("")}</select></label>
+      <div class="span2 vit-itens">${ITENS_VEICULO.map(([k, nome]) => `<label class="check"><input type="checkbox" data-item="${k}" ${d.itens.includes(k) ? "checked" : ""}> ${nome}</label>`).join("")}</div>
+      <label class="span2">Descrição do veículo (opcional)<textarea data-vv="descricao" rows="3" maxlength="500" placeholder="Aparece ao lado da foto">${esc(d.descricao)}</textarea></label>
+      ${lista.length > 1 ? `<div class="span2"><button type="button" class="btn btn-light btn-sm" id="vitCopiar"><i class="fa-solid fa-copy"></i> Usar estes dados nas outras fotos</button></div>` : ""}
+    </div>`;
+    $$("[data-vv]", box).forEach((el) => el.addEventListener("input", () => { d[el.dataset.vv] = el.value; mudou(); }));
+    $$("[data-item]", box).forEach((el) => el.addEventListener("change", () => { d.itens = $$("[data-item]:checked", box).map((c) => c.dataset.item); mudou(); }));
+    const copiar = $("#vitCopiar");
+    if (copiar) copiar.onclick = () => { lista.forEach((x) => { if (x !== f) x.dados = novosDados(d); }); mudou(); toast("Dados copiados para as outras fotos"); };
+  };
+  caixaFotos($("#vitFotosVeic"), VIT.veiculos, "Fotos dos veículos", "Toque em uma foto para preencher os dados do veículo dela.", `veiculos-${ex.destino}`, () => { mudou(); formDados(); previa(); }, true);
+  $("#vitFotosVeic").addEventListener("click", (e) => {
+    const el = e.target.closest(".veic-foto");
+    if (!el || e.target.closest("button")) return;
+    VIT.fotoSel = VIT.veiculos[+el.dataset.i];
+    formDados(); previa();
+  });
+  formDados();
   R.opcionaisDe(ex).forEach((o) => caixaFotos($(`[data-adicional="${o.id}"]`), VIT.opcionais[o.id], `Fotos de ${o.titulo}`, "Sem fotos, aparece só o texto do adicional.", `adicional-${o.titulo}`, mudou));
   $$("[data-v]", $("#fVit")).forEach((el) => el.addEventListener("input", () => { VIT[el.dataset.v] = el.value; mudou(); }));
-  $$("[data-vv]", $("#fVit")).forEach((el) => el.addEventListener("input", () => { VIT.veiculo[el.dataset.vv] = el.value; mudou(); }));
-  $$("[data-item]", $("#fVit")).forEach((el) => el.addEventListener("change", () => { VIT.veiculo.itens = $$("[data-item]:checked", $("#fVit")).map((c) => c.dataset.item); mudou(); }));
   $("#vitPreco").onchange = (e) => { VIT.ocultarPreco = e.target.checked; mudou(); };
   $("#fVit").addEventListener("submit", (e) => e.preventDefault());
   $("#btnVitExc").onclick = () => navegar("excursoes");
   $("#btnVitAbrir").onclick = () => window.open(urlPoltrona(exId), "_blank", "noopener");
   $("#btnVitSalvar").onclick = async () => {
     const titulo = VIT.titulo.trim(), aviso = VIT.aviso.trim(), descricao = VIT.descricao.trim();
-    const d = VIT.veiculo, assentos = Math.max(0, parseInt(d.assentos, 10) || 0);
-    const temVeiculo = d.empresa.trim() || assentos || d.categoria || d.descricao.trim() || d.itens.length;
-    const veiculo = temVeiculo ? { empresa: d.empresa.trim() || null, assentos: assentos || null, categoria: d.categoria || null, descricao: d.descricao.trim() || null, itens: d.itens.length ? d.itens : null } : null;
+    const limpar = (d = novosDados()) => {
+      const assentos = Math.max(0, parseInt(d.assentos, 10) || 0);
+      return d.empresa.trim() || assentos || d.categoria || d.descricao.trim() || d.itens.length
+        ? { empresa: d.empresa.trim() || null, assentos: assentos || null, categoria: d.categoria || null, descricao: d.descricao.trim() || null, itens: d.itens.length ? d.itens : null } : null;
+    };
+    const veiculo = VIT.veiculos.length ? null : VIT.comum; // com fotos, os dados ficam em cada foto
     const vitrine = titulo || aviso || VIT.ocultarPreco || veiculo ? { titulo: titulo || null, aviso: aviso || null, ocultarPreco: VIT.ocultarPreco, veiculo } : null;
     const fotosOpcionais = Object.fromEntries(Object.entries(VIT.opcionais).filter(([, l]) => l.length));
     try {
       await update(ref(db, `excursoes/${own}/${exId}`), { descricao: descricao || null, vitrine, atualizadoEm: Date.now(),
-        fotosLocal: VIT.local.length ? VIT.local : null, fotosVeiculos: VIT.veiculos.length ? VIT.veiculos : null, fotosOpcionais: Object.keys(fotosOpcionais).length ? fotosOpcionais : null });
+        fotosLocal: VIT.local.length ? VIT.local : null, fotosVeiculos: VIT.veiculos.length ? VIT.veiculos.map((f) => ({ caminho: f.caminho, raw: f.raw || "", dados: limpar(f.dados) })) : null, fotosOpcionais: Object.keys(fotosOpcionais).length ? fotosOpcionais : null });
       VIT.sujo = false;
       toast("Vitrine salva");
       await sincronizarSite(exId, own, { ...S.excursoes[exId], descricao }).catch((err) => console.warn("site", err));

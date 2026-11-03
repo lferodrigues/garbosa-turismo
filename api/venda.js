@@ -4,7 +4,7 @@
 //                                    (fica nesta função para não passar do limite de funções da Vercel)
 import { db } from "./_lib/firebase.js";
 import { enviar, soMetodo, tratarErro } from "./_lib/http.js";
-import { carregarExcursao, situacaoVenda, veiculosComOcupacao, vagasDaExcursao, exIdDoSite, fotosDe, fotosOpcionaisDe, vitrineDe, R } from "./_lib/venda.js";
+import { carregarExcursao, situacaoVenda, veiculosComOcupacao, vagasDaExcursao, exIdDoSite, fotosDe, fotosVeiculosDe, fotosOpcionaisDe, vitrineDe, R } from "./_lib/venda.js";
 
 async function vagasDoSite() {
   const d = await db();
@@ -45,7 +45,7 @@ export default async function handler(req, res) {
     if (!sit.ativa) return enviar(res, 200, { ...base, ativa: false, motivo: sit.motivo });
     enviar(res, 200, {
       ...base, ativa: true, hoje: R.hojeBR(),
-      valorCent: R.precoPessoaCent(ex), fotosLocal: fotosDe(ex.fotosLocal), fotosVeiculos: fotosDe(ex.fotosVeiculos), fotosOpcionais: fotosOpcionaisDe(ex), vitrine: vitrineDe(ex),
+      valorCent: R.precoPessoaCent(ex), fotosLocal: fotosDe(ex.fotosLocal), fotosVeiculos: fotosVeiculosDe(ex), fotosOpcionais: fotosOpcionaisDe(ex), vitrine: vitrineDe(ex),
       valorColoCent: R.centavos(ex.valorColo),
       valorInfantilCent: R.precoInfantilCent(ex), idadeInfantil: R.IDADE_INFANTIL,
       venda: { maxParcelas: Math.min(R.MAX_PARCELAS, parseInt(ex.venda.maxParcelas, 10) || 1), primeiraParcela: ex.venda.primeiraParcela || "" },
