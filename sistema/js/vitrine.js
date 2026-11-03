@@ -12,13 +12,13 @@ function ligarRaw(el) {
   });
 }
 
-/** Carrossel: fotos do local enviadas pela agência; sem elas, o folder da excursão */
-function desenharFotos(box, fotos, classe, destino) {
+/** Carrossel com botões de voltar e avançar (fotos do local e dos veículos) */
+function desenharFotos(box, fotos, classe, alt) {
   let i = 0;
   const pintar = () => {
     const f = fotos[i];
     box.innerHTML = !f ? `<div class="vt-sem-foto"><i class="fa-regular fa-image"></i></div>` : `
-      ${imgDoSite(f, classe, `Foto de ${destino}`)}
+      ${imgDoSite(f, classe, alt)}
       ${fotos.length > 1 ? `<button type="button" class="vt-seta esq" aria-label="Foto anterior"><i class="fa-solid fa-chevron-left"></i></button>
         <button type="button" class="vt-seta dir" aria-label="Próxima foto"><i class="fa-solid fa-chevron-right"></i></button>` : ""}`;
     ligarRaw(box);
@@ -137,7 +137,7 @@ export function montarVitrine(el, EX, aoComprar, rotulo = "Escolher poltrona") {
     </section>` : ""}
     ${EX.fotosVeiculos?.length ? `<section class="vt-veiculos">
       <h2>Veículos</h2>
-      <div class="vt-veic-grid">${EX.fotosVeiculos.map((f) => imgDoSite(f, "vt-veic", "Foto do veículo")).join("")}</div>
+      <div class="vt-fotos vt-fotos-veic"></div>
       <p class="vt-nota"><i class="fa-solid fa-circle-info"></i> ${esc(EX.vitrine?.aviso || AVISO_VEICULOS)}</p>
     </section>` : ""}
     ${EX.opcionais?.length ? `<section class="vt-veiculos">
@@ -155,6 +155,8 @@ export function montarVitrine(el, EX, aoComprar, rotulo = "Escolher poltrona") {
   ligarRaw(el);
   el.querySelectorAll(".vt-comprar").forEach((b) => b.addEventListener("click", aoComprar));
   const box = el.querySelector("#vtFotos");
-  if (EX.fotosLocal?.length) desenharFotos(box, EX.fotosLocal, "vt-foto", EX.destino);
-  else desenharFotos(box, EX.folder?.caminho ? [EX.folder] : [], "vt-foto vt-foto-folder", EX.destino);
+  if (EX.fotosLocal?.length) desenharFotos(box, EX.fotosLocal, "vt-foto", `Foto de ${EX.destino}`);
+  else desenharFotos(box, EX.folder?.caminho ? [EX.folder] : [], "vt-foto vt-foto-folder", `Folder de ${EX.destino}`);
+  const veiculos = el.querySelector(".vt-fotos-veic");
+  if (veiculos) desenharFotos(veiculos, EX.fotosVeiculos, "vt-foto", "Foto do veículo");
 }

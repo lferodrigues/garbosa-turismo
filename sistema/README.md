@@ -274,6 +274,11 @@ A vitrine mostra: fotos do local, resumo da viagem, preço, fotos dos veículos 
 - **Menu e rodapé:** iguais aos do site principal (`index.html`), nas páginas de poltrona, compra e reserva. Quem mudar o menu ou o rodapé do site precisa mudar também em `vitrine.js` (`mostrarMoldura`) e copiar o estilo para `sistema.css`.
 - Banco: `excursoes/{uid}/{exId}/fotosLocal` e `fotosVeiculos` = `[{ caminho, raw }]` (sem mudança nas regras).
 
+## Galeria
+Menu **Operacional → Galeria**: um álbum por excursão, com o nome dela, montado com as fotos que ela usa (local, veículos, adicionais e folder).
+- Na página **Vitrine**, o botão **Escolher da galeria** reaproveita fotos de qualquer álbum, sem enviar de novo.
+- Os álbuns vêm das próprias excursões: não há cópia no banco. Excluir a excursão ou tirar a foto da vitrine tira a foto da galeria (o arquivo continua no GitHub).
+
 ## Link de um veículo só
 Em **Poltronas**, com mais de um veículo, o link do topo acompanha a aba escolhida: `poltrona.html?e={id}&v={veículo}`.
 - O cliente vê só esse veículo, e o servidor recusa poltrona em outro.

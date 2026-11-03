@@ -2,7 +2,7 @@ import { auth, db, ADMIN_EMAIL, authSecundario } from "./firebase.js?v=8";
 import { baixarXLSX, baixarPDF, baixarPDFPoltronas, carregarXLSX } from "./exportar.js?v=9";
 import * as R from "./venda-regras.js?v=23";
 import { htmlOnibus } from "./mapa-onibus.js?v=3";
-import { montarVitrine, AVISO_VEICULOS } from "./vitrine.js?v=6";
+import { montarVitrine, AVISO_VEICULOS } from "./vitrine.js?v=7";
 import {
   onAuthStateChanged, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword,
   sendPasswordResetEmail, updateProfile,
@@ -45,6 +45,7 @@ const ROTAS = {
   poltronas:  { nome: "Poltronas",            icone: "fa-couch",         cor: "c4", tipos: ["agencia", "admin"], compart: true },
   financeiro: { nome: "Financeiro",           icone: "fa-sack-dollar",   cor: "c3", tipos: ["agencia", "admin"], compart: true },
   asaas:      { nome: "Financeiro Asaas",     icone: "fa-building-columns", cor: "c3", tipos: ["agencia", "admin"] },
+  galeria:    { nome: "Galeria",              icone: "fa-images",        cor: "c2", tipos: ["agencia", "admin"], compart: true },
   vitrine:    { nome: "Vitrine",              icone: "fa-store",         cor: "c2", tipos: ["agencia", "admin"], compart: true }, // abre pela lista de Excursões
   viagens:    { nome: "Viagens / Orçamentos", icone: "fa-bus",           cor: "c2", tipos: ["transportadora", "admin"] },
   usuarios:   { nome: "Usuários",             icone: "fa-user-gear",     cor: "c5", tipos: ["admin"] },
@@ -556,7 +557,7 @@ function assinar() {
 ========================================================= */
 /* ---------- menu lateral (estilo painel de controle) ---------- */
 const GRUPOS_MENU = [
-  { id: "operacional", nome: "Operacional", icone: "fa-briefcase", itens: ["calendario", "excursoes", "viajantes", "poltronas", "financeiro", "asaas"] },
+  { id: "operacional", nome: "Operacional", icone: "fa-briefcase", itens: ["calendario", "excursoes", "galeria", "viajantes", "poltronas", "financeiro", "asaas"] },
   { id: "transporte", nome: "Transporte", icone: "fa-bus", itens: ["viagens"] },
   { id: "admin", nome: "Administração", icone: "fa-shield-halved", itens: ["site", "usuarios", "logs"] }
 ];
@@ -768,7 +769,7 @@ function render() {
   document.title = `${ROTAS[S.view]?.nome || "Início"} | Garbosa System`;
   S.exportar = null;
   $("#workspace").classList.toggle("em-inicio", S.view === "inicio");
-  const views = { site: viewSite, inicio: viewInicio, calendario: viewCalendario, excursoes: viewExcursoes, viajantes: viewViajantes, poltronas: viewPoltronas, financeiro: viewFinanceiro, asaas: viewAsaas, vitrine: viewVitrine, viagens: viewViagens, usuarios: viewUsuarios, logs: viewLogs };
+  const views = { site: viewSite, inicio: viewInicio, calendario: viewCalendario, excursoes: viewExcursoes, viajantes: viewViajantes, poltronas: viewPoltronas, financeiro: viewFinanceiro, asaas: viewAsaas, vitrine: viewVitrine, galeria: viewGaleria, viagens: viewViagens, usuarios: viewUsuarios, logs: viewLogs };
   (views[S.view] || viewCalendario)();
   const bx = $("#btnXlsx"), bp = $("#btnPdf");
   if (bx) bx.onclick = () => exportar("xlsx", bx);
@@ -1706,10 +1707,13 @@ function caixaFotos(el, fotos, titulo, dica, nomeBase, aoMudar) {
     const cheio = fotos.length >= MAX_FOTOS;
     el.innerHTML = `<strong style="display:block;font-size:.85rem;margin-bottom:6px">${esc(titulo)} (até ${MAX_FOTOS})</strong>
       <div class="veic-fotos">${fotos.map((f, i) => `<div class="veic-foto" data-i="${i}">${imgTag(f)}<button type="button" class="ic danger" data-rm-foto="${i}" title="Remover foto"><i class="fa-solid fa-trash"></i></button></div>`).join("")}</div>
-      ${cheio ? "" : `<label class="btn btn-light btn-sm"><i class="fa-solid fa-upload"></i> Adicionar fotos<input type="file" accept="image/jpeg,image/png,image/webp" multiple hidden></label>`}
+      ${cheio ? "" : `<label class="btn btn-light btn-sm"><i class="fa-solid fa-upload"></i> Adicionar fotos<input type="file" accept="image/jpeg,image/png,image/webp" multiple hidden></label>
+        <button type="button" class="btn btn-light btn-sm" data-da-galeria><i class="fa-solid fa-images"></i> Escolher da galeria</button>`}
       <small class="muted" style="display:block;margin-top:6px">${esc(dica)}${fotos.length > 1 ? " Segure uma foto e arraste para mudar a ordem." : ""}</small>`;
     arrastarFotos($(".veic-fotos", el), fotos, () => { desenhar(); aoMudar(); });
     $$("[data-rm-foto]", el).forEach((b) => b.addEventListener("click", () => { fotos.splice(+b.dataset.rmFoto, 1); desenhar(); aoMudar(); }));
+    const daGaleria = $("[data-da-galeria]", el);
+    if (daGaleria) daGaleria.onclick = () => escolherDaGaleria(fotos, () => { desenhar(); aoMudar(); });
     const inp = $("input[type=file]", el);
     if (!inp) return;
     inp.onchange = async (ev) => {
@@ -3115,6 +3119,89 @@ function viewAsaas() {
     ASAAS.busca = e.target.value; const pos = e.target.selectionStart; render();
     const b = $("#asaasBusca"); b.focus(); b.setSelectionRange(pos, pos);
   });
+}
+
+/* Galeria: um álbum por excursão, montado com as fotos que ela já usa (folder, local, veículos e adicionais) */
+function albunsGaleria() {
+  return ordenar(S.excursoes, "dataSaida").reverse().map(([id, e]) => {
+    const vistos = new Set(), fotos = [];
+    const juntar = (lista, tipo) => Object.values(lista || {}).forEach((f) => {
+      if (!f?.caminho || vistos.has(f.caminho)) return;
+      vistos.add(f.caminho);
+      fotos.push({ caminho: f.caminho, raw: f.raw || "", tipo });
+    });
+    juntar(e.fotosLocal, "Local");
+    juntar(e.fotosVeiculos, "Veículo");
+    R.opcionaisDe(e).forEach((o) => juntar(e.fotosOpcionais?.[o.id], o.titulo));
+    juntar(e.folder ? [e.folder] : [], "Folder");
+    return { id, e, fotos };
+  }).filter((a) => a.fotos.length);
+}
+const qtdFotos = (n) => `${n} foto${n > 1 ? "s" : ""}`;
+function verFoto(titulo, fotos, i) {
+  const f = fotos[i], ir = (d) => verFoto(titulo, fotos, (i + d + fotos.length) % fotos.length);
+  abrirModal(titulo, `${imgTag(f, "gal-grande")}<p class="muted" style="margin:8px 0 0">${esc(f.tipo)} · ${i + 1} de ${fotos.length}</p>`, [
+    ...(fotos.length > 1 ? [{ html: `<i class="fa-solid fa-chevron-left"></i> Voltar`, acao: () => ir(-1) }, { html: `Avançar <i class="fa-solid fa-chevron-right"></i>`, acao: () => ir(1) }] : []),
+    { html: "Fechar", classe: "btn-primary", acao: fecharModal }
+  ], true);
+}
+function viewGaleria() {
+  const albuns = albunsGaleria(), album = S.param && albuns.find((a) => a.id === S.param);
+  if (album) {
+    const nome = esc(album.e.destino);
+    $("#workspace").innerHTML = `<section class="panel">
+      ${toolbar(nome, "fa-images", tbBtn("btnGalVoltar", "fa-arrow-left", "Álbuns") + tbBtn("btnGalVitrine", "fa-store", "Vitrine"), false)}
+      <p class="muted" style="padding:12px 18px 0">${fData(album.e.dataSaida)} · ${qtdFotos(album.fotos.length)}</p>
+      <div class="gal-grade" style="padding:12px 18px 18px">${album.fotos.map((f, i) => `<button type="button" class="gal-foto" data-i="${i}" title="Ampliar">${imgTag(f)}<em>${esc(f.tipo)}</em></button>`).join("")}</div>
+    </section>`;
+    $("#btnGalVoltar").onclick = () => navegar("galeria");
+    $("#btnGalVitrine").onclick = () => irPara("vitrine", album.id);
+    $$(".gal-foto").forEach((b) => b.addEventListener("click", () => verFoto(album.e.destino, album.fotos, +b.dataset.i)));
+    return;
+  }
+  const termo = semAcento(S.galBusca || "");
+  const lista = albuns.filter((a) => !termo || semAcento(a.e.destino).includes(termo));
+  $("#workspace").innerHTML = `<section class="panel">
+    ${toolbar("Galeria", "fa-images", "", false)}
+    ${albuns.length ? `<div class="subbar"><input type="search" id="galBusca" class="search" placeholder="Buscar álbum..." value="${esc(S.galBusca || "")}"></div>` : ""}
+    ${lista.length ? `<div class="gal-albuns">${lista.map((a) => `<a class="gal-album" href="#/galeria/${encodeURIComponent(a.id)}">${imgTag(a.fotos[0])}<strong>${esc(a.e.destino)}</strong><small>${fData(a.e.dataSaida)} · ${qtdFotos(a.fotos.length)}</small></a>`).join("")}</div>`
+      : `<div class="empty"><i class="fa-solid fa-images"></i><p>${albuns.length ? "Nenhum álbum com esse nome." : "As fotos enviadas na vitrine das excursões aparecem aqui."}</p></div>`}
+  </section>`;
+  const b = $("#galBusca");
+  if (b) b.addEventListener("input", () => { S.galBusca = b.value; const pos = b.selectionStart; render(); const n = $("#galBusca"); n.focus(); n.setSelectionRange(pos, pos); });
+}
+/** Escolhe fotos dos álbuns para reaproveitar: ficam no mesmo arquivo, sem enviar de novo */
+function escolherDaGaleria(fotos, aoEscolher) {
+  const albuns = albunsGaleria();
+  if (!albuns.length) return toast("A galeria ainda não tem fotos.", "erro");
+  const resta = MAX_FOTOS - fotos.length, ja = new Set(fotos.map((f) => f.caminho)), marcadas = new Map();
+  abrirModal("Escolher da galeria", `
+    <select id="galAlbum" class="search" style="width:100%;margin-bottom:6px" aria-label="Álbum"><option value="">Todos os álbuns</option>${albuns.map((a) => `<option value="${esc(a.id)}">${esc(a.e.destino)}</option>`).join("")}</select>
+    <p class="muted" id="galConta" style="margin:0 0 6px"></p>
+    <div id="galFotos"></div>`, [
+    { html: "Cancelar", acao: fecharModal },
+    { html: `<i class="fa-solid fa-plus"></i> Adicionar`, classe: "btn-primary", acao: () => {
+      if (!marcadas.size) return toast("Toque nas fotos que quer usar.", "erro");
+      marcadas.forEach((f) => fotos.push({ caminho: f.caminho, raw: f.raw }));
+      fecharModal(); aoEscolher();
+    } }
+  ], true);
+  const contar = () => { $("#galConta").textContent = `${marcadas.size} de ${resta} escolhida(s)`; };
+  const desenhar = () => {
+    const sel = $("#galAlbum").value;
+    $("#galFotos").innerHTML = albuns.filter((a) => !sel || a.id === sel).map((a) => `<h4 class="sub">${esc(a.e.destino)}</h4>
+      <div class="gal-grade">${a.fotos.map((f, i) => `<button type="button" class="gal-foto ${marcadas.has(f.caminho) ? "sel" : ""}" data-a="${esc(a.id)}" data-i="${i}" ${ja.has(f.caminho) ? 'disabled title="Já está na lista"' : ""}>${imgTag(f)}<em>${esc(f.tipo)}</em></button>`).join("")}</div>`).join("");
+    $$("#galFotos .gal-foto").forEach((b) => b.addEventListener("click", () => {
+      const f = albuns.find((a) => a.id === b.dataset.a).fotos[+b.dataset.i];
+      if (marcadas.has(f.caminho)) marcadas.delete(f.caminho);
+      else if (marcadas.size >= resta) return toast(`Cabem só mais ${resta} foto(s) aqui.`, "erro");
+      else marcadas.set(f.caminho, f);
+      $$(`#galFotos .gal-foto`).forEach((x) => { const y = albuns.find((a) => a.id === x.dataset.a).fotos[+x.dataset.i]; x.classList.toggle("sel", marcadas.has(y.caminho)); });
+      contar();
+    }));
+  };
+  $("#galAlbum").onchange = desenhar;
+  desenhar(); contar();
 }
 
 /* Vitrine: página para personalizar a vitrine de uma excursão, com prévia ao lado. Abre pela lista de Excursões. */
