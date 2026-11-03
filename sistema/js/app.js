@@ -1583,6 +1583,23 @@ function formCupom(exId, own, codigo = null, voltar = () => painelVenda(exId, ow
   const c = codigo ? e.cupons?.[codigo] || {} : { porCompra: 5, ativo: true };
   const v0 = veiculosDe(e)[0]?.[1];
   const cheio = v0 ? arred(precoPoltrona(v0, e)) : 0;
+  const salvar = async (depois) => {
+    const f = $("#fCupom");
+    if (!f.reportValidity()) return;
+    const d = lerForm(f), cod = normCupom(d.codigo);
+    if (cod.length < 3) return toast("O código precisa de pelo menos 3 letras ou números.", "erro");
+    if (!codigo && e.cupons?.[cod]) return toast(`Já existe o cupom ${cod} nesta excursão.`, "erro");
+    if (num(d.valor) <= 0) return toast("Informe o valor por pessoa com o cupom.", "erro");
+    if (cheio && num(d.valor) >= cheio) return toast(`O valor com cupom precisa ser menor que o valor cheio (${brl(cheio)}).`, "erro");
+    try {
+      await set(ref(db, `excursoes/${own}/${exId}/cupons/${cod}`), {
+        valor: Math.round(num(d.valor) * 100) / 100, porCompra: Math.max(1, parseInt(d.porCompra, 10) || 1), limite: Math.max(0, parseInt(d.limite, 10) || 0),
+        validade: d.validade || null, ativo: !!d.ativo, criadoEm: c.criadoEm || Date.now()
+      });
+      toast(codigo ? "Cupom atualizado" : `Cupom ${cod} criado`);
+      depois();
+    } catch (err) { falha(err); }
+  };
   abrirModal(codigo ? `Editar cupom ${codigo}` : "Novo cupom de promoção", `
     <form id="fCupom" class="form-grid">
       <label>Código do cupom<input name="codigo" required maxlength="30" value="${esc(codigo || "")}" ${codigo ? "readonly" : ""} placeholder="Ex.: AMIGOS10" style="text-transform:uppercase"></label>
@@ -1594,23 +1611,8 @@ function formCupom(exId, own, codigo = null, voltar = () => painelVenda(exId, ow
       <div class="calc-box span2" id="cupCalc"></div>
     </form>`, [
     { html: "Voltar", acao: voltar },
-    { html: `<i class="fa-solid fa-floppy-disk"></i> Salvar cupom`, classe: "btn-primary", acao: async () => {
-      const f = $("#fCupom");
-      if (!f.reportValidity()) return;
-      const d = lerForm(f), cod = normCupom(d.codigo);
-      if (cod.length < 3) return toast("O código precisa de pelo menos 3 letras ou números.", "erro");
-      if (!codigo && e.cupons?.[cod]) return toast(`Já existe o cupom ${cod} nesta excursão.`, "erro");
-      if (num(d.valor) <= 0) return toast("Informe o valor por pessoa com o cupom.", "erro");
-      if (cheio && num(d.valor) >= cheio) return toast(`O valor com cupom precisa ser menor que o valor cheio (${brl(cheio)}).`, "erro");
-      try {
-        await set(ref(db, `excursoes/${own}/${exId}/cupons/${cod}`), {
-          valor: Math.round(num(d.valor) * 100) / 100, porCompra: Math.max(1, parseInt(d.porCompra, 10) || 1), limite: Math.max(0, parseInt(d.limite, 10) || 0),
-          validade: d.validade || null, ativo: !!d.ativo, criadoEm: c.criadoEm || Date.now()
-        });
-        toast(codigo ? "Cupom atualizado" : `Cupom ${cod} criado`);
-        voltar();
-      } catch (err) { falha(err); }
-    } }
+    { html: `<i class="fa-solid fa-plus"></i> Salvar e adicionar outro`, acao: () => salvar(() => formCupom(exId, own, null, voltar)) },
+    { html: `<i class="fa-solid fa-floppy-disk"></i> Salvar cupom`, classe: "btn-primary", acao: () => salvar(voltar) }
   ]);
   const f = $("#fCupom");
   const calc = () => {
@@ -3333,7 +3335,7 @@ function viewVitrine() {
     <div class="vit-grade">
       <form id="fVit" data-ex="${esc(exId)}" class="form-grid">
         <label class="span2">Título na vitrine (opcional)<input data-v="titulo" maxlength="120" value="${esc(VIT.titulo)}" placeholder="${esc(ex.destino)}"></label>
-        <label class="span2">Descrição da excursão (opcional)<textarea data-v="descricao" rows="6" maxlength="1500" placeholder="O que está incluso, roteiro, observações…">${esc(VIT.descricao)}</textarea><small class="muted">Aparece também na página de venda e no catálogo do site.</small></label>
+        <label class="span2">Descrição da excursão (opcional)<textarea data-v="descricao" rows="6" maxlength="1500" placeholder="O que está incluso, roteiro, observações…">${esc(VIT.descricao)}</textarea><small class="muted">Aparece também na página de reserva e no catálogo do site.</small></label>
         <div class="span2" id="vitFotosLocal"></div>
         <div class="span2" id="vitFotosVeic"></div>
         <div class="span2" id="vitDadosVeic"></div>

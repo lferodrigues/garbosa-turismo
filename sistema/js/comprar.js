@@ -42,7 +42,7 @@ async function carregar() {
   $("#cAgencia").textContent = EX.agencia || "Excursão";
   $("#cDestino").textContent = EX.destino;
   if (EX.veiculos) mostrarSeloVagas($("#cDestino"));
-  if (EX.descricao) { $("#cDesc").textContent = EX.descricao; $("#cDesc").classList.remove("hidden"); }
+  if (RESERVA && EX.descricao) { $("#cDesc").textContent = EX.descricao; $("#cDesc").classList.remove("hidden"); }
   if (EX.folder?.caminho) {
     const img = $("#cFolder");
     img.onerror = () => { if (EX.folder.raw && img.src !== EX.folder.raw) img.src = EX.folder.raw; else img.classList.add("hidden"); };
