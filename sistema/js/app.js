@@ -1062,7 +1062,6 @@ function formExcursao(id = null, viagemId = null) {
         <div id="exSaidas">${R.saidasDe(e).map(linhaSaida).join("")}</div>
         <button type="button" class="btn btn-light btn-sm" id="btnAddSaida"><i class="fa-solid fa-plus"></i> Adicionar outra saída</button>
       </div>
-      <label class="span2">Descrição para a página de venda (opcional)<textarea name="descricao" rows="3" maxlength="1500" placeholder="O que está incluso, roteiro, observações…">${esc(e.descricao)}</textarea></label>
       <div class="span2 grupo-zap">
         <button type="button" class="btn btn-light btn-sm ${e.grupoWhatsapp ? "hidden" : ""}" id="btnGrupoZap"><i class="fa-brands fa-whatsapp"></i> Adicionar link do grupo do WhatsApp</button>
         <label class="${e.grupoWhatsapp ? "" : "hidden"}" id="grupoZapBox"><span><i class="fa-brands fa-whatsapp"></i> Link do grupo do WhatsApp</span>
@@ -1108,6 +1107,7 @@ function formExcursao(id = null, viagemId = null) {
       <div class="section-label span2"><i class="fa-regular fa-image"></i> Folder da excursão</div>
       <div class="span2 folder-box" id="exFolderBox"></div>
       <div class="section-label span2"><i class="fa-solid fa-bus"></i> Vitrine do link de poltrona</div>
+      <label class="span2">Descrição da excursão (opcional)<textarea name="descricao" rows="5" maxlength="1500" placeholder="O que está incluso, roteiro, observações…">${esc(e.descricao)}</textarea><small class="muted">Aparece na vitrine e na página de venda.</small></label>
       <div class="span2" id="exFotosLocal"></div>
       <div class="span2" id="exFotosVeic"></div>
       <label class="check span2"><input type="checkbox" name="publicarSite" id="exPublicar" ${e.publicarSite ? "checked" : ""}> Mostrar no catálogo do site (excursoes.html) com o folder e o link de compra</label>

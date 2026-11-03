@@ -27,6 +27,41 @@ function desenharFotos(box, fotos, classe, destino) {
   pintar();
 }
 
+/** Rodapé igual ao do site principal (index.html); fica até o fim da compra */
+export function mostrarRodape() {
+  if (document.querySelector(".gt-rodape")) return;
+  document.body.classList.add("com-rodape");
+  document.body.insertAdjacentHTML("beforeend", `
+    <footer class="gt-rodape">
+      <div class="gt-container gt-rodape-in">
+        <div>
+          <a href="../index.html" class="gt-marca gt-marca-clara"><img src="../Assets/img/logo.ico" alt=""><span><strong>Garbosa</strong><em>Turismo</em></span></a>
+          <p>A viagem dos seus sonhos começa aqui. Excursões saindo de São João Nepomuceno, MG.</p>
+          <div class="gt-redes">
+            <a href="https://wa.me/5532999874657" target="_blank" rel="noopener" aria-label="WhatsApp"><i class="fa-brands fa-whatsapp"></i></a>
+            <a href="https://www.instagram.com/garbosaturismo/" target="_blank" rel="noopener" aria-label="Instagram"><i class="fa-brands fa-instagram"></i></a>
+            <a href="https://www.tiktok.com/@garbosaturismo" target="_blank" rel="noopener" aria-label="TikTok"><i class="fa-brands fa-tiktok"></i></a>
+            <a href="https://www.facebook.com/profile.php?id=100093055390780" target="_blank" rel="noopener" aria-label="Facebook"><i class="fa-brands fa-facebook-f"></i></a>
+          </div>
+        </div>
+        <div>
+          <h3>Navegue</h3>
+          <ul><li><a href="../excursoes.html">Excursões</a></li><li><a href="../index.html#destinos">Destinos em destaque</a></li><li><a href="minha-conta.html">Área do cliente</a></li><li><a href="../contrato.html">Contrato de prestação de serviço</a></li><li><a href="../fale-conosco.html">Fale conosco</a></li></ul>
+        </div>
+        <div>
+          <h3>Atendimento</h3>
+          <ul><li><a href="https://wa.me/5532999874657" target="_blank" rel="noopener"><i class="fa-brands fa-whatsapp"></i> (32) 99987-4657</a></li><li><i class="fa-solid fa-location-dot"></i> São João Nepomuceno / MG</li></ul>
+        </div>
+        <div class="gt-cadastur">
+          <h3>Cadastur</h3>
+          <a href="../Assets/documentos/cadastro.pdf" target="_blank" rel="noopener" title="Clique para verificar o cadastro"><img loading="lazy" src="../Assets/img/cadastur.png" alt="Selo Cadastur — verificar cadastro"></a>
+          <small>Clique no selo para verificar o cadastro</small>
+        </div>
+      </div>
+      <p class="gt-copy">© ${new Date().getFullYear()} Todos os direitos reservados | Garbosa Turismo</p>
+    </footer>`);
+}
+
 export function montarVitrine(el, EX, aoComprar, rotulo = "Escolher poltrona") {
   const preco = EX.valorCent > 0 ? R.brl(EX.valorCent) : "";
   const selo = EX.vagas?.selo, livres = EX.vagas?.livres;
@@ -49,7 +84,6 @@ export function montarVitrine(el, EX, aoComprar, rotulo = "Escolher poltrona") {
           <h1>${esc(EX.destino)}</h1>
           ${EX.agencia ? `<p class="vt-agencia">${esc(EX.agencia)}</p>` : ""}
           ${selo ? `<span class="vt-selo ${esc(selo)}">${selo === "esgotado" ? "Esgotado" : `Restam apenas ${livres}`}</span>` : ""}
-          ${EX.descricao ? `<p class="vt-desc">${esc(EX.descricao)}</p>` : ""}
           ${saidas.length ? `<ul class="vt-saidas">${saidas.map(([l, h]) => `<li><i class="fa-solid fa-location-dot"></i> ${esc(l)}${h ? `, às ${esc(h)}` : ""}</li>`).join("")}</ul>` : ""}
         </div>
         <aside class="vt-preco">
@@ -58,6 +92,10 @@ export function montarVitrine(el, EX, aoComprar, rotulo = "Escolher poltrona") {
         </aside>
       </div>
     </article>
+    ${EX.descricao ? `<section class="vt-veiculos">
+      <h2>Descrição</h2>
+      <p class="vt-desc">${esc(EX.descricao)}</p>
+    </section>` : ""}
     ${EX.fotosVeiculos?.length ? `<section class="vt-veiculos">
       <h2>Veículos</h2>
       <div class="vt-veic-grid">${EX.fotosVeiculos.map((f) => imgDoSite(f, "vt-veic", "Foto do veículo")).join("")}</div>
