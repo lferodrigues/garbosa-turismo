@@ -1634,7 +1634,6 @@ function formCupom(exId, own, codigo = null, voltar = () => painelVenda(exId, ow
    FOLDER (imagem enviada ao GitHub) E CATÁLOGO DO SITE
 ========================================================= */
 let FOLDER_FORM = null;
-const MAX_FOTOS = 6;
 let FORM_EX_TEMP = null;   // lê ingressos/produtos do formulário de excursão aberto
 const srcImg = (o) => (o?.caminho || o?.imagem ? `../${o.caminho || o.imagem}` : "");
 const rawImg = (o) => o?.raw || o?.imagemRaw || "";
@@ -1713,20 +1712,17 @@ function arrastarFotos(box, fotos, aoSoltar) {
 /** Lista de fotos da vitrine: salvas no GitHub do site, como o folder */
 function caixaFotos(el, fotos, titulo, dica, nomeBase, aoMudar, comDados = false) {
   const desenhar = () => {
-    const cheio = fotos.length >= MAX_FOTOS;
-    el.innerHTML = `<strong style="display:block;font-size:.85rem;margin-bottom:6px">${esc(titulo)} (até ${MAX_FOTOS})</strong>
+    el.innerHTML = `<strong style="display:block;font-size:.85rem;margin-bottom:6px">${esc(titulo)}</strong>
       <div class="veic-fotos">${fotos.map((f, i) => `<div class="veic-foto" data-i="${i}">${imgTag(f)}<button type="button" class="ic danger" data-rm-foto="${i}" title="Remover foto"><i class="fa-solid fa-trash"></i></button></div>`).join("")}</div>
-      ${cheio ? "" : `<label class="btn btn-light btn-sm"><i class="fa-solid fa-upload"></i> Adicionar fotos<input type="file" accept="image/jpeg,image/png,image/webp" multiple hidden></label>
-        <button type="button" class="btn btn-light btn-sm" data-da-galeria><i class="fa-solid fa-images"></i> Escolher da galeria</button>`}
+      <label class="btn btn-light btn-sm"><i class="fa-solid fa-upload"></i> Adicionar fotos<input type="file" accept="image/jpeg,image/png,image/webp" multiple hidden></label>
+      <button type="button" class="btn btn-light btn-sm" data-da-galeria><i class="fa-solid fa-images"></i> Escolher da galeria</button>
       <small class="muted" style="display:block;margin-top:6px">${esc(dica)}${fotos.length > 1 ? " Segure uma foto e arraste para mudar a ordem." : ""}</small>`;
     arrastarFotos($(".veic-fotos", el), fotos, () => { desenhar(); aoMudar(); });
     $$("[data-rm-foto]", el).forEach((b) => b.addEventListener("click", () => { fotos.splice(+b.dataset.rmFoto, 1); desenhar(); aoMudar(); }));
-    const daGaleria = $("[data-da-galeria]", el);
-    if (daGaleria) daGaleria.onclick = () => escolherDaGaleria(fotos, () => { desenhar(); aoMudar(); }, comDados);
+    $("[data-da-galeria]", el).onclick = () => escolherDaGaleria(fotos, () => { desenhar(); aoMudar(); }, comDados);
     const inp = $("input[type=file]", el);
-    if (!inp) return;
     inp.onchange = async (ev) => {
-      const arqs = [...ev.target.files].slice(0, MAX_FOTOS - fotos.length);
+      const arqs = [...ev.target.files];
       if (!arqs.length) return;
       inp.closest("label").classList.add("enviando");
       let ok = 0;
@@ -3257,7 +3253,7 @@ function viewGaleria() {
 function escolherDaGaleria(fotos, aoEscolher, comDados = false) {
   const albuns = albunsGaleria();
   if (!albuns.length) return toast("A galeria ainda não tem fotos.", "erro");
-  const resta = MAX_FOTOS - fotos.length, ja = new Set(fotos.map((f) => f.caminho)), marcadas = new Map();
+  const ja = new Set(fotos.map((f) => f.caminho)), marcadas = new Map();
   abrirModal("Escolher da galeria", `
     <select id="galAlbum" class="search" style="width:100%;margin-bottom:6px" aria-label="Álbum"><option value="">Todos os álbuns</option>${albuns.map((a) => `<option value="${esc(a.id)}">${esc(a.e.destino)}</option>`).join("")}</select>
     <p class="muted" id="galConta" style="margin:0 0 6px"></p>
@@ -3269,7 +3265,7 @@ function escolherDaGaleria(fotos, aoEscolher, comDados = false) {
       fecharModal(); aoEscolher();
     } }
   ], true);
-  const contar = () => { $("#galConta").textContent = `${marcadas.size} de ${resta} escolhida(s)`; };
+  const contar = () => { $("#galConta").textContent = `${marcadas.size} escolhida(s)`; };
   const desenhar = () => {
     const sel = $("#galAlbum").value;
     $("#galFotos").innerHTML = albuns.filter((a) => !sel || a.id === sel).map((a) => `<h4 class="sub">${esc(a.e.destino)}</h4>
@@ -3277,7 +3273,6 @@ function escolherDaGaleria(fotos, aoEscolher, comDados = false) {
     $$("#galFotos .gal-foto").forEach((b) => b.addEventListener("click", () => {
       const f = albuns.find((a) => a.id === b.dataset.a).fotos[+b.dataset.i];
       if (marcadas.has(f.caminho)) marcadas.delete(f.caminho);
-      else if (marcadas.size >= resta) return toast(`Cabem só mais ${resta} foto(s) aqui.`, "erro");
       else marcadas.set(f.caminho, f);
       $$(`#galFotos .gal-foto`).forEach((x) => { const y = albuns.find((a) => a.id === x.dataset.a).fotos[+x.dataset.i]; x.classList.toggle("sel", marcadas.has(y.caminho)); });
       contar();
