@@ -122,6 +122,10 @@ table.grid{width:100%;border-collapse:collapse;font-size:.88rem}
 .grid th{text-align:left;padding:11px 10px;background:#f4f5fa;color:#555;font-weight:600;border-bottom:2px solid var(--line);white-space:nowrap}
 .grid td{padding:10px;border-bottom:1px solid var(--line);vertical-align:middle}
 .grid tbody tr:hover{background:#fafaff}
+/* dependente: fica recuado, logo abaixo do titular */
+.grid tr:has(+ tr.dep) td{border-bottom-style:dashed}
+.grid tr.dep td:nth-child(2){position:relative;padding-left:32px}
+.grid tr.dep td:nth-child(2)::before{content:"↳";position:absolute;left:12px;top:9px;color:var(--muted,#888);font-weight:700}
 .money{color:var(--primary)}
 .acoes{white-space:nowrap;text-align:right}
 .ic{border:1px solid var(--line);background:#fff;width:34px;height:34px;border-radius:9px;cursor:pointer;color:var(--primary);margin-left:3px}

@@ -1,7 +1,7 @@
 import { auth, db, ADMIN_EMAIL, authSecundario } from "./firebase.js?v=8";
 import { baixarXLSX, baixarPDF, baixarPDFPoltronas, carregarXLSX } from "./exportar.js?v=10";
 import { apiCertidao, htmlFoto, ligarFoto } from "./certidao-foto.js?v=2";
-import * as R from "./venda-regras.js?v=24";
+import * as R from "./venda-regras.js?v=25";
 import { htmlOnibus } from "./mapa-onibus.js?v=3";
 import { montarVitrine, AVISO_VEICULOS, CATEGORIAS_VEICULO, ITENS_VEICULO } from "./vitrine.js?v=10";
 import { mostrarMoldura, tirarMoldura } from "./moldura.js?v=1";
@@ -811,7 +811,7 @@ const precoPoltrona = (v, ex) => custosV(v, ex).porPoltrona;
 const precoInfantil = (v, ex) => custosV(v, ex).porPoltronaInfantil;
 const arred = (n) => Math.round(n * 100) / 100;
 const capacidadeEx = (ex) => veiculosDe(ex).reduce((s, [, v]) => s + veic(v.tipo).cap, 0);
-const viajantesEx = (exId) => ordenar(S.viajantes[exId], "nome");
+const viajantesEx = (exId) => R.agruparViajantes(ordenar(S.viajantes[exId], "nome"));
 const ocupantes = (exId) => viajantesEx(exId).filter(([, p]) => !p.colo);
 function poltronaDe(exId, pid) {
   for (const [vk, seats] of Object.entries(S.poltronas[exId] || {})) {
@@ -2057,7 +2057,7 @@ function viewViajantes() {
       <button class="btn btn-primary btn-sm" id="btnVeicExtra2"><i class="fa-solid fa-plus"></i> Inserir mais um veículo</button></div>` : ""}
     ${lista.length ? `<div class="table-wrap"><table class="grid">
       <thead><tr><th>#</th><th>Nome completo</th><th>Documento</th><th>Telefone</th><th>Idade</th><th>Pagamento</th><th>Poltrona</th><th></th></tr></thead>
-      <tbody>${lista.map(([pid, p], i) => `<tr>
+      <tbody>${lista.map(([pid, p], i) => `<tr${p.responsavel ? ` class="dep"` : ""}>
         <td>${i + 1}</td>
         <td><strong>${esc(p.nome)}</strong>${p.colo ? ` <span class="pill pill-yellow">colo</span>` : ""}${p.origem === "link" ? ` <span class="pill pill-link" title="Cadastrado pelo link">link</span>` : ""}${p.origem === "planilha" ? ` <span class="pill" title="Importado de planilha">planilha</span>` : ""}${p.origem === "poltrona" ? ` <span class="pill pill-link" title="Escolheu a poltrona pelo link rápido (nome e RG)"><i class="fa-solid fa-chair"></i> poltrona</span>` : ""}${p.origem === "reserva" ? ` <span class="pill pill-link" title="Reservou a poltrona pelo link (pagamento a combinar)"><i class="fa-solid fa-couch"></i> reserva</span>` : ""}${p.origem === "venda" ? ` <span class="pill pill-online st-${STATUS_PEDIDO[p.statusVenda]?.cls || "pendente"}" title="Compra online (Asaas) — ${esc(STATUS_PEDIDO[p.statusVenda]?.nome || "")}"><i class="fa-solid fa-cart-shopping"></i> online</span>` : ""}${Object.values(p.opcionais || {}).map((o) => ` <span class="pill pill-opc" title="Opcional: ${esc(o.titulo)} (${brl(o.valor)})"><i class="fa-solid fa-square-plus"></i> ${esc(o.titulo)}</span>`).join("")}${p.obs ? `<br><small class="muted">${esc(p.obs)}</small>` : ""}</td>
         <td><small class="muted">${esc(DOCS[p.docTipo] || p.docTipo)}</small><br>${esc(p.docNumero)}</td>
@@ -3521,7 +3521,7 @@ function viewFinanceiro() {
       <thead><tr><th>#</th><th>Viajante</th><th>Forma</th><th>Valor</th><th>Pago</th><th>Saldo</th><th>Situação</th><th></th></tr></thead>
       <tbody>${lista.map(([pid, p], i) => {
         const pago = pagoDe(p), saldo = Math.max(0, num(p.valor) - pago), tel = soDig(p.telefone);
-        return `<tr>
+        return `<tr${p.responsavel ? ` class="dep"` : ""}>
           <td>${i + 1}</td>
           <td><strong>${esc(p.nome)}</strong>${p.colo ? ` <span class="pill pill-yellow">colo</span>` : ""}<br><small class="muted">${esc(p.telefone || "")}</small></td>
           <td>${esc(p.formaPagamento || "—")}</td>

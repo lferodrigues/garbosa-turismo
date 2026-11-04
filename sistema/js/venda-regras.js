@@ -334,6 +334,22 @@ export function dividir(totalCent, n) {
   return Array.from({ length: n }, (_, i) => (i === n - 1 ? totalCent - base * (n - 1) : base));
 }
 
+/** Coloca cada dependente logo abaixo do titular: [[id, viajante], ...] em ordem alfabética de titulares.
+    Compra online liga pelo pedido; reserva pelo link, pelo nome do responsável (ela não tem pedido). */
+export function agruparViajantes(lista) {
+  const chave = (s) => String(s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
+  const grupos = new Map();
+  lista.forEach((par) => {
+    const [, p] = par, k = p.pedido ? `p:${p.pedido}` : `n:${chave(p.responsavel || p.nome)}`;
+    if (!grupos.has(k)) grupos.set(k, []);
+    grupos.get(k).push(par);
+  });
+  const titularPrimeiro = (g) => [...g].sort(([, a], [, b]) => Number(!!a.responsavel) - Number(!!b.responsavel));
+  return [...grupos.values()].map(titularPrimeiro)
+    .sort((a, b) => String(a[0][1].nome || "").localeCompare(String(b[0][1].nome || ""), "pt-BR"))
+    .flat();
+}
+
 /** Link de convite de grupo do WhatsApp (https://chat.whatsapp.com/CODIGO) — devolve o link limpo ou "" */
 export function linkGrupoWhatsapp(v) {
   const m = String(v || "").trim().match(/^(?:https?:\/\/)?chat\.whatsapp\.com\/(?:invite\/)?([A-Za-z0-9]{10,40})\/?(?:\?.*)?$/);

@@ -190,3 +190,22 @@ test("cupom: valor por pessoa por tipo de desconto, sem aceitar desconto inváli
   assert.equal(R.valorComCupom(0, "final", 50), 50);
   assert.equal(R.valorComCupom(300, "final", 0), 0);
 });
+
+test("agruparViajantes: cada dependente fica logo abaixo do titular", () => {
+  const nomes = (l) => l.map(([id]) => id);
+  const lista = [
+    ["agatha", { nome: "Ágatha Gouvea", pedido: "A", responsavel: "Vania Gouvea" }],
+    ["ana", { nome: "Ana Cristina", pedido: "B", responsavel: "Edson Melo" }],
+    ["ayla", { nome: "Ayla Helena", responsavel: "Priscila Assis" }],
+    ["bruno", { nome: "Bruno Sozinho" }],
+    ["edson", { nome: "Edson Melo", pedido: "B" }],
+    ["eloa", { nome: "Eloá Gouvea", pedido: "A", responsavel: "Vania Gouvea" }],
+    ["priscila", { nome: "Priscila Assis" }],
+    ["vania", { nome: "Vania Gouvea", pedido: "A" }]
+  ];
+  assert.deepEqual(nomes(R.agruparViajantes(lista)), ["bruno", "edson", "ana", "priscila", "ayla", "vania", "agatha", "eloa"]);
+  // homônimos de compras diferentes não se misturam, e dependente sem titular na lista não some
+  const outra = [["x", { nome: "João", pedido: "C" }], ["y", { nome: "João", pedido: "D" }], ["z", { nome: "Zeca", responsavel: "Fulano" }]];
+  assert.equal(R.agruparViajantes(outra).length, 3);
+  assert.deepEqual(R.agruparViajantes([]), []);
+});
