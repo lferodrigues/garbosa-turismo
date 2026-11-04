@@ -2074,7 +2074,6 @@ function viewViajantes() {
   ligarSeletor();
   $("#btnNovoPass").onclick = () => formViajante(exId);
   $("#btnVeicExtra").onclick = () => formVeiculoExtra(exId);
-  $("#btnEmbarque").onclick = () => formEmbarque(exId, vk);
   if ($("#btnVeicExtra2")) $("#btnVeicExtra2").onclick = () => formVeiculoExtra(exId);
   $("#btnIrPolt").onclick = () => irPara("poltronas", exId);
   $("#btnImportar").onclick = () => importarPlanilha(exId);
@@ -2404,6 +2403,7 @@ function viewPoltronas() {
   }, "Limpar");
   $("#btnVeicExtra").onclick = () => formVeiculoExtra(exId);
   if ($("#btnVeicExtra2")) $("#btnVeicExtra2").onclick = () => formVeiculoExtra(exId);
+  $("#btnEmbarque").onclick = () => formEmbarque(exId, vk);
   $("#btnPrint").onclick = () => window.print();
   $("#btnCopiarPoltLink").onclick = async () => {
     try { await navigator.clipboard.writeText(linkPolt); } catch { /* sem área de transferência */ }
