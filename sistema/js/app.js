@@ -1,7 +1,7 @@
 import { auth, db, ADMIN_EMAIL, authSecundario } from "./firebase.js?v=8";
-import { baixarXLSX, baixarPDF, baixarPDFPoltronas, carregarXLSX } from "./exportar.js?v=10";
+import { baixarXLSX, baixarPDF, baixarPDFPoltronas, carregarXLSX } from "./exportar.js?v=11";
 import { apiCertidao, htmlFoto, ligarFoto } from "./certidao-foto.js?v=2";
-import * as R from "./venda-regras.js?v=26";
+import * as R from "./venda-regras.js?v=27";
 import { htmlOnibus } from "./mapa-onibus.js?v=3";
 import { montarVitrine, AVISO_VEICULOS, CATEGORIAS_VEICULO, ITENS_VEICULO } from "./vitrine.js?v=10";
 import { mostrarMoldura, tirarMoldura } from "./moldura.js?v=1";
@@ -2042,7 +2042,7 @@ function viewViajantes() {
   const exId = S.exSel, ex = S.excursoes[exId], own = dono(exId);
   const lista = viajantesEx(exId), occ = ocupantes(exId).length, cap = capacidadeEx(ex);
   const pct = cap ? Math.min(100, Math.round((occ / cap) * 100)) : 0;
-  const depsDe = R.dependentesPorTitular(lista);
+  const depsDe = R.dependentesPorTitular(lista), liberadas = R.passagensLiberadas(lista);
   const oculto = new Set(Object.entries(depsDe).filter(([tid]) => S.depFechados[tid]).flatMap(([, ids]) => ids));
   const botaoDeps = (pid) => {
     const qtd = depsDe[pid]?.length, aberto = !S.depFechados[pid];
@@ -2072,6 +2072,7 @@ function viewViajantes() {
         <td>${pillStatus(p)}</td>
         <td>${p.colo ? "—" : `<span class="pill">${esc(rotuloPoltrona(exId, pid))}</span>`}</td>
         <td class="acoes">
+          ${botaoPassagem(pid, liberadas)}
           <button class="ic" title="Editar" data-a="edit" data-id="${pid}"><i class="fa-solid fa-pen"></i></button>
           <button class="ic danger" title="Excluir" data-a="del" data-id="${pid}"><i class="fa-solid fa-trash"></i></button>
         </td></tr>`).join("")}</tbody></table></div>`
@@ -2090,6 +2091,7 @@ function viewViajantes() {
     if (b.dataset.a === "edit") formViajante(exId, pid);
     if (b.dataset.a === "del") excluirViajante(exId, pid);
     if (b.dataset.a === "dep") { S.depFechados[pid] = !S.depFechados[pid]; viewViajantes(); }
+    if (b.dataset.a === "passagem") enviarPassagem(exId, pid);
   }));
   S.exportar = { titulo: `Viajantes ${ex.destino} ${fData(ex.dataSaida)}`, sub: `${tituloEx(ex)} · ${lista.length} viajante(s) · ${occ}/${cap} poltronas`,
     sheets: [{ nome: "Viajantes", colunas: COLS_PASS, linhas: linhasPassageiros(exId) }] };
@@ -2924,6 +2926,23 @@ let REL_PAG = null;
 /* Cobrar no WhatsApp: quem comprou online recebe também o boleto (ou o link) da próxima parcela em aberto.
    O wa.me só leva texto, então o boleto vai como link + linha digitável. */
 const urlCobrar = (tel, inicio, extra = "") => `https://wa.me/55${tel}?text=${encodeURIComponent([inicio, extra, "Qualquer dúvida estou à disposição."].filter(Boolean).join("\n\n"))}`;
+const botaoPassagem = (pid, liberadas) => (liberadas.has(pid) ? `<button class="ic" style="color:#1d9a55" title="Enviar passagem pelo WhatsApp" data-a="passagem" data-id="${pid}"><i class="fa-solid fa-ticket"></i></button>` : "");
+/** O wa.me só leva texto: vai um link da passagem, e o viajante baixa o PDF por lá */
+async function enviarPassagem(exId, pid) {
+  const aba = window.open("about:blank", "_blank"); // tem de abrir no clique, senão o navegador bloqueia
+  try {
+    const p = S.viajantes[exId][pid], ex = S.excursoes[exId];
+    const r = await fetch("/api/pedido-grupo?passagem=1", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${await auth.currentUser.getIdToken()}` },
+      body: JSON.stringify({ e: exId, own: dono(exId), v: pid }) });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(j.erro || "Não foi possível gerar a passagem.");
+    const texto = [`Olá, ${p.nome.split(" ")[0]}! ${j.qtd > 1 ? `As ${j.qtd} passagens` : "Sua passagem"} da excursão ${ex.destino} (${fData(ex.dataSaida)}) ${j.qtd > 1 ? "estão prontas" : "está pronta"}.`,
+      `${j.qtd > 1 ? "Veja e baixe todas aqui" : "Veja e baixe aqui"}:\n${j.url}`].join("\n\n");
+    const tel = soDig(p.telefone).replace(/^55(?=\d{10,11}$)/, "");
+    const url = `https://wa.me/${tel.length >= 10 ? `55${tel}` : ""}?text=${encodeURIComponent(texto)}`;
+    if (aba) { aba.opener = null; aba.location.href = url; } else location.href = url;
+  } catch (e) { aba?.close(); toast(e.message, "erro"); }
+}
 const linkCobrar = (tel, inicio, pedido = "") => `<a class="ic" style="display:inline-grid;place-items:center;color:#1d9a55" title="Cobrar no WhatsApp" target="_blank" rel="noopener"
   href="${esc(urlCobrar(tel, inicio))}"${pedido ? ` data-cobrar="${esc(pedido)}" data-tel="${esc(tel)}" data-msg="${esc(inicio)}"` : ""}><i class="fa-brands fa-whatsapp"></i></a>`;
 function textoCobranca(c) {
@@ -3507,6 +3526,7 @@ function viewFinanceiro() {
   const pct = previsto ? Math.min(100, Math.round((recebido / previsto) * 100)) : 0;
   const termo = S.finBusca.toLowerCase();
   const lista = todos.filter(([, p]) => (!S.finFiltro || statusPag(p).id === S.finFiltro) && (!termo || p.nome.toLowerCase().includes(termo)));
+  const liberadas = R.passagensLiberadas(todos);
 
   $("#workspace").innerHTML = `
   <section class="panel">
@@ -3537,6 +3557,7 @@ function viewFinanceiro() {
           <td><strong>${brl(saldo)}</strong></td>
           <td>${pillStatus(p)}</td>
           <td class="acoes">
+            ${botaoPassagem(pid, liberadas)}
             <button class="ic" title="Registrar pagamento" data-a="pag" data-id="${pid}"><i class="fa-solid fa-plus"></i></button>
             ${saldo > 0 ? `<button class="ic" title="Marcar como pago (quitar)" data-a="quitar" data-id="${pid}"><i class="fa-solid fa-check-double"></i></button>` : ""}
             <button class="ic" title="Histórico e valor" data-a="hist" data-id="${pid}"><i class="fa-solid fa-clock-rotate-left"></i></button>
@@ -3562,6 +3583,7 @@ function viewFinanceiro() {
     if (b.dataset.a === "pag") formPagamento(exId, pid);
     if (b.dataset.a === "hist") historicoPagamentos(exId, pid);
     if (b.dataset.a === "delv") excluirViajante(exId, pid);
+    if (b.dataset.a === "passagem") enviarPassagem(exId, pid);
     if (b.dataset.a === "quitar") {
       const p = S.viajantes[exId][pid], saldo = Math.max(0, num(p.valor) - pagoDe(p));
       confirmar(`Registrar pagamento de <strong>${brl(saldo)}</strong> e marcar <strong>${esc(p.nome)}</strong> como pago?`,

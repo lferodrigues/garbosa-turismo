@@ -362,6 +362,19 @@ export function dependentesPorTitular(lista) {
   return r;
 }
 
+/** Total pago por um viajante, em centavos (Asaas e baixa manual gravam no mesmo lugar) */
+export const pagoCentDe = (v) => Object.values(v?.pagamentos || {}).reduce((s, x) => s + Math.max(0, centavos(x?.valor)), 0);
+/** Quem já tem passagem: pagou algo. Dependente sem valor (colo gratuito) acompanha o titular. */
+export function passagensLiberadas(lista) {
+  const ativo = (p) => !["expirado", "cancelado"].includes(p?.statusVenda);
+  const ok = new Set(lista.filter(([, p]) => ativo(p) && pagoCentDe(p) > 0).map(([id]) => id));
+  const porId = Object.fromEntries(lista);
+  Object.entries(dependentesPorTitular(lista)).forEach(([tid, deps]) => {
+    if (ok.has(tid)) deps.filter((id) => ativo(porId[id]) && centavos(porId[id].valor) <= 0).forEach((id) => ok.add(id));
+  });
+  return ok;
+}
+
 /** Link de convite de grupo do WhatsApp (https://chat.whatsapp.com/CODIGO) — devolve o link limpo ou "" */
 export function linkGrupoWhatsapp(v) {
   const m = String(v || "").trim().match(/^(?:https?:\/\/)?chat\.whatsapp\.com\/(?:invite\/)?([A-Za-z0-9]{10,40})\/?(?:\?.*)?$/);

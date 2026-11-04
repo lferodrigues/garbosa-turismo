@@ -1366,3 +1366,22 @@ input:-webkit-autofill{-webkit-text-fill-color:#fff;-webkit-box-shadow:0 0 0 40p
 .cp-pix small{display:block;font-size:.75rem}
 .cp-pix-linha{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
 .cp-pix-chave{color:#2A1F88;font-size:min(.95rem,3.5vw);overflow-wrap:anywhere;min-width:0}
+
+/* passagem (link enviado pelo WhatsApp) */
+.psg-area{max-width:560px;width:100%;margin:0 auto;display:flex;flex-direction:column;gap:12px}
+.psg-msg{text-align:center;padding:24px 8px}
+.psg{border:1px solid var(--line);border-radius:var(--radius);padding:0 0 14px;overflow:hidden;background:#fff;text-align:left}
+.psg>header{background:var(--primary);color:#fff;padding:12px 14px;border-bottom:3px solid var(--accent);display:flex;flex-direction:column}
+.psg>header small{opacity:.85}
+.psg-campos{display:grid;grid-template-columns:1fr 1fr;gap:10px 12px;padding:14px}
+.psg-campos .span2{grid-column:span 2}
+.psg-campos div{min-width:0;overflow-wrap:anywhere}
+.psg-campos small{display:block;color:var(--muted);font-size:.72rem}
+.psg-rodape{display:flex;gap:12px;align-items:center;justify-content:space-between;padding:12px 14px;border-top:1px solid var(--line)}
+.psg-valores{display:flex;flex-direction:column;gap:3px;flex:1;min-width:0;font-size:.85rem}
+.psg-valores span{display:flex;justify-content:space-between;gap:10px}
+.psg-valores .forte{font-weight:700}
+.psg-valores small{color:var(--muted)}
+.psg-qr{flex:0 0 96px;width:96px}
+.psg-qr svg{display:block;width:100%;height:auto}
+.psg .btn{width:calc(100% - 28px);margin:0 14px}

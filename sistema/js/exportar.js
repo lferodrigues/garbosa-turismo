@@ -46,6 +46,80 @@ export async function baixarXLSX(titulo, sheets) {
   XLSX.writeFile(wb, nomeArquivo(titulo) + ".xlsx");
 }
 
+/* ---------- passagem: uma página por viajante, via do passageiro + via do motorista ---------- */
+function qrNoPdf(doc, matriz, x, y, lado) {
+  if (!matriz) return;
+  const m = lado / matriz.length;
+  doc.setFillColor(0, 0, 0);
+  matriz.forEach((linha, l) => linha.forEach((preto, c) => { if (preto) doc.rect(x + c * m, y + l * m, m + 0.02, m + 0.02, "F"); }));
+}
+function campoPdf(doc, rotulo, valor, x, y, largura) {
+  doc.setFont("helvetica", "normal"); doc.setFontSize(7.5); doc.setTextColor(110, 110, 120);
+  doc.text(rotulo, x, y);
+  doc.setFont("helvetica", "bold"); doc.setFontSize(10); doc.setTextColor(25, 25, 40);
+  const linhas = doc.splitTextToSize(String(valor || "—"), largura).slice(0, 2);
+  doc.text(linhas, x, y + 4.4);
+  return y + 5 + linhas.length * 4.4;
+}
+function viaPdf(doc, d, t, x, w, titulo, motorista, qr) {
+  const ex = d.excursao, dir = x + w / 2 + 1;
+  doc.setFillColor(...ROXO); doc.rect(x, 10, w, 18, "F");
+  doc.setFillColor(...AMARELO); doc.rect(x, 28, w, 1.2, "F");
+  doc.setTextColor(255, 255, 255);
+  doc.setFont("helvetica", "bold"); doc.setFontSize(13); doc.text(d.agencia.nome, x + 4, 17.5, { maxWidth: w - 8 });
+  doc.setFont("helvetica", "normal"); doc.setFontSize(8.5); doc.text(titulo, x + 4, 23.5);
+  doc.setTextColor(90, 90, 100); doc.setFontSize(7.5);
+  doc.text([d.agencia.cnpj && `CNPJ ${d.agencia.cnpj}`, d.agencia.whatsapp && `WhatsApp ${d.agencia.whatsapp}`].filter(Boolean).join("   ·   "), x, 33.5);
+
+  let y = 40;
+  y = campoPdf(doc, "Excursão", ex.destino, x, y, w);
+  y = campoPdf(doc, "Local de embarque", t.origem, x, y, w);
+  campoPdf(doc, "Saída", `${dataBR(ex.dataSaida)}${t.horaSaida ? `, às ${t.horaSaida}` : ""}`, x, y, w / 2 - 2);
+  y = campoPdf(doc, "Retorno", `${dataBR(ex.dataRetorno)}${ex.horaRetorno ? `, às ${ex.horaRetorno}` : ""}`, dir, y, w / 2 - 2);
+  campoPdf(doc, "Poltrona", t.poltrona, x, y, w / 2 - 2);
+  y = campoPdf(doc, "Veículo", t.veiculo || "Único", dir, y, w / 2 - 2);
+  y = campoPdf(doc, "Passageiro", t.nome, x, y, w);
+  campoPdf(doc, "Documento", t.documento, x, y, w / 2 - 2);
+  y = campoPdf(doc, "Bilhete", t.codigo, dir, y, w / 2 - 2);
+  doc.setDrawColor(225, 227, 238); doc.line(x, y, x + w, y); y += 5;
+
+  if (motorista) {
+    qrNoPdf(doc, qr, x + (w - 42) / 2, y, 42);
+    doc.setFont("helvetica", "normal"); doc.setFontSize(8); doc.setTextColor(90, 90, 100);
+    if (qr) doc.text("Código de conferência do embarque", x + w / 2, y + 47, { align: "center" });
+    return;
+  }
+  const linhas = [["Valor total", brlPdf(t.valorCent)], ["Valor pago", brlPdf(t.pagoCent)], ["Saldo a pagar", brlPdf(t.saldoCent)], ["Forma de pagamento", t.forma || "—"]];
+  doc.setFontSize(8.5);
+  linhas.forEach(([a, b], i) => {
+    doc.setFont("helvetica", i === 2 ? "bold" : "normal"); doc.setTextColor(40, 40, 50);
+    doc.text(a, x, y + i * 5); doc.text(b, x + w - 40, y + i * 5, { align: "right", maxWidth: 40 });
+  });
+  qrNoPdf(doc, qr, x + w - 33, y - 3, 33);
+  if (t.opcionais.length) {
+    doc.setFont("helvetica", "normal"); doc.setFontSize(7.5);
+    doc.text(doc.splitTextToSize(`Opcionais: ${t.opcionais.join(", ")}`, w - 40).slice(0, 2), x, y + 21);
+  }
+}
+const dataBR = (iso) => (iso ? String(iso).split("-").reverse().join("/") : "—");
+const brlPdf = (c) => (c / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }).replace(/\u00a0/g, " ");
+
+/** dados: resposta da API; lista: passagens a baixar; qrDe(token) devolve a matriz do código */
+export async function baixarPassagens(dados, lista, qrDe, arquivo) {
+  await carregar("jspdf");
+  const doc = new window.jspdf.jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+  lista.forEach((t, i) => {
+    if (i) doc.addPage();
+    const qr = qrDe(t.token);
+    viaPdf(doc, dados, t, 10, 132, "Comprovante de passagem · Via do passageiro", false, qr);
+    viaPdf(doc, dados, t, 155, 132, "Bilhete de embarque · Via do motorista", true, qr);
+    doc.setDrawColor(170, 170, 180); doc.setLineDashPattern([1.5, 1.5], 0); doc.line(148.5, 8, 148.5, 202); doc.setLineDashPattern([], 0);
+    doc.setFont("helvetica", "normal"); doc.setFontSize(7); doc.setTextColor(120, 120, 130);
+    doc.text("Comprovante emitido pela agência. Não é documento fiscal. Apresente um documento com foto no embarque.", 10, 201, { maxWidth: 132 });
+  });
+  doc.save(nomeArquivo(arquivo) + ".pdf");
+}
+
 async function novoPDF(paisagem) {
   await carregar("jspdf");
   await carregar("autotable");
