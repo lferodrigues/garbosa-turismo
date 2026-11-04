@@ -1,7 +1,7 @@
 import { auth, db, ADMIN_EMAIL, authSecundario } from "./firebase.js?v=8";
 import { baixarXLSX, baixarPDF, baixarPDFPoltronas, carregarXLSX } from "./exportar.js?v=10";
 import { apiCertidao, htmlFoto, ligarFoto } from "./certidao-foto.js?v=2";
-import * as R from "./venda-regras.js?v=25";
+import * as R from "./venda-regras.js?v=26";
 import { htmlOnibus } from "./mapa-onibus.js?v=3";
 import { montarVitrine, AVISO_VEICULOS, CATEGORIAS_VEICULO, ITENS_VEICULO } from "./vitrine.js?v=10";
 import { mostrarMoldura, tirarMoldura } from "./moldura.js?v=1";
@@ -173,7 +173,7 @@ function esconderLoading() {
 }
 const S = {
   view: "calendario", param: null,
-  viagens: {}, excursoes: {}, viajantes: {}, poltronas: {}, agencias: {}, usuarios: {}, logs: null, site: {},
+  viagens: {}, excursoes: {}, viajantes: {}, poltronas: {}, agencias: {}, usuarios: {}, logs: null, site: {}, depFechados: {},
   mes: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
   exSel: null, veicSel: null, passSel: null, busca: "",
   filtroLogs: { de: "", ate: "", uid: "", acao: "" }, buscaUsuarios: "",
@@ -2042,6 +2042,12 @@ function viewViajantes() {
   const exId = S.exSel, ex = S.excursoes[exId], own = dono(exId);
   const lista = viajantesEx(exId), occ = ocupantes(exId).length, cap = capacidadeEx(ex);
   const pct = cap ? Math.min(100, Math.round((occ / cap) * 100)) : 0;
+  const depsDe = R.dependentesPorTitular(lista);
+  const oculto = new Set(Object.entries(depsDe).filter(([tid]) => S.depFechados[tid]).flatMap(([, ids]) => ids));
+  const botaoDeps = (pid) => {
+    const qtd = depsDe[pid]?.length, aberto = !S.depFechados[pid];
+    return qtd ? ` <button type="button" class="dep-toggle" data-a="dep" data-id="${pid}" aria-expanded="${aberto}" title="${aberto ? "Recolher" : "Expandir"} dependentes"><i class="fa-solid fa-chevron-${aberto ? "down" : "right"}"></i> ${qtd} ${qtd > 1 ? "dependentes" : "dependente"}</button>` : "";
+  };
   $("#workspace").innerHTML = `
   <section class="panel">
     ${toolbar("Cadastro de viajantes", "fa-users",
@@ -2057,9 +2063,9 @@ function viewViajantes() {
       <button class="btn btn-primary btn-sm" id="btnVeicExtra2"><i class="fa-solid fa-plus"></i> Inserir mais um veículo</button></div>` : ""}
     ${lista.length ? `<div class="table-wrap"><table class="grid">
       <thead><tr><th>#</th><th>Nome completo</th><th>Documento</th><th>Telefone</th><th>Idade</th><th>Pagamento</th><th>Poltrona</th><th></th></tr></thead>
-      <tbody>${lista.map(([pid, p], i) => `<tr${p.responsavel ? ` class="dep"` : ""}>
+      <tbody>${lista.map(([pid, p], i) => `<tr${p.responsavel ? ` class="dep${oculto.has(pid) ? " hidden" : ""}"` : ""}>
         <td>${i + 1}</td>
-        <td><strong>${esc(p.nome)}</strong>${p.colo ? ` <span class="pill pill-yellow">colo</span>` : ""}${p.origem === "link" ? ` <span class="pill pill-link" title="Cadastrado pelo link">link</span>` : ""}${p.origem === "planilha" ? ` <span class="pill" title="Importado de planilha">planilha</span>` : ""}${p.origem === "poltrona" ? ` <span class="pill pill-link" title="Escolheu a poltrona pelo link rápido (nome e RG)"><i class="fa-solid fa-chair"></i> poltrona</span>` : ""}${p.origem === "reserva" ? ` <span class="pill pill-link" title="Reservou a poltrona pelo link (pagamento a combinar)"><i class="fa-solid fa-couch"></i> reserva</span>` : ""}${p.origem === "venda" ? ` <span class="pill pill-online st-${STATUS_PEDIDO[p.statusVenda]?.cls || "pendente"}" title="Compra online (Asaas) — ${esc(STATUS_PEDIDO[p.statusVenda]?.nome || "")}"><i class="fa-solid fa-cart-shopping"></i> online</span>` : ""}${Object.values(p.opcionais || {}).map((o) => ` <span class="pill pill-opc" title="Opcional: ${esc(o.titulo)} (${brl(o.valor)})"><i class="fa-solid fa-square-plus"></i> ${esc(o.titulo)}</span>`).join("")}${p.obs ? `<br><small class="muted">${esc(p.obs)}</small>` : ""}</td>
+        <td><strong>${esc(p.nome)}</strong>${botaoDeps(pid)}${p.colo ? ` <span class="pill pill-yellow">colo</span>` : ""}${p.origem === "link" ? ` <span class="pill pill-link" title="Cadastrado pelo link">link</span>` : ""}${p.origem === "planilha" ? ` <span class="pill" title="Importado de planilha">planilha</span>` : ""}${p.origem === "poltrona" ? ` <span class="pill pill-link" title="Escolheu a poltrona pelo link rápido (nome e RG)"><i class="fa-solid fa-chair"></i> poltrona</span>` : ""}${p.origem === "reserva" ? ` <span class="pill pill-link" title="Reservou a poltrona pelo link (pagamento a combinar)"><i class="fa-solid fa-couch"></i> reserva</span>` : ""}${p.origem === "venda" ? ` <span class="pill pill-online st-${STATUS_PEDIDO[p.statusVenda]?.cls || "pendente"}" title="Compra online (Asaas) — ${esc(STATUS_PEDIDO[p.statusVenda]?.nome || "")}"><i class="fa-solid fa-cart-shopping"></i> online</span>` : ""}${Object.values(p.opcionais || {}).map((o) => ` <span class="pill pill-opc" title="Opcional: ${esc(o.titulo)} (${brl(o.valor)})"><i class="fa-solid fa-square-plus"></i> ${esc(o.titulo)}</span>`).join("")}${p.obs ? `<br><small class="muted">${esc(p.obs)}</small>` : ""}</td>
         <td><small class="muted">${esc(DOCS[p.docTipo] || p.docTipo)}</small><br>${esc(p.docNumero)}</td>
         <td>${esc(p.telefone)}</td>
         <td>${esc(p.idade ?? "—")}</td>
@@ -2083,6 +2089,7 @@ function viewViajantes() {
     const pid = b.dataset.id, p = S.viajantes[exId][pid];
     if (b.dataset.a === "edit") formViajante(exId, pid);
     if (b.dataset.a === "del") excluirViajante(exId, pid);
+    if (b.dataset.a === "dep") { S.depFechados[pid] = !S.depFechados[pid]; viewViajantes(); }
   }));
   S.exportar = { titulo: `Viajantes ${ex.destino} ${fData(ex.dataSaida)}`, sub: `${tituloEx(ex)} · ${lista.length} viajante(s) · ${occ}/${cap} poltronas`,
     sheets: [{ nome: "Viajantes", colunas: COLS_PASS, linhas: linhasPassageiros(exId) }] };

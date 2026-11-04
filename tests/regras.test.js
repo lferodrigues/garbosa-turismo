@@ -209,3 +209,15 @@ test("agruparViajantes: cada dependente fica logo abaixo do titular", () => {
   assert.equal(R.agruparViajantes(outra).length, 3);
   assert.deepEqual(R.agruparViajantes([]), []);
 });
+
+test("dependentesPorTitular: só titular presente na lista ganha o botão", () => {
+  const lista = [
+    ["edson", { nome: "Edson Melo", pedido: "B" }],
+    ["ana", { nome: "Ana Cristina", pedido: "B", responsavel: "Edson Melo" }],
+    ["priscila", { nome: "Priscila Assis" }],
+    ["ayla", { nome: "Ayla Helena", responsavel: "PRISCILA ASSIS" }],
+    ["bruno", { nome: "Bruno Sozinho" }],
+    ["zeca", { nome: "Zeca", responsavel: "Fulano" }]
+  ];
+  assert.deepEqual(R.dependentesPorTitular(lista), { edson: ["ana"], priscila: ["ayla"] });
+});

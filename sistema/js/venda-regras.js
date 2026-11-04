@@ -337,6 +337,12 @@ export function dividir(totalCent, n) {
 /** Coloca cada dependente logo abaixo do titular: [[id, viajante], ...] em ordem alfabética de titulares.
     Compra online liga pelo pedido; reserva pelo link, pelo nome do responsável (ela não tem pedido). */
 export function agruparViajantes(lista) {
+  const titularPrimeiro = (g) => [...g].sort(([, a], [, b]) => Number(!!a.responsavel) - Number(!!b.responsavel));
+  return gruposDeViajantes(lista).map(titularPrimeiro)
+    .sort((a, b) => String(a[0][1].nome || "").localeCompare(String(b[0][1].nome || ""), "pt-BR"))
+    .flat();
+}
+function gruposDeViajantes(lista) {
   const chave = (s) => String(s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
   const grupos = new Map();
   lista.forEach((par) => {
@@ -344,10 +350,16 @@ export function agruparViajantes(lista) {
     if (!grupos.has(k)) grupos.set(k, []);
     grupos.get(k).push(par);
   });
-  const titularPrimeiro = (g) => [...g].sort(([, a], [, b]) => Number(!!a.responsavel) - Number(!!b.responsavel));
-  return [...grupos.values()].map(titularPrimeiro)
-    .sort((a, b) => String(a[0][1].nome || "").localeCompare(String(b[0][1].nome || ""), "pt-BR"))
-    .flat();
+  return [...grupos.values()];
+}
+/** { idDoTitular: [ids dos dependentes] }. Dependente sem titular na lista fica de fora: não há onde recolher. */
+export function dependentesPorTitular(lista) {
+  const r = {};
+  gruposDeViajantes(lista).forEach((g) => {
+    const titular = g.find(([, p]) => !p.responsavel), deps = g.filter(([, p]) => p.responsavel).map(([id]) => id);
+    if (titular && deps.length) r[titular[0]] = deps;
+  });
+  return r;
 }
 
 /** Link de convite de grupo do WhatsApp (https://chat.whatsapp.com/CODIGO) — devolve o link limpo ou "" */
