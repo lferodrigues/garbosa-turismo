@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
-<link rel="stylesheet" href="css/sistema.css?v=42">
+<link rel="stylesheet" href="css/sistema.css?v=43">
 </head>
 <body class="insc-body cp-body">
 <div id="loading" class="loading-screen">
@@ -86,7 +86,8 @@
     </ol>
 
     <div class="cp-etapa" id="etapa1">
-      <p class="cp-dica">Não precisa pagar nada aqui nem criar conta: é só informar quem vai viajar e escolher a poltrona.</p>
+      <p class="cp-dica" id="dicaInicio">Não precisa pagar nada aqui nem criar conta: é só informar quem vai viajar e escolher a poltrona.</p>
+      <div class="cp-pix hidden" data-pix></div>
       <div id="lista"></div>
       <div class="cp-add">
         <button type="button" class="btn btn-light" id="btnMais"><i class="fa-solid fa-user-plus"></i> Adicionar outra pessoa</button>
@@ -114,6 +115,7 @@
       <i class="fa-solid fa-circle-check" style="color:#1fa37a"></i>
       <h2>Poltrona garantida!</h2>
       <div class="cp-resumo" id="resumo" style="text-align:left"></div>
+      <div class="cp-pix hidden" data-pix></div>
       <div id="certidao" class="hidden">
         <div class="alerta amarelo" style="margin:14px 0;text-align:left"><i class="fa-solid fa-id-card"></i> Falta só enviar a <strong>certidão de nascimento</strong> pelo WhatsApp para a agência.</div>
         <a class="btn btn-wpp btn-block" id="btnWpp" target="_blank" rel="noopener"><i class="fa-brands fa-whatsapp"></i> Enviar a certidão pelo WhatsApp</a>
@@ -131,6 +133,6 @@
     <a href="../index.html" class="btn btn-light btn-block">Ver outras excursões</a>
   </section>
 </main>
-<script type="module" src="js/poltrona.js?v=44"></script>
+<script type="module" src="js/poltrona.js?v=45"></script>
 </body>
 </html>

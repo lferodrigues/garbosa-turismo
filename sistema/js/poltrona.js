@@ -14,6 +14,10 @@ const exId = new URLSearchParams(location.search).get("e") || "";
 const vLink = new URLSearchParams(location.search).get("v") || ""; // link de um veículo só
 let EX = null, seq = 0;
 const S = { pessoas: [], ativo: 0, veic: null };
+/* Excursões que recebem por Pix direto para a agência; as demais não mostram nada disso */
+const PIX_POR_EXCURSAO = {
+  "-P5DW-RX4uz6M7k2M1ev": { chave: "contato.garbosaturismo@gmail.com", ate: "13/11/2026" } // Show do Frei Gilson
+};
 /*
  * Pessoa: { id, nome, docTipo, docNumero, colo, nascimento, com (id do adulto), assento }
  * + quando o documento já estava cadastrado: vid, existente { nome, poltrona, podeAlterar },
@@ -52,6 +56,7 @@ async function carregar() {
   const embTopo = htmlSaidasTopo(EX.saidas) + htmlEmbarquesTopo(EX.veiculos);
   if (embTopo) { $("#pLocal").closest("div").style.gridColumn = "auto"; $("#pLocal").closest("div").insertAdjacentHTML("afterend", embTopo); }
   $("#idadeColo").textContent = EX.idadeColo;
+  mostrarPix();
   if (EX.folder?.caminho) {
     const img = $("#pFolder");
     img.onerror = () => { if (EX.folder.raw && img.src !== EX.folder.raw) img.src = EX.folder.raw; else img.classList.add("hidden"); };
@@ -68,6 +73,30 @@ async function carregar() {
     window.scrollTo(0, 0);
   });
   mostrar("#vitrine");
+}
+
+/** Chave Pix da excursão, com botão de copiar, no primeiro passo e na confirmação */
+function mostrarPix() {
+  const pix = PIX_POR_EXCURSAO[exId];
+  if (!pix) return;
+  $("#dicaInicio").textContent = "Não precisa criar conta: é só informar quem vai viajar e escolher a poltrona. O pagamento é feito por Pix.";
+  $$("[data-pix]").forEach((box) => {
+    box.innerHTML = `
+      <p class="cp-pix-tit"><i class="fa-brands fa-pix"></i> Pagamento por Pix até <strong>${esc(pix.ate)}</strong></p>
+      <small>Chave Pix</small>
+      <div class="cp-pix-linha">
+        <strong class="cp-pix-chave">${esc(pix.chave)}</strong>
+        <button type="button" class="btn btn-light btn-sm" data-copiar aria-live="polite"><i class="fa-regular fa-copy"></i> Copiar</button>
+      </div>`;
+    box.classList.remove("hidden");
+    const btn = $("[data-copiar]", box);
+    btn.addEventListener("click", async () => {
+      try { await navigator.clipboard.writeText(pix.chave); }
+      catch { getSelection().selectAllChildren($(".cp-pix-chave", box)); return; } // sem permissão: deixa selecionada para copiar à mão
+      btn.innerHTML = '<i class="fa-solid fa-check"></i> Copiada!';
+      setTimeout(() => { btn.innerHTML = '<i class="fa-regular fa-copy"></i> Copiar'; }, 2000);
+    });
+  });
 }
 
 /** Selo automático no topo: "Últimas vagas" (faltando 40% ou menos) ou "Esgotado" */

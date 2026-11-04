@@ -1351,3 +1351,11 @@ input:-webkit-autofill{-webkit-text-fill-color:#fff;-webkit-box-shadow:0 0 0 40p
 /* Foto da certidão de nascimento */
 .cert-foto{display:grid;gap:8px}
 .cert-previa{width:100%;max-height:220px;object-fit:contain;background:#f2f1f8;border-radius:10px;border:1px solid var(--line,#e2e0ee)}
+
+/* Chave Pix na escolha de poltrona */
+.cp-pix{background:#fff7df;color:#735a07;border:1px solid #f3df9c;border-radius:14px;padding:12px 14px;margin:0 0 14px;text-align:left}
+#etapa3 .cp-pix{margin:14px 0 0}
+.cp-pix .cp-pix-tit{margin:0 0 8px;color:inherit;font-size:.92rem}
+.cp-pix small{display:block;font-size:.75rem}
+.cp-pix-linha{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.cp-pix-chave{color:#2A1F88;font-size:min(.95rem,3.5vw);overflow-wrap:anywhere;min-width:0}
