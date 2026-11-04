@@ -243,13 +243,11 @@ Quando **Certidão de nascimento** é selecionada na escolha rápida de poltrona
 para tirar a foto ou escolher o arquivo. A imagem é reduzida no navegador e enviada em JPEG. A foto não é obrigatória: na escolha rápida, quem não envia
 continua vendo o botão do WhatsApp. A compra e a reserva online não têm esse seletor; nelas, a agência anexa a foto no cadastro do viajante.
 - **PDF de Poltronas**: depois da lista de viajantes, entra uma página por certidão. Quem ficou sem foto aparece em *Certidões que não estão neste PDF*.
-- **Excluir a excursão**: apaga antes as certidões; se o GitHub recusar, a excursão não é excluída e dá para tentar de novo.
-- As fotos ficam no repositório do site, que **precisa estar privado**: com ele público, o botão não aparece e o servidor recusa o envio.
-  Cada excursão tem a própria branch (`ex-{exId}`), fora da `main`, e excluir a branch tira a excursão inteira do repositório, com o histórico dela.
-  O `vercel.json` desliga o deploy das branches `ex-*`, para as fotos não virarem páginas de preview, e nada disso entra no site publicado.
+- **Excluir a excursão**: apaga antes as certidões; se falhar, a excursão não é excluída e dá para tentar de novo.
+- As fotos ficam no **Realtime Database**, em JPEG de até 1,5 MB (normalmente menos de 600 KB). O plano gratuito tem 1 GB para o banco inteiro: acompanhe o uso no console do Firebase.
 - As imagens só são lidas pelo servidor, com o login da agência dona, de um colaborador ou do admin (`api/_lib/certidao.js`, rota `/api/site-imagem?certidao=1`).
-- Banco: `certidoes/{uid}/{exId}/{id}` = `{ caminho, sha, criadoEm, vid }`, usado só pelo servidor (sem mudança nas regras).
-- Configuração: usa o mesmo `GITHUB_TOKEN` das fotos do site. Com o repositório privado, o envio liga sozinho em até 1 minuto.
+- O link público aceita até 40 fotos sem viajante por excursão; as que ninguém ligou a um viajante são apagadas depois de 24 horas, no envio seguinte.
+- Banco: `certidoes/{uid}/{exId}/{id}` = `{ criadoEm, vid }` e `certidoesFotos/{uid}/{exId}/{id}` = imagem em base64. Sem mudança nas regras: a raiz nega tudo ao navegador.
 
 ## Ônibus com embarque próprio (ex.: Descoberto)
 Em **Poltronas**, escolha a aba do veículo e toque em **Embarque do veículo**: cidade, CEP(s), local e horário de saída

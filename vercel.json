@@ -1,7 +1,4 @@
 {
-  "git": {
-    "deploymentEnabled": { "ex-*": false }
-  },
   "redirects": [
     { "source": "/sistema", "destination": "/sistema/", "permanent": true }
   ],

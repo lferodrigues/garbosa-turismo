@@ -5,42 +5,14 @@ import { resposta } from "./util.js";
 import { usarFalsos } from "../api/_lib/firebase.js";
 import imagem from "../api/site-imagem.js";
 import poltrona from "../api/poltrona-livre.js";
-import { usarFetchCertidoes, MAX_PENDENTES_HORA } from "../api/_lib/certidao.js";
+import { MAX_PENDENTES, MAX_BYTES } from "../api/_lib/certidao.js";
 import { somarDias, hojeBR } from "../sistema/js/venda-regras.js";
 
 const JPG = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0, 16, 74, 70, 73, 70, 0, 1, 2, 3]).toString("base64");
 const EX = "exTeste123", SAIDA = somarDias(hojeBR(), 30);
-let banco, gh, chamadas;
-
-/** GitHub falso: guarda os arquivos por branch */
-function githubFalso() {
-  const estado = { privado: true, branches: { main: {} }, conflitos: 0, recusar: false };
-  const resp = (status, o = {}) => ({ ok: status < 300, status, json: async () => o, arrayBuffer: async () => Buffer.from(o.bytes || "", "base64") });
-  usarFetchCertidoes(async (url, op) => {
-    const metodo = op.method, corpo = op.body ? JSON.parse(op.body) : null, c = url.replace("https://api.github.com/repos/dono/certidoes", "");
-    chamadas.push({ metodo, c, op });
-    if (estado.recusar) return resp(500, { message: "fora do ar" });
-    if (c === "") return resp(200, { private: estado.privado, default_branch: "main" });
-    let m = c.match(/^\/git\/refs?\/heads\/(.+)$/);
-    if (m && metodo === "GET") return estado.branches[m[1]] ? resp(200, { object: { sha: "base" } }) : resp(404);
-    if (m && metodo === "DELETE") { if (!estado.branches[m[1]]) return resp(422); delete estado.branches[m[1]]; return resp(204); }
-    if (c === "/git/refs") { estado.branches[corpo.ref.replace("refs/heads/", "")] = {}; return resp(201); }
-    m = c.match(/^\/contents\/([^?]+)(?:\?ref=(.+))?$/);
-    if (m && metodo === "PUT") {
-      if (estado.conflitos-- > 0) return resp(409);
-      estado.branches[corpo.branch][m[1]] = corpo.content;
-      return resp(201, { content: { sha: "sha-" + m[1] } });
-    }
-    if (m && metodo === "GET") { const b = estado.branches[m[2]]?.[m[1]]; return b ? resp(200, { bytes: b }) : resp(404); }
-    if (m && metodo === "DELETE") { delete estado.branches[corpo.branch][m[1]]; return resp(200); }
-    throw new Error(`chamada inesperada ${metodo} ${c}`);
-  });
-  return estado;
-}
+let banco;
 
 beforeEach(() => {
-  process.env.GITHUB_TOKEN = "tok"; process.env.GITHUB_REPO = "dono/certidoes";
-  chamadas = [];
   banco = criarDb({
     usuarios: { ag: { nome: "Agência", tipo: "agencia", ativo: true }, ot: { nome: "Outra", tipo: "agencia", ativo: true }, co: { nome: "Colab", tipo: "agencia", ativo: true } },
     inscricoes: { [EX]: { owner: "ag", agencia: "Garbosa", ativa: true } },
@@ -48,7 +20,6 @@ beforeEach(() => {
     viajantes: { ag: { [EX]: { v1: { nome: "Bia Souza", docTipo: "CERTIDAO", origem: "link" }, v2: { nome: "Ana Lima", docTipo: "RG", origem: "link" } } } }
   });
   usarFalsos({ db: banco, auth: { verifyIdToken: async (t) => (t.startsWith("tok-") ? { uid: t.slice(4), email: `${t}@x.com` } : Promise.reject(new Error("x"))) } });
-  gh = githubFalso();
 });
 const post = async (corpo, token) => { const r = resposta(); await imagem({ method: "POST", query: { certidao: "1" }, headers: token ? { authorization: `Bearer ${token}` } : {}, body: corpo }, r); return r; };
 const get = async (query, token) => { const r = resposta(); await imagem({ method: "GET", query: { certidao: "1", ...query }, headers: token ? { authorization: `Bearer ${token}` } : {} }, r); return r; };
@@ -59,45 +30,40 @@ const salvarPessoa = async (certidaoId) => {
   return r;
 };
 
-test("foto pendente vai para a branch da excursão, sem nome de pessoa no arquivo", async () => {
+test("foto pendente fica no banco, separada da lista", async () => {
   const r = await enviarFoto();
   assert.equal(r.statusCode, 200, JSON.stringify(r.body));
-  assert.deepEqual(Object.keys(gh.branches[`ex-${EX}`]), [`certidoes/${r.body.id}.jpg`]);
-  assert.deepEqual(gh.branches.main, {});
-  assert.equal(chamadas.at(-1).op.headers.Authorization, "Bearer tok");
-  assert.equal(banco.dump().certidoes.ag[EX][r.body.id].vid, undefined);
+  const d = banco.dump();
+  assert.equal(d.certidoesFotos.ag[EX][r.body.id], JPG);
+  assert.equal(d.certidoes.ag[EX][r.body.id].vid, undefined);
+  assert.equal(JSON.stringify(d.certidoes).includes(JPG), false);
 });
-test("recusa repositório público, mesmo com tudo configurado", async () => {
-  gh.privado = false;
-  const r = await enviarFoto();
-  assert.equal(r.statusCode, 503);
-  assert.equal(gh.branches[`ex-${EX}`], undefined);
-});
-test("repositório público: a página continua só no WhatsApp; privado: liga o envio", async () => {
-  gh.privado = false;
-  assert.equal((await get({ status: "1" })).body.ativo, false);
-  const r = resposta(); await poltrona({ method: "GET", query: { e: EX }, body: {} }, r);
-  assert.equal(r.body.certidaoFoto, false);
-  gh = githubFalso(); // zera a consulta guardada, como depois de 1 minuto
+test("o envio aparece na página pública", async () => {
   assert.equal((await get({ status: "1" })).body.ativo, true);
+  const r = resposta(); await poltrona({ method: "GET", query: { e: EX }, body: {} }, r);
+  assert.equal(r.body.certidaoFoto, true);
 });
-test("sem token: a página pública continua no WhatsApp", async () => {
-  delete process.env.GITHUB_TOKEN;
-  assert.equal((await get({ status: "1" })).body.ativo, false);
-});
-test("recusa o que não é JPEG e link fechado", async () => {
+test("recusa o que não é JPEG, foto grande demais e link fechado", async () => {
   assert.equal((await post({ acao: "enviar", e: EX, base64: Buffer.from("<script>").toString("base64") })).statusCode, 400);
+  const grande = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff]), Buffer.alloc(MAX_BYTES)]).toString("base64");
+  assert.equal((await post({ acao: "enviar", e: EX, base64: grande })).statusCode, 400);
   await banco.ref(`inscricoes/${EX}/ativa`).set(false);
   assert.equal((await enviarFoto()).statusCode, 409);
 });
-test("repete quando duas fotos entram ao mesmo tempo (409 do GitHub)", async () => {
-  gh.conflitos = 2;
-  assert.equal((await enviarFoto()).statusCode, 200);
-});
 test("limita fotos sem viajante no link público", async () => {
-  const pend = Object.fromEntries(Array.from({ length: MAX_PENDENTES_HORA }, (_, i) => [`c${i}`, { caminho: "x", criadoEm: Date.now() }]));
+  const pend = Object.fromEntries(Array.from({ length: MAX_PENDENTES }, (_, i) => [`c${i}`, { criadoEm: Date.now() }]));
   await banco.ref(`certidoes/ag/${EX}`).set(pend);
   assert.equal((await enviarFoto()).statusCode, 429);
+});
+test("foto abandonada há mais de 24 horas some no envio seguinte; a ligada a viajante fica", async () => {
+  const velha = Date.now() - 25 * 3600000;
+  await banco.ref(`certidoes/ag/${EX}`).set({ aband: { criadoEm: velha }, ligada: { criadoEm: velha, vid: "v1" } });
+  await banco.ref(`certidoesFotos/ag/${EX}`).set({ aband: JPG, ligada: JPG });
+  assert.equal((await enviarFoto()).statusCode, 200);
+  const d = banco.dump();
+  assert.equal(d.certidoes.ag[EX].aband, undefined);
+  assert.equal(d.certidoesFotos.ag[EX].aband, undefined);
+  assert.ok(d.certidoesFotos.ag[EX].ligada);
 });
 test("escolha de poltrona liga a foto ao viajante e dispensa o WhatsApp", async () => {
   const { body: { id } } = await enviarFoto();
@@ -138,25 +104,19 @@ test("trocar a foto no painel apaga a anterior", async () => {
   const a = await post({ acao: "anexar", e: EX, own: "ag", vid: "v1", base64: JPG }, "tok-ag");
   const b = await post({ acao: "anexar", e: EX, own: "ag", vid: "v1", base64: JPG }, "tok-ag");
   assert.deepEqual(Object.keys(banco.dump().certidoes.ag[EX]), [b.body.id]);
-  assert.equal(gh.branches[`ex-${EX}`][`certidoes/${a.body.id}.jpg`], undefined);
+  assert.equal(banco.dump().certidoesFotos.ag[EX][a.body.id], undefined);
 });
-test("excluir a excursão apaga a branch inteira; colaborador não pode", async () => {
+test("excluir a excursão apaga fotos e registros; colaborador não pode", async () => {
   await enviarFoto();
   await post({ acao: "anexar", e: EX, own: "ag", vid: "v1", base64: JPG }, "tok-ag");
   assert.equal((await post({ acao: "excluir-excursao", e: EX, own: "ag" }, "tok-co")).statusCode, 403);
-  assert.ok(gh.branches[`ex-${EX}`]);
+  assert.ok(banco.dump().certidoesFotos.ag[EX]);
   assert.equal((await post({ acao: "excluir-excursao", e: EX, own: "ag" }, "tok-ag")).statusCode, 200);
-  assert.equal(gh.branches[`ex-${EX}`], undefined);
   assert.equal(banco.dump().certidoes, undefined);
+  assert.equal(banco.dump().certidoesFotos, undefined);
 });
-test("se o GitHub falhar na exclusão, avisa e mantém o registro para tentar de novo", async () => {
-  await enviarFoto();
-  gh.recusar = true;
-  assert.equal((await post({ acao: "excluir-excursao", e: EX, own: "ag" }, "tok-ag")).statusCode, 502);
-  assert.ok(banco.dump().certidoes.ag[EX]);
-});
-test("excursão sem certidões é excluída sem depender do GitHub", async () => {
-  gh.recusar = true;
-  assert.equal((await post({ acao: "excluir-excursao", e: EX, own: "ag" }, "tok-ag")).statusCode, 200);
-  assert.equal(chamadas.length, 0);
+test("excluir viajante pelo painel apaga a foto dele", async () => {
+  await post({ acao: "anexar", e: EX, own: "ag", vid: "v1", base64: JPG }, "tok-ag");
+  await post({ acao: "remover", e: EX, own: "ag", vid: "v1" }, "tok-ag");
+  assert.equal(banco.dump().certidoesFotos, undefined);
 });

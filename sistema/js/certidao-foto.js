@@ -1,6 +1,6 @@
 /* Foto da certidão de nascimento: tirada no celular ou escolhida da galeria.
    A imagem é reduzida no navegador e sempre sai em JPEG (a conversão também descarta a localização gravada na foto). */
-const LADO_MAX = 1600, ALVO = 1200 * 1024;
+const LADO_MAX = 1600, ALVO = 600 * 1024;
 
 export async function prepararFoto(arquivo) {
   const url = URL.createObjectURL(arquivo);

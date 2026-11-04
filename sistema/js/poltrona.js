@@ -4,7 +4,7 @@ import { htmlOnibus, htmlSaidasTopo, htmlEmbarquesTopo, avisoEmbarque, etiquetaE
 import { htmlOpcionais, ligarOpcionais, resumoOpcionais } from "./opcionais-ui.js?v=1";
 import { montarVitrine } from "./vitrine.js?v=10";
 import { mostrarMoldura } from "./moldura.js?v=1";
-import { apiCertidao, htmlFoto, ligarFoto } from "./certidao-foto.js?v=1";
+import { apiCertidao, htmlFoto, ligarFoto } from "./certidao-foto.js?v=2";
 
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];

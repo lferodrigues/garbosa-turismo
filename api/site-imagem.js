@@ -4,7 +4,7 @@
 // Corpo: { nome, tipo: "image/jpeg"|"image/png"|"image/webp", base64 }
 // Variáveis na Vercel: GITHUB_TOKEN (obrigatória), GITHUB_REPO (padrão lferodrigues/garbosa-turismo), GITHUB_BRANCH (padrão main)
 //
-// /api/site-imagem?certidao=1 — fotos das certidões de nascimento, em branches do repositório privado (api/_lib/certidao.js).
+// /api/site-imagem?certidao=1 — fotos das certidões de nascimento, guardadas no Realtime Database (api/_lib/certidao.js).
 // Fica neste arquivo porque o plano da Vercel já está no limite de 12 funções.
 //  Público (link da excursão aberto):
 //   GET  ?certidao=1&status=1            → { ativo }

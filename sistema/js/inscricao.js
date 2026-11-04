@@ -3,7 +3,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 import { getDatabase, ref, get, set, push, update, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 import { firebaseConfig } from "./firebase.js";
 import { htmlSaidasTopo } from "./mapa-onibus.js?v=4";
-import { apiCertidao, fotoAtiva, htmlFoto, ligarFoto } from "./certidao-foto.js?v=1";
+import { apiCertidao, fotoAtiva, htmlFoto, ligarFoto } from "./certidao-foto.js?v=2";
 
 const db = getDatabase(initializeApp(firebaseConfig, "inscricao"));
 const $ = (s) => document.querySelector(s);

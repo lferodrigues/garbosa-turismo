@@ -1,6 +1,6 @@
 import { auth, db, ADMIN_EMAIL, authSecundario } from "./firebase.js?v=8";
 import { baixarXLSX, baixarPDF, baixarPDFPoltronas, carregarXLSX } from "./exportar.js?v=10";
-import { apiCertidao, htmlFoto, ligarFoto } from "./certidao-foto.js?v=1";
+import { apiCertidao, htmlFoto, ligarFoto } from "./certidao-foto.js?v=2";
 import * as R from "./venda-regras.js?v=24";
 import { htmlOnibus } from "./mapa-onibus.js?v=3";
 import { montarVitrine, AVISO_VEICULOS, CATEGORIAS_VEICULO, ITENS_VEICULO } from "./vitrine.js?v=10";
@@ -1014,7 +1014,7 @@ function viewExcursoes() {
       for (const ped of pedidos) {
         try { await encerrarCompraOnline(ped); } catch (e) { return falha(e); } // não apaga a excursão se o Asaas recusar
       }
-      // as certidões saem antes: se o GitHub recusar, a excursão fica e dá para tentar de novo, sem deixar foto esquecida
+      // as certidões saem antes: se falhar, a excursão fica e dá para tentar de novo, sem deixar foto esquecida
       try { await apiCertidao({ acao: "excluir-excursao", e: id, own }, await auth.currentUser.getIdToken()); } catch (e) { return falha(e); }
       const upd = { [`excursoes/${own}/${id}`]: null, [`viajantes/${own}/${id}`]: null, [`poltronas/${own}/${id}`]: null, [`inscricoes/${id}`]: null };
       Object.keys(S.excursoes[id].colaboradores || {}).forEach((uid) => { upd[`compartilhadas/${uid}/${id}`] = null; });
@@ -2089,7 +2089,7 @@ function viewViajantes() {
     sheets: [{ nome: "Viajantes", colunas: COLS_PASS, linhas: linhasPassageiros(exId) }] };
 }
 
-/* Certidões guardadas no repositório privado (só passam pelo servidor, com o login) */
+/* Certidões guardadas no banco, fora do alcance do navegador (só passam pelo servidor, com o login) */
 async function certidaoGet(exId, extra = "") {
   const r = await fetch(`/api/site-imagem?certidao=1&e=${encodeURIComponent(exId)}&own=${encodeURIComponent(dono(exId))}${extra}`,
     { headers: { Authorization: `Bearer ${await auth.currentUser.getIdToken()}` } });
