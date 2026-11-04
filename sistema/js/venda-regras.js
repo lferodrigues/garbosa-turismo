@@ -375,6 +375,43 @@ export function passagensLiberadas(lista) {
   return ok;
 }
 
+/* ---------- conferência de embarque ---------- */
+export function pontosDe(ex) {
+  const pos = (p) => (p.trecho === "volta" ? 1000 : 0) + (p.tipo === "parada" ? 1 + (p.ordem || 0) : 0);
+  return Object.entries(ex?.conferencia?.pontos || {}).map(([id, p]) => ({ id, ...p })).sort((a, b) => pos(a) - pos(b));
+}
+export const rotuloPonto = (p) => `${p.trecho === "volta" ? "Volta" : "Ida"} · ${p.tipo === "parada" ? "Parada" : "Embarque"}: ${p.nome}`;
+export const prefixoDe = (ex, vk) => String(ex?.conferencia?.prefixos?.[vk] || "").trim();
+/** O QR Code guarda o link da passagem; o que identifica o viajante é o código t= */
+export function tokenDoQr(texto) {
+  const s = String(texto || "").trim();
+  return s.match(/[?&]t=([\w-]{16,32})(?:[&#]|$)/)?.[1] || (/^[\w-]{16,32}$/.test(s) ? s : "");
+}
+export const leiturasDe = (v) => Object.values(v?.leituras || {}).sort((a, b) => (a.em || 0) - (b.em || 0));
+/** A primeira leitura no ponto é a que vale como embarque; as outras ficam anotadas */
+export const leituraNoPonto = (v, pontoId) => leiturasDe(v).find((l) => l.ponto === pontoId) || null;
+/** Titular e dependentes de quem foi lido */
+export function familiaDe(lista, vid) {
+  const grupos = dependentesPorTitular(lista), tit = grupos[vid] ? vid : Object.keys(grupos).find((t) => grupos[t].includes(vid));
+  if (!tit) return lista.filter(([id]) => id === vid);
+  const juntos = new Set([tit, ...grupos[tit]]);
+  return agruparViajantes(lista.filter(([id]) => juntos.has(id)));
+}
+/** Quem deve estar neste veículo e quem falta neste ponto. Colo vai no veículo do titular. */
+export function conferenciaDoPonto(lista, mapa, ex, pontoId, vk) {
+  const assento = {}, unico = veiculosDe(ex).length <= 1;
+  Object.entries(mapa || {}).forEach(([k, lugares]) => Object.values(lugares || {}).forEach((id) => { if (id) assento[id] = k; }));
+  const grupos = dependentesPorTitular(lista), titular = {};
+  Object.entries(grupos).forEach(([t, deps]) => deps.forEach((id) => { titular[id] = t; }));
+  const porId = Object.fromEntries(lista);
+  const vkDe = (id) => assento[id] || (porId[id]?.colo ? assento[titular[id]] : undefined);
+  const ids = lista.map(([id]) => id);
+  const esperados = unico ? ids : ids.filter((id) => vkDe(id) === vk);
+  const presentes = esperados.filter((id) => leituraNoPonto(porId[id], pontoId));
+  const faltam = esperados.filter((id) => !presentes.includes(id));
+  return { esperados, presentes, faltam, semVeiculo: unico ? [] : ids.filter((id) => !vkDe(id)), completo: !!pontoId && esperados.length > 0 && !faltam.length, vkDe };
+}
+
 /** Link de convite de grupo do WhatsApp (https://chat.whatsapp.com/CODIGO) — devolve o link limpo ou "" */
 export function linkGrupoWhatsapp(v) {
   const m = String(v || "").trim().match(/^(?:https?:\/\/)?chat\.whatsapp\.com\/(?:invite\/)?([A-Za-z0-9]{10,40})\/?(?:\?.*)?$/);

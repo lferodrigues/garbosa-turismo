@@ -1,5 +1,5 @@
 // Página da passagem: aberta pelo link enviado no WhatsApp ou pelo QR Code. Quem é titular baixa todas de uma vez.
-import * as R from "./venda-regras.js?v=27";
+import * as R from "./venda-regras.js?v=28";
 import { baixarPassagens } from "./exportar.js?v=11";
 
 const QR = "https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js";

@@ -1,7 +1,8 @@
 import { auth, db, ADMIN_EMAIL, authSecundario } from "./firebase.js?v=8";
 import { baixarXLSX, baixarPDF, baixarPDFPoltronas, carregarXLSX } from "./exportar.js?v=11";
 import { apiCertidao, htmlFoto, ligarFoto } from "./certidao-foto.js?v=2";
-import * as R from "./venda-regras.js?v=27";
+import * as R from "./venda-regras.js?v=28";
+import { criarConferencia } from "./embarque.js?v=1";
 import { htmlOnibus } from "./mapa-onibus.js?v=3";
 import { montarVitrine, AVISO_VEICULOS, CATEGORIAS_VEICULO, ITENS_VEICULO } from "./vitrine.js?v=10";
 import { mostrarMoldura, tirarMoldura } from "./moldura.js?v=1";
@@ -45,6 +46,7 @@ const ROTAS = {
   excursoes:  { nome: "Excursões",            icone: "fa-route",         cor: "c2", tipos: ["agencia", "admin"], compart: true },
   viajantes:  { nome: "Viajantes",            icone: "fa-users",         cor: "c3", tipos: ["agencia", "admin"], compart: true },
   poltronas:  { nome: "Poltronas",            icone: "fa-couch",         cor: "c4", tipos: ["agencia", "admin"], compart: true },
+  embarque:   { nome: "Embarque",             icone: "fa-qrcode",        cor: "c4", tipos: ["agencia", "admin"], compart: true },
   financeiro: { nome: "Financeiro",           icone: "fa-sack-dollar",   cor: "c3", tipos: ["agencia", "admin"], compart: true },
   asaas:      { nome: "Financeiro Asaas",     icone: "fa-building-columns", cor: "c3", tipos: ["agencia", "admin"] },
   galeria:    { nome: "Galeria",              icone: "fa-images",        cor: "c2", tipos: ["agencia", "admin"], compart: true },
@@ -186,6 +188,7 @@ const ehAgencia = () => P?.tipo === "agencia";
 const ehTransp = () => P?.tipo === "transportadora";
 const podeAgencia = () => ehAgencia() || ehAdmin();
 const podeTransp = () => ehTransp() || ehAdmin();
+let conferencia = null; // tela de Embarque, criada na primeira vez que abre
 const dono = (exId) => S.excursoes[exId]?._owner || U.uid;
 const temCompart = () => Object.keys(S.comp).length > 0;
 const acessoEx = () => podeAgencia() || temCompart();
@@ -227,7 +230,7 @@ function rotear() {
     S.view = view; S.param = param;
     abrirAba(view, param);
     salvarAbas();
-    if (["viajantes", "poltronas", "financeiro", "vitrine"].includes(view) && param && param !== S.exSel) { S.exSel = param; S.veicSel = null; S.passSel = null; }
+    if (["viajantes", "poltronas", "embarque", "financeiro", "vitrine"].includes(view) && param && param !== S.exSel) { S.exSel = param; S.veicSel = null; S.passSel = null; }
   }
   if (S.view === "logs" && S.logs === null) carregarLogs();
   render();
@@ -490,6 +493,7 @@ function registrarLog(acao, detalhe = "") {
 
 let compUnsubs = {};
 function pararAssinaturas() {
+  conferencia?.parar();
   unsubs.forEach((u) => u());
   unsubs = [];
   Object.values(compUnsubs).forEach((l) => l.forEach((u) => u()));
@@ -562,7 +566,7 @@ function assinar() {
 ========================================================= */
 /* ---------- menu lateral (estilo painel de controle) ---------- */
 const GRUPOS_MENU = [
-  { id: "operacional", nome: "Operacional", icone: "fa-briefcase", itens: ["calendario", "excursoes", "galeria", "viajantes", "poltronas", "financeiro", "asaas"] },
+  { id: "operacional", nome: "Operacional", icone: "fa-briefcase", itens: ["calendario", "excursoes", "galeria", "viajantes", "poltronas", "embarque", "financeiro", "asaas"] },
   { id: "transporte", nome: "Transporte", icone: "fa-bus", itens: ["viagens"] },
   { id: "admin", nome: "Administração", icone: "fa-shield-halved", itens: ["cupons", "site", "usuarios", "logs"] }
 ];
@@ -769,12 +773,13 @@ function viewInicio() {
 function irPara(view, exId) { navegar(view, exId); }
 
 function render() {
+  if (S.view !== "embarque") conferencia?.parar();
   if (!P || $("#app").classList.contains("hidden")) return;
   renderAbas();
   document.title = `${ROTAS[S.view]?.nome || "Início"} | Garbosa System`;
   S.exportar = null;
   $("#workspace").classList.toggle("em-inicio", S.view === "inicio");
-  const views = { site: viewSite, inicio: viewInicio, calendario: viewCalendario, excursoes: viewExcursoes, viajantes: viewViajantes, poltronas: viewPoltronas, financeiro: viewFinanceiro, asaas: viewAsaas, vitrine: viewVitrine, galeria: viewGaleria, cupons: viewCupons, viagens: viewViagens, usuarios: viewUsuarios, logs: viewLogs };
+  const views = { site: viewSite, inicio: viewInicio, calendario: viewCalendario, excursoes: viewExcursoes, viajantes: viewViajantes, poltronas: viewPoltronas, embarque: viewEmbarque, financeiro: viewFinanceiro, asaas: viewAsaas, vitrine: viewVitrine, galeria: viewGaleria, cupons: viewCupons, viagens: viewViagens, usuarios: viewUsuarios, logs: viewLogs };
   (views[S.view] || viewCalendario)();
   const bx = $("#btnXlsx"), bp = $("#btnPdf");
   if (bx) bx.onclick = () => exportar("xlsx", bx);
@@ -2095,6 +2100,20 @@ function viewViajantes() {
   }));
   S.exportar = { titulo: `Viajantes ${ex.destino} ${fData(ex.dataSaida)}`, sub: `${tituloEx(ex)} · ${lista.length} viajante(s) · ${occ}/${cap} poltronas`,
     sheets: [{ nome: "Viajantes", colunas: COLS_PASS, linhas: linhasPassageiros(exId) }] };
+}
+
+/* =========================================================
+   EMBARQUE (leitura do QR Code da passagem)
+========================================================= */
+function viewEmbarque() {
+  const sel = seletorExcursao();
+  if (!sel) return semExcursao("Embarque", "fa-qrcode");
+  conferencia ||= criarConferencia({ S, $, esc, fData, DOCS, toolbar, tbBtn, toast, falha, abrirModal, fecharModal, statusPag, rotuloPoltrona,
+    usuario: () => ({ nome: P.nome || P.empresa || U.email, uid: U.uid }),
+    gravarLeitura: (exId, vid, dados) => set(push(ref(db, `viajantes/${dono(exId)}/${exId}/${vid}/leituras`)), dados),
+    salvarConferencia: (exId, dados) => set(ref(db, `excursoes/${dono(exId)}/${exId}/conferencia`), dados) });
+  conferencia.tela(sel);
+  ligarSeletor();
 }
 
 /* Certidões guardadas no banco, fora do alcance do navegador (só passam pelo servidor, com o login) */

@@ -54,7 +54,7 @@ function bilhete(ex, mapa, vid, v, token) {
   return {
     token, codigo: vid.slice(-8).toUpperCase(), nome: v.nome, documento: documentoMascarado(v), colo: !!v.colo,
     responsavel: v.responsavel || "", poltrona: v.colo ? "Colo" : assento ? String(assento.n) : "A definir",
-    veiculo: idx >= 0 && veiculos.length > 1 ? `Veículo ${idx + 1}` : "",
+    veiculo: [idx >= 0 && veiculos.length > 1 ? `Veículo ${idx + 1}` : "", assento && R.prefixoDe(ex, assento.vk) ? `Prefixo ${R.prefixoDe(ex, assento.vk)}` : ""].filter(Boolean).join(" · "),
     origem: emb ? [emb.cidade, emb.local].filter(Boolean).join(" - ") : ex.localSaida || "A combinar", horaSaida: emb?.hora || ex.horaSaida || "",
     valorCent, pagoCent, saldoCent: Math.max(0, valorCent - pagoCent), forma: v.formaPagamento || "",
     opcionais: Object.values(v.opcionais || {}).map((o) => o.titulo).filter(Boolean)
