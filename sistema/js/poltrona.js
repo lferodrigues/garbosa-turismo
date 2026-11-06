@@ -78,30 +78,64 @@ async function carregar() {
   mostrar("#vitrine");
 }
 
-/** Chave Pix da excursão, com botão de copiar, no primeiro passo e na confirmação */
-function mostrarPix() {
-  const pix = PIX_POR_EXCURSAO[exId];
-  if (!pix) return;
-  $("#dicaInicio").textContent = "Não precisa criar conta: é só informar quem vai viajar e escolher a poltrona. O pagamento é feito por Pix.";
-  $$("[data-pix]").forEach((box) => {
-    box.innerHTML = `
+/** Chave Pix (com botão de copiar) e, se houver, o botão do ingresso */
+function htmlPix(pix) {
+  return `
       <p class="cp-pix-tit"><i class="fa-brands fa-pix"></i> Pagamento por Pix até <strong>${esc(pix.ate)}</strong></p>
       <small>Chave Pix</small>
       <div class="cp-pix-linha">
         <strong class="cp-pix-chave">${esc(pix.chave)}</strong>
         <button type="button" class="btn btn-light btn-sm" data-copiar aria-live="polite"><i class="fa-regular fa-copy"></i> Copiar</button>
       </div>${pix.ingresso ? `
-      <p class="cp-pix-ingresso"><i class="fa-solid fa-ticket"></i> O ingresso do show não está incluído. Compre pelo link:
-        <a href="${esc(pix.ingresso)}" target="_blank" rel="noopener">${esc(pix.ingresso)}</a></p>` : ""}`;
-    box.classList.remove("hidden");
-    const btn = $("[data-copiar]", box);
-    btn.addEventListener("click", async () => {
-      try { await navigator.clipboard.writeText(pix.chave); }
-      catch { getSelection().selectAllChildren($(".cp-pix-chave", box)); return; } // sem permissão: deixa selecionada para copiar à mão
-      btn.innerHTML = '<i class="fa-solid fa-check"></i> Copiada!';
-      setTimeout(() => { btn.innerHTML = '<i class="fa-regular fa-copy"></i> Copiar'; }, 2000);
-    });
+      <a class="btn btn-block cp-btn-ingresso" href="${esc(pix.ingresso)}" target="_blank" rel="noopener"><i class="fa-solid fa-ticket"></i> Clique aqui para comprar os ingressos</a>` : ""}`;
+}
+function ligarCopiar(box, chave) {
+  const btn = $("[data-copiar]", box);
+  btn.addEventListener("click", async () => {
+    try { await navigator.clipboard.writeText(chave); }
+    catch { getSelection().selectAllChildren($(".cp-pix-chave", box)); return; } // sem permissão: deixa selecionada para copiar à mão
+    btn.innerHTML = '<i class="fa-solid fa-check"></i> Copiada!';
+    setTimeout(() => { btn.innerHTML = '<i class="fa-regular fa-copy"></i> Copiar'; }, 2000);
   });
+}
+
+/** Chave Pix da excursão no primeiro passo e na confirmação */
+function mostrarPix() {
+  const pix = PIX_POR_EXCURSAO[exId];
+  if (!pix) return;
+  $("#dicaInicio").textContent = "Não precisa criar conta: é só informar quem vai viajar e escolher a poltrona. O pagamento é feito por Pix.";
+  $$("[data-pix]").forEach((box) => {
+    box.innerHTML = htmlPix(pix);
+    box.classList.remove("hidden");
+    ligarCopiar(box, pix.chave);
+  });
+}
+
+/** Pop-up depois de confirmar a poltrona: chave Pix e botão do ingresso */
+function popupPagamento() {
+  const pix = PIX_POR_EXCURSAO[exId];
+  if (!pix) return;
+  const fundo = document.createElement("div");
+  fundo.className = "modal-backdrop pp-fundo";
+  fundo.innerHTML = `
+    <div class="modal pp-modal" role="dialog" aria-modal="true" aria-labelledby="pgTit" aria-describedby="pgTxt">
+      <div class="pp-topo">
+        <span class="pp-ic"><i class="fa-solid fa-circle-check"></i></span>
+        <h3 id="pgTit">Poltrona garantida!</h3>
+        <p id="pgTxt">Agora é só fazer o pagamento por Pix${pix.ingresso ? " e comprar o ingresso do show" : ""}.</p>
+      </div>
+      <div class="pp-corpo">
+        <div class="cp-pix">${htmlPix(pix)}</div>
+        <div class="pp-acoes"><button type="button" class="btn btn-light btn-block" data-fechar><i class="fa-solid fa-check"></i> Entendi</button></div>
+      </div>
+    </div>`;
+  const fechar = () => { document.removeEventListener("keydown", tecla); fundo.classList.add("saindo"); setTimeout(() => fundo.remove(), 160); };
+  const tecla = (e) => { if (e.key === "Escape") fechar(); };
+  fundo.addEventListener("click", (e) => { if (e.target === fundo || e.target.closest("[data-fechar]")) fechar(); });
+  document.addEventListener("keydown", tecla);
+  ligarCopiar(fundo, pix.chave);
+  document.body.appendChild(fundo);
+  $("[data-fechar]", fundo).focus();
 }
 
 /** Selo automático no topo: "Últimas vagas" (faltando 40% ou menos) ou "Esgotado" */
@@ -470,6 +504,7 @@ async function salvar(n) {
     const r = await api({ e: exId, v: vLink || undefined, pessoas: S.pessoas.map(corpoPessoa) });
     msg(n, "");
     mostrarResumo(r.poltronas);
+    popupPagamento();
   } catch (e) {
     $("#btnSalvar").disabled = false;
     if (e.dados?.poltronasOcupadas) { await atualizar(); etapa(2); return msg(2, e.message); }

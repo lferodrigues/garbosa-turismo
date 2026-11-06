@@ -1366,8 +1366,9 @@ input:-webkit-autofill{-webkit-text-fill-color:#fff;-webkit-box-shadow:0 0 0 40p
 .cp-pix small{display:block;font-size:.75rem}
 .cp-pix-linha{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
 .cp-pix-chave{color:#2A1F88;font-size:min(.95rem,3.5vw);overflow-wrap:anywhere;min-width:0}
-.cp-pix-ingresso{margin:10px 0 0;padding-top:10px;border-top:1px dashed #f3df9c;font-size:.85rem;color:inherit}
-.cp-pix-ingresso a{display:block;margin-top:4px;color:#2A1F88;font-weight:600;overflow-wrap:anywhere}
+.cp-btn-ingresso{margin-top:12px;text-align:center;background:#2A1F88;color:#fff;font-weight:700;justify-content:center}
+.cp-btn-ingresso:hover{background:#5946da;color:#fff}
+.pp-corpo .cp-pix{margin:0 0 12px}
 
 /* passagem (link enviado pelo WhatsApp) */
 .psg-area{max-width:560px;width:100%;margin:0 auto;display:flex;flex-direction:column;gap:12px}
