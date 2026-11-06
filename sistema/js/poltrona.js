@@ -16,7 +16,10 @@ let EX = null, seq = 0;
 const S = { pessoas: [], ativo: 0, veic: null };
 /* Excursões que recebem por Pix direto para a agência; as demais não mostram nada disso */
 const PIX_POR_EXCURSAO = {
-  "-P5DW-RX4uz6M7k2M1ev": { chave: "contato.garbosaturismo@gmail.com", ate: "13/11/2026" } // Show do Frei Gilson
+  "-P5DW-RX4uz6M7k2M1ev": {
+    chave: "contato.garbosaturismo@gmail.com", ate: "13/11/2026",
+    ingresso: "https://evento2.agendacatolica.com/event/frei-gilson-comunidade-resgate" // o ingresso do show é comprado à parte
+  } // Show do Frei Gilson
 };
 /*
  * Pessoa: { id, nome, docTipo, docNumero, colo, nascimento, com (id do adulto), assento }
@@ -87,7 +90,9 @@ function mostrarPix() {
       <div class="cp-pix-linha">
         <strong class="cp-pix-chave">${esc(pix.chave)}</strong>
         <button type="button" class="btn btn-light btn-sm" data-copiar aria-live="polite"><i class="fa-regular fa-copy"></i> Copiar</button>
-      </div>`;
+      </div>${pix.ingresso ? `
+      <p class="cp-pix-ingresso"><i class="fa-solid fa-ticket"></i> O ingresso do show não está incluído. Compre pelo link:
+        <a href="${esc(pix.ingresso)}" target="_blank" rel="noopener">${esc(pix.ingresso)}</a></p>` : ""}`;
     box.classList.remove("hidden");
     const btn = $("[data-copiar]", box);
     btn.addEventListener("click", async () => {
