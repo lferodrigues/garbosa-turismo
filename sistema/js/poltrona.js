@@ -87,7 +87,7 @@ function htmlPix(pix) {
         <strong class="cp-pix-chave">${esc(pix.chave)}</strong>
         <button type="button" class="btn btn-light btn-sm" data-copiar aria-live="polite"><i class="fa-regular fa-copy"></i> Copiar</button>
       </div>${pix.ingresso ? `
-      <a class="btn btn-block cp-btn-ingresso" href="${esc(pix.ingresso)}" target="_blank" rel="noopener"><i class="fa-solid fa-ticket"></i> Clique aqui para comprar os ingressos</a>` : ""}`;
+      <a class="btn cp-btn-ingresso" href="${esc(pix.ingresso)}" target="_blank" rel="noopener"><i class="fa-solid fa-ticket"></i> Clique aqui para comprar os ingressos</a>` : ""}`;
 }
 function ligarCopiar(box, chave) {
   const btn = $("[data-copiar]", box);

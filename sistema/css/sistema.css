@@ -1366,7 +1366,7 @@ input:-webkit-autofill{-webkit-text-fill-color:#fff;-webkit-box-shadow:0 0 0 40p
 .cp-pix small{display:block;font-size:.75rem}
 .cp-pix-linha{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
 .cp-pix-chave{color:#2A1F88;font-size:min(.95rem,3.5vw);overflow-wrap:anywhere;min-width:0}
-.cp-btn-ingresso{margin-top:12px;text-align:center;background:#2A1F88;color:#fff;font-weight:700;justify-content:center}
+.cp-btn-ingresso{display:flex;width:fit-content;max-width:100%;margin:12px auto 0;padding:7px 16px;font-size:.8rem;text-align:center;background:#2A1F88;color:#fff;font-weight:700;justify-content:center}
 .cp-btn-ingresso:hover{background:#5946da;color:#fff}
 .pp-corpo .cp-pix{margin:0 0 12px}
 
