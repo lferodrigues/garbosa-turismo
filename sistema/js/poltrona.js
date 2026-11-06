@@ -26,7 +26,7 @@ const PIX_POR_EXCURSAO = {
  * + quando o documento já estava cadastrado: vid, existente { nome, poltrona, podeAlterar },
  *   manter (fica como está) ou original (poltrona de antes, enquanto altera)
  */
-const nova = (colo = false) => ({ id: "p" + seq++, nome: "", docTipo: colo ? "CERTIDAO" : "RG", docNumero: "", colo, nascimento: "", com: "", assento: null, opcionais: [], cep: "", certidaoId: "", certidaoPrevia: "", enviandoFoto: false });
+const nova = (colo = false) => ({ id: "p" + seq++, nome: "", docTipo: colo ? "CERTIDAO" : "RG", docNumero: "", telefone: "", colo, nascimento: "", com: "", assento: null, opcionais: [], cep: "", certidaoId: "", certidaoPrevia: "", enviandoFoto: false });
 const precisaPoltrona = (p) => !p.colo && !p.manter;
 const adultos = () => S.pessoas.filter((p) => !p.colo);
 const nomeCurto = (p) => primeiro(p.nome) || `Pessoa ${S.pessoas.indexOf(p) + 1}`;
@@ -205,6 +205,12 @@ function campoDoc(p) {
       ? `<div class="span2 ${cert ? "" : "hidden"}" data-cert>${htmlFoto(p.certidaoPrevia, p.certidaoId ? "Foto enviada." : `Tire uma foto legível da certidão inteira. Se preferir, envie pelo WhatsApp ${wpp}: no final aparece o botão.`)}</div>`
       : `<p class="cp-nota span2 ${cert ? "" : "hidden"}" data-cert><i class="fa-brands fa-whatsapp"></i> A certidão será enviada pelo WhatsApp <strong>${wpp}</strong>. No final aparece o botão para enviar.</p>`}`;
 }
+/** WhatsApp para a agência falar com o viajante (pedido de pelo menos um na lista) */
+function campoWhats(p) {
+  const opcional = p.vid || S.pessoas.find((x) => !x.colo && !x.manter) !== p;
+  return `<label class="span2">WhatsApp ${opcional ? '<small class="cp-opc">(opcional)</small>' : ""}
+      <input data-c="telefone" type="tel" value="${esc(p.telefone)}" inputmode="tel" maxlength="15" placeholder="(32) 99999-9999" autocomplete="${S.pessoas.indexOf(p) ? "off" : "tel"}"></label>`;
+}
 function cartaoMantido(p, i) {
   const x = p.existente;
   return `
@@ -240,6 +246,7 @@ function renderLista() {
         <div class="form-grid">
           <label class="span2">Nome completo<input data-c="nome" value="${esc(p.nome)}" maxlength="120" autocomplete="${i ? "off" : "name"}"></label>
           ${campoDoc(p)}
+          ${campoWhats(p)}
           ${campoCep(p)}
           ${htmlOpcionais(EX.opcionais, p.opcionais)}
         </div>
@@ -262,6 +269,7 @@ function renderLista() {
     dicaCep(p, fs);
     $$("[data-c]", fs).forEach((el) => el.addEventListener(el.tagName === "SELECT" || el.type === "date" ? "change" : "input", () => {
       if (el.dataset.c === "cep") el.value = R.mascaraCep(el.value);
+      if (el.dataset.c === "telefone") el.value = R.mascaraTel(el.value);
       p[el.dataset.c] = el.value;
       if (el.dataset.c === "cep") dicaCep(p, fs);
       fs.classList.remove("erro");
@@ -314,6 +322,10 @@ function validar() {
       : nome.split(" ").length < 2 ? `Informe o nome completo de ${quem}.`
       : p.docTipo === "RG" && !doc ? `Informe o RG de ${quem} (com ou sem pontos, tanto faz).`
       : doc && vistos.has(doc) ? `${quem} e ${vistos.get(doc)} estão com o mesmo documento. Confira.` : "";
+    const dig = String(p.telefone || "").replace(/\D/g, "");
+    if (!erro && dig && dig.length < 10) erro = `Confira o WhatsApp de ${quem} (com DDD).`;
+    if (!erro && !p.colo && !p.vid && !dig && !S.pessoas.some((x) => !x.colo && !x.manter && String(x.telefone || "").replace(/\D/g, "").length >= 10))
+      erro = `Informe o WhatsApp de ${quem} (com DDD), para a agência falar com vocês.`;
     if (!erro && p.colo) {
       const idade = idadeNaViagem(p);
       erro = idade === null ? `Informe a data de nascimento de ${quem}.`
@@ -492,7 +504,7 @@ function escolher(vk, n) {
 function corpoPessoa(p) {
   if (p.manter) return { vid: p.vid, docNumero: p.docNumero, manter: true };
   return {
-    nome: p.nome, docTipo: p.docTipo, docNumero: p.docNumero, vid: p.vid || undefined,
+    nome: p.nome, docTipo: p.docTipo, docNumero: p.docNumero, telefone: p.colo ? "" : p.telefone || "", vid: p.vid || undefined,
     colo: p.colo, nascimento: p.colo ? p.nascimento : "", com: p.colo ? S.pessoas.findIndex((a) => a.id === p.com) : undefined,
     assento: p.colo ? null : p.assento, opcionais: resumoOpcionais(EX.opcionais, p.opcionais).ids, cep: cepDe(p) || "",
     certidaoId: p.docTipo === "CERTIDAO" && p.certidaoId ? p.certidaoId : undefined

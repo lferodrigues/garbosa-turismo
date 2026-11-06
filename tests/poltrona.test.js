@@ -54,6 +54,18 @@ test("recusa poltrona ocupada, RG vazio e link encerrado", async () => {
   assert.equal(Object.values(db.dump().viajantes[OWN][EX]).length, 1);
 });
 
+test("guarda o WhatsApp do viajante e não apaga ao alterar sem informar", async () => {
+  let r = await salvar([{ nome: "Ana Paula Souza", docTipo: "RG", docNumero: "MG-7.777.777", telefone: "32999887766", assento: { vk: "v1", n: 5 } }]);
+  assert.equal(r.statusCode, 200, JSON.stringify(r.body));
+  const vid = Object.entries(db.dump().viajantes[OWN][EX]).find(([, v]) => v.origem === "poltrona")[0];
+  assert.equal(db.dump().viajantes[OWN][EX][vid].telefone, "(32) 99988-7766");
+  r = await salvar([{ vid, nome: "Ana Paula Souza", docTipo: "RG", docNumero: "7777777", telefone: "", assento: { vk: "v1", n: 6 } }]);
+  assert.equal(r.statusCode, 200, JSON.stringify(r.body));
+  assert.equal(db.dump().viajantes[OWN][EX][vid].telefone, "(32) 99988-7766");
+  r = await salvar([{ nome: "Bia Paula Souza", docTipo: "RG", docNumero: "MG-8.888.888", telefone: "3299", assento: { vk: "v1", n: 7 } }]);
+  assert.equal(r.statusCode, 400);
+});
+
 /* ---------- criança de colo ---------- */
 const nasc = (anos, dias = 0) => somarDias(`${Number(somarDias(hojeBR(), 30).slice(0, 4)) - anos}${somarDias(hojeBR(), 30).slice(4)}`, dias);
 test("criança de colo até 5 anos completos não ocupa poltrona e vai com um adulto", async () => {

@@ -4,7 +4,7 @@
 //      → { encontrados: [{ i, vid, nome (abreviado), poltrona, assento, colo, podeAlterar }] }
 //      Compara os documentos com quem já está na excursão (com ou sem pontuação).
 // POST /api/poltrona-livre { e, pessoas: [...] } → salva. Cada pessoa:
-//      { nome, docTipo: "RG"|"CERTIDAO", docNumero, assento:{vk,n} }           pessoa nova com poltrona
+//      { nome, docTipo: "RG"|"CERTIDAO", docNumero, telefone, assento:{vk,n} } pessoa nova com poltrona (telefone = WhatsApp, opcional)
 //      { ..., colo: true, nascimento: "AAAA-MM-DD", com: índice do adulto }    criança de colo (até 5 anos completos)
 //      { ..., certidaoId }                                                      foto da certidão já enviada (/api/site-imagem?certidao=1)
 //      { ..., vid }                                                             altera o cadastro feito antes por este link
@@ -83,7 +83,7 @@ export default async function handler(req, res) {
 
     /* ---------- salvar ---------- */
     const pessoas = (Array.isArray(body.pessoas) ? body.pessoas : []).map((p) => ({
-      nome: texto(p?.nome, 120), docTipo: p?.docTipo === "CERTIDAO" ? "CERTIDAO" : "RG", docNumero: texto(p?.docNumero, 30),
+      nome: texto(p?.nome, 120), docTipo: p?.docTipo === "CERTIDAO" ? "CERTIDAO" : "RG", docNumero: texto(p?.docNumero, 30), telefone: p?.colo === true ? "" : R.mascaraTel(p?.telefone),
       colo: p?.colo === true, nascimento: texto(p?.nascimento, 10), com: Number.isInteger(p?.com) ? p.com : -1,
       vid: /^[\w-]{1,40}$/.test(p?.vid || "") ? p.vid : "", manter: p?.manter === true,
       assento: p?.assento ? { vk: texto(p.assento.vk, 40), n: parseInt(p.assento.n, 10) } : null,
@@ -110,6 +110,7 @@ export default async function handler(req, res) {
       }
       const quem = p.nome ? primeiro(p.nome) : `a pessoa ${i + 1}`;
       if (p.nome.split(" ").length < 2) throw new ErroUsuario(`Informe o nome completo de ${quem}.`, 400, { pessoa: i });
+      if (p.telefone && p.telefone.replace(/\D/g, "").length < 10) throw new ErroUsuario(`Confira o WhatsApp de ${quem} (com DDD).`, 400, { pessoa: i });
       if (p.docTipo === "RG" && !doc) throw new ErroUsuario(`Informe o RG de ${quem}.`, 400, { pessoa: i });
       if (doc) {
         if (docsVistos.has(doc)) throw new ErroUsuario(`O documento de ${quem} foi digitado duas vezes.`, 400, { pessoa: i });
@@ -171,9 +172,10 @@ export default async function handler(req, res) {
         cep: p.cep || p.existente?.cep || (p.colo ? pessoas[p.com]?.cep || "" : "")
       };
       if (!p.existente) {
-        upd[base] = { ...dados, telefone: "", valor, origem: "poltrona", criadoEm: agora };
+        upd[base] = { ...dados, telefone: p.telefone, valor, origem: "poltrona", criadoEm: agora };
       } else {
         for (const [k, v] of Object.entries(dados)) upd[`${base}/${k}`] = v;
+        if (p.telefone) upd[`${base}/telefone`] = p.telefone; // em branco: fica o que já estava
         // valor muda se virou/deixou de ser colo, entrou/saiu do leito ou trocou os opcionais
         const antes = R.extraAssentoCent(ex, assentoDe[p.vid]) + R.opcionaisGuardadosCent(p.existente), depois = R.extraAssentoCent(ex, p.assento) + opcCent;
         if ((p.existente.colo === true) !== p.colo) upd[`${base}/valor`] = valor;
