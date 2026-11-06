@@ -17,7 +17,7 @@ const S = { pessoas: [], ativo: 0, veic: null };
 /* Excursões que recebem por Pix direto para a agência; as demais não mostram nada disso */
 const PIX_POR_EXCURSAO = {
   "-P5DW-RX4uz6M7k2M1ev": {
-    chave: "contato.garbosaturismo@gmail.com", ate: "13/11/2026",
+    chave: "contato.garbosaturismo@gmail.com", ate: "16/11/2026",
     ingresso: "https://evento2.agendacatolica.com/event/frei-gilson-comunidade-resgate" // o ingresso do show é comprado à parte
   } // Show do Frei Gilson
 };
