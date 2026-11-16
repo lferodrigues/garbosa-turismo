@@ -1426,3 +1426,8 @@ input:-webkit-autofill{-webkit-text-fill-color:#fff;-webkit-box-shadow:0 0 0 40p
 .emb-par input{flex:1;min-width:0}
 #fPontos .btn-sm{align-self:flex-start}
 @media(max-width:800px){.emb-grade{grid-template-columns:1fr;padding:12px}.emb-sel{grid-template-columns:1fr}}
+
+/* nome do viajante que abre o WhatsApp */
+.nome-zap{background:none;border:0;padding:0;font:inherit;color:inherit;cursor:pointer;text-align:left;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+.nome-zap:hover{color:#1d9a55;text-decoration:underline}
+@media print{.nome-zap{text-decoration:none!important;color:inherit!important}}

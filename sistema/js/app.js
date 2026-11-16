@@ -153,6 +153,37 @@ function confirmar(texto, acao, rotulo = "Excluir") {
     } }
   ]);
 }
+/* ---------- WhatsApp do viajante: clicar no nome abre o popup para escrever e enviar ---------- */
+const nomeZap = (pid, nome) => `<button type="button" class="nome-zap" data-zap="${esc(pid)}" title="Mandar mensagem no WhatsApp">${esc(nome)}</button>`;
+const telZap = (t) => { const d = soDig(t); return (d.length === 12 || d.length === 13) && d.startsWith("55") ? d.slice(2) : d; };
+function abrirZap(exId, pid) {
+  const p = S.viajantes[exId]?.[pid];
+  if (!p) return;
+  const ex = S.excursoes[exId];
+  abrirModal(`WhatsApp · ${p.nome}`, `<div class="form-grid" style="grid-template-columns:1fr">
+    <label>WhatsApp<input name="zapTel" data-mask="tel" inputmode="tel" value="${esc(p.telefone || "")}" placeholder="(32) 99999-9999"></label>
+    ${p.telefone ? "" : `<small class="muted" style="margin-top:-6px">Este viajante está sem telefone cadastrado: digite o número para enviar.</small>`}
+    <label>Mensagem<textarea name="zapMsg" rows="6" placeholder="Escreva a mensagem...">Olá, ${esc(p.nome.split(" ")[0])}! ${ex ? `Sobre a excursão ${esc(ex.destino || "")} (${fData(ex.dataSaida)}): ` : ""}</textarea></label></div>`, [
+    { html: "Cancelar", acao: fecharModal },
+    { html: `<i class="fa-brands fa-whatsapp"></i> Enviar no WhatsApp`, classe: "btn-wpp", acao: () => {
+      const tel = telZap($("#modalBody [name=zapTel]").value), msg = $("#modalBody [name=zapMsg]").value.trim();
+      if (tel.length < 10) return toast("Informe um WhatsApp com DDD.", "erro");
+      if (!msg) return toast("Escreva a mensagem.", "erro");
+      window.open(`https://wa.me/55${tel}?text=${encodeURIComponent(msg)}`, "_blank", "noopener");
+      fecharModal();
+    } }
+  ]);
+  const t = $("#modalBody [name=zapMsg]");
+  setTimeout(() => { t.focus(); t.setSelectionRange(t.value.length, t.value.length); }, 60);
+}
+// captura: o clique no nome não seleciona a linha/viajante por baixo (ex.: lista da tela de Poltronas)
+document.addEventListener("click", (e) => {
+  const b = e.target.closest?.(".nome-zap");
+  if (!b) return;
+  e.preventDefault(); e.stopPropagation();
+  abrirZap(S.exSel, b.dataset.zap);
+}, true);
+
 function lerForm(form) {
   const d = {};
   $$("[name]", form).forEach((el) => {
@@ -2071,7 +2102,7 @@ function viewViajantes() {
       <thead><tr><th>#</th><th>Nome completo</th><th>Documento</th><th>Telefone</th><th>Idade</th><th>Pagamento</th><th>Poltrona</th><th></th></tr></thead>
       <tbody>${lista.map(([pid, p], i) => `<tr${p.responsavel ? ` class="dep${oculto.has(pid) ? " hidden" : ""}"` : ""}>
         <td>${i + 1}</td>
-        <td><strong>${esc(p.nome)}</strong>${botaoDeps(pid)}${p.colo ? ` <span class="pill pill-yellow">colo</span>` : ""}${p.origem === "link" ? ` <span class="pill pill-link" title="Cadastrado pelo link">link</span>` : ""}${p.origem === "planilha" ? ` <span class="pill" title="Importado de planilha">planilha</span>` : ""}${p.origem === "poltrona" ? ` <span class="pill pill-link" title="Escolheu a poltrona pelo link rápido (nome e RG)"><i class="fa-solid fa-chair"></i> poltrona</span>` : ""}${p.origem === "reserva" ? ` <span class="pill pill-link" title="Reservou a poltrona pelo link (pagamento a combinar)"><i class="fa-solid fa-couch"></i> reserva</span>` : ""}${p.origem === "venda" ? ` <span class="pill pill-online st-${STATUS_PEDIDO[p.statusVenda]?.cls || "pendente"}" title="Compra online (Asaas) — ${esc(STATUS_PEDIDO[p.statusVenda]?.nome || "")}"><i class="fa-solid fa-cart-shopping"></i> online</span>` : ""}${Object.values(p.opcionais || {}).map((o) => ` <span class="pill pill-opc" title="Opcional: ${esc(o.titulo)} (${brl(o.valor)})"><i class="fa-solid fa-square-plus"></i> ${esc(o.titulo)}</span>`).join("")}${p.obs ? `<br><small class="muted">${esc(p.obs)}</small>` : ""}</td>
+        <td><strong>${nomeZap(pid, p.nome)}</strong>${botaoDeps(pid)}${p.colo ? ` <span class="pill pill-yellow">colo</span>` : ""}${p.origem === "link" ? ` <span class="pill pill-link" title="Cadastrado pelo link">link</span>` : ""}${p.origem === "planilha" ? ` <span class="pill" title="Importado de planilha">planilha</span>` : ""}${p.origem === "poltrona" ? ` <span class="pill pill-link" title="Escolheu a poltrona pelo link rápido (nome e RG)"><i class="fa-solid fa-chair"></i> poltrona</span>` : ""}${p.origem === "reserva" ? ` <span class="pill pill-link" title="Reservou a poltrona pelo link (pagamento a combinar)"><i class="fa-solid fa-couch"></i> reserva</span>` : ""}${p.origem === "venda" ? ` <span class="pill pill-online st-${STATUS_PEDIDO[p.statusVenda]?.cls || "pendente"}" title="Compra online (Asaas) — ${esc(STATUS_PEDIDO[p.statusVenda]?.nome || "")}"><i class="fa-solid fa-cart-shopping"></i> online</span>` : ""}${Object.values(p.opcionais || {}).map((o) => ` <span class="pill pill-opc" title="Opcional: ${esc(o.titulo)} (${brl(o.valor)})"><i class="fa-solid fa-square-plus"></i> ${esc(o.titulo)}</span>`).join("")}${p.obs ? `<br><small class="muted">${esc(p.obs)}</small>` : ""}</td>
         <td><small class="muted">${esc(DOCS[p.docTipo] || p.docTipo)}</small><br>${esc(p.docNumero)}</td>
         <td>${esc(p.telefone)}</td>
         <td>${esc(p.idade ?? "—")}</td>
@@ -2303,7 +2334,7 @@ function viewPoltronas() {
       <span class="sn">${n}</span>${pid ? `<span class="snome">${esc(nome.split(" ")[0])}</span><button class="seat-x" data-x="${n}" title="Liberar">×</button>` : ""}</div>`;
   };
   const bus = htmlOnibus(R.plantaVeiculo(v.tipo, vv.cap), seat, vv.cap);
-  const numerada = Array.from({ length: vv.cap }, (_, i) => i + 1).map((n) => `<li><span>${n}</span>${esc(nomes[mapa[n]] || "")}</li>`).join("");
+  const numerada = Array.from({ length: vv.cap }, (_, i) => i + 1).map((n) => `<li><span>${n}</span>${mapa[n] && nomes[mapa[n]] ? nomeZap(mapa[n], nomes[mapa[n]]) : ""}</li>`).join("");
 
   $("#workspace").innerHTML = `
   <section class="panel">
@@ -2344,7 +2375,7 @@ function viewPoltronas() {
           ${filtrados.length ? filtrados.map(([id, p]) => {
             const pos = poltronaDe(exId, id);
             return `<div class="pass ${pos ? "posto" : ""} ${S.passSel === id ? "sel" : ""}" draggable="true" data-pid="${id}">
-              <i class="fa-solid fa-user"></i><span>${esc(p.nome)}</span>${pos ? `<em>${esc(rotuloPoltrona(exId, id))}</em>` : ""}</div>`;
+              <i class="fa-solid fa-user"></i><span>${nomeZap(id, p.nome)}</span>${pos ? `<em>${esc(rotuloPoltrona(exId, id))}</em>` : ""}</div>`;
           }).join("") : `<p class="vazio">${pessoas.length ? "Nenhum resultado." : "Cadastre viajantes primeiro."}</p>`}
         </div>
       </aside>
@@ -3578,7 +3609,7 @@ function viewFinanceiro() {
         const pago = pagoDe(p), saldo = Math.max(0, num(p.valor) - pago), tel = soDig(p.telefone);
         return `<tr${p.responsavel ? ` class="dep"` : ""}>
           <td>${i + 1}</td>
-          <td><strong>${esc(p.nome)}</strong>${p.colo ? ` <span class="pill pill-yellow">colo</span>` : ""}<br><small class="muted">${esc(p.telefone || "")}</small></td>
+          <td><strong>${nomeZap(pid, p.nome)}</strong>${p.colo ? ` <span class="pill pill-yellow">colo</span>` : ""}<br><small class="muted">${esc(p.telefone || "")}</small></td>
           <td>${esc(p.formaPagamento || "—")}</td>
           <td>${brl(p.valor)}</td>
           <td class="money">${brl(pago)}</td>
