@@ -160,21 +160,53 @@ function abrirZap(exId, pid) {
   const p = S.viajantes[exId]?.[pid];
   if (!p) return;
   const ex = S.excursoes[exId];
+  const faltaDoc = !String(p.docNumero || "").trim(), faltaIdade = p.idade == null || p.idade === "";
+  const incompleto = faltaDoc || faltaIdade || !p.telefone;
   abrirModal(`WhatsApp · ${p.nome}`, `<div class="form-grid" style="grid-template-columns:1fr">
     <label>WhatsApp<input name="zapTel" data-mask="tel" inputmode="tel" value="${esc(p.telefone || "")}" placeholder="(32) 99999-9999"></label>
-    ${p.telefone ? "" : `<small class="muted" style="margin-top:-6px">Este viajante está sem telefone cadastrado: digite o número para enviar.</small>`}
+    ${p.telefone ? "" : `<small class="muted" style="margin-top:-6px">Sem telefone no cadastro: o número digitado aqui fica salvo no viajante.</small>`}
+    ${faltaDoc || faltaIdade ? `<fieldset class="zap-completar"><legend><i class="fa-solid fa-user-pen"></i> Completar cadastro <small>(opcional, preencha só o que tiver)</small></legend>
+      ${faltaDoc ? `<label>Tipo de documento<select name="zapDocTipo">${Object.entries(DOCS).map(([k, n]) => `<option value="${k}" ${k === (p.docTipo || "RG") ? "selected" : ""}>${n}</option>`).join("")}</select></label>
+      <label>Número do documento<input name="zapDocNumero" maxlength="30" autocomplete="off"></label>` : ""}
+      ${faltaIdade ? `<label>Idade<input type="number" min="0" max="120" name="zapIdade"></label>` : ""}
+    </fieldset>` : ""}
     <label>Mensagem<textarea name="zapMsg" rows="6" placeholder="Escreva a mensagem...">Olá, ${esc(p.nome.split(" ")[0])}! ${ex ? `Sobre a excursão ${esc(ex.destino || "")} (${fData(ex.dataSaida)}): ` : ""}</textarea></label></div>`, [
     { html: "Cancelar", acao: fecharModal },
-    { html: `<i class="fa-brands fa-whatsapp"></i> Enviar no WhatsApp`, classe: "btn-wpp", acao: () => {
+    ...(incompleto ? [{ html: `<i class="fa-solid fa-floppy-disk"></i> Salvar dados`, acao: async () => {
+      const n = await salvarZap(exId, pid);
+      if (n === null) return;
+      toast(n ? "Dados do viajante salvos" : "Nada novo para salvar", n ? "ok" : "erro");
+      if (n) fecharModal();
+    } }] : []),
+    { html: `<i class="fa-brands fa-whatsapp"></i> Enviar no WhatsApp`, classe: "btn-wpp", acao: async () => {
       const tel = telZap($("#modalBody [name=zapTel]").value), msg = $("#modalBody [name=zapMsg]").value.trim();
       if (tel.length < 10) return toast("Informe um WhatsApp com DDD.", "erro");
       if (!msg) return toast("Escreva a mensagem.", "erro");
-      window.open(`https://wa.me/55${tel}?text=${encodeURIComponent(msg)}`, "_blank", "noopener");
+      window.open(`https://wa.me/55${tel}?text=${encodeURIComponent(msg)}`, "_blank", "noopener"); // abre antes de salvar, senão o celular bloqueia
+      if (await salvarZap(exId, pid) === null) return;
       fecharModal();
     } }
   ]);
   const t = $("#modalBody [name=zapMsg]");
   setTimeout(() => { t.focus(); t.setSelectionRange(t.value.length, t.value.length); }, 60);
+}
+/** Grava no viajante só o que foi preenchido no popup (nada é obrigatório). Devolve quantos campos mudaram, ou null se deu erro. */
+async function salvarZap(exId, pid) {
+  const p = S.viajantes[exId]?.[pid];
+  const val = (n) => $(`#modalBody [name=${n}]`)?.value.trim() ?? "";
+  const upd = {};
+  const tel = val("zapTel");
+  if (tel && telZap(tel) !== telZap(p.telefone)) upd.telefone = tel.slice(0, 30);
+  if (val("zapDocNumero")) { upd.docNumero = val("zapDocNumero").slice(0, 30); upd.docTipo = val("zapDocTipo") || p.docTipo || "RG"; }
+  const idade = val("zapIdade");
+  if (idade !== "") {
+    const i = parseInt(idade, 10);
+    if (!(i >= 0 && i <= 120)) { toast("Idade inválida.", "erro"); return null; }
+    upd.idade = i;
+  }
+  if (!Object.keys(upd).length) return 0;
+  try { await update(ref(db, `viajantes/${dono(exId)}/${exId}/${pid}`), upd); return Object.keys(upd).length; }
+  catch (e) { falha(e); return null; }
 }
 // captura: o clique no nome não seleciona a linha/viajante por baixo (ex.: lista da tela de Poltronas)
 document.addEventListener("click", (e) => {
