@@ -1,5 +1,6 @@
 import { auth, db, ADMIN_EMAIL, authSecundario } from "./firebase.js?v=8";
-import { baixarXLSX, baixarPDF, baixarPDFPoltronas, carregarXLSX } from "./exportar.js?v=11";
+import { baixarXLSX, baixarPDF, baixarPDFPoltronas, carregarXLSX, nomeArquivo } from "./exportar.js?v=11";
+import { baixarDOCXPoltronas } from "./docx.js?v=1";
 import { apiCertidao, htmlFoto, ligarFoto } from "./certidao-foto.js?v=2";
 import * as R from "./venda-regras.js?v=28";
 import { criarConferencia } from "./embarque.js?v=1";
@@ -2308,7 +2309,7 @@ function viewPoltronas() {
   <section class="panel">
     ${toolbar("Montagem de poltronas", "fa-couch",
       tbBtn("btnAuto", "fa-wand-magic-sparkles", "Distribuir") + tbBtn("btnLimpar", "fa-eraser", "Limpar veículo") + tbBtn("btnEmbarque", "fa-location-dot", "Embarque do veículo") +
-      tbBtn("btnVeicExtra", "fa-plus", "Inserir veículo", "tool-accent") + tbBtn("btnPrint", "fa-print", "Imprimir"))}
+      tbBtn("btnVeicExtra", "fa-plus", "Inserir veículo", "tool-accent") + tbBtn("btnPrint", "fa-print", "Imprimir") + tbBtn("btnDocx", "fa-file-word", "DOCX", "tool-docx"))}
     <div class="subbar">${sel}
       <div class="lotacao"><div class="lot-txt"><strong>${totalSent}</strong> de <strong>${pessoas.length}</strong> viajantes posicionados · capacidade total ${capacidadeEx(ex)}</div></div>
     </div>
@@ -2464,6 +2465,14 @@ function viewPoltronas() {
     pdf: async () => baixarPDFPoltronas(titulo, sub,
       porVeiculo.map(({ i, x, nm, cap }) => ({ titulo: `${vs.length > 1 ? `Veículo ${i + 1} · ` : ""}${veic(x.tipo).nome}${R.embarqueDe(x) ? ` · ${R.textoEmbarque(R.embarqueDe(x))}` : ""}`, cap, planta: R.plantaVeiculo(x.tipo, cap), nomes: nm })),
       { colunas: COLS_POLT, linhas: linhasPoltronas(exId) }, await certidoesParaPdf(exId))
+  };
+  // Word só com poltrona e nome do ocupante (uma página por veículo)
+  $("#btnDocx").onclick = () => {
+    try {
+      baixarDOCXPoltronas(titulo, ex.horaSaida ? `Saída às ${ex.horaSaida}` : "",
+        porVeiculo.map(({ i, x, nm, cap }) => ({ titulo: vs.length > 1 ? `Veículo ${i + 1} · ${veic(x.tipo).nome}` : veic(x.tipo).nome, cap, nomes: nm })),
+        nomeArquivo(titulo));
+    } catch (e) { falha(e); }
   };
 }
 
